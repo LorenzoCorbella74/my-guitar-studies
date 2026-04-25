@@ -1,2 +1,52 @@
   @import "tailwindcss";
   @plugin "daisyui";
+
+/* Custom ngx-editor styles */
+.NgxEditor {
+  border: 1px solid hsl(var(--bc) / 0.2);
+  border-radius: 0.5rem;
+  background: hsl(var(--b1));
+}
+
+.NgxEditor__MenuBar {
+  border-bottom: 1px solid hsl(var(--bc) / 0.1);
+  padding: 0.5rem;
+  background: hsl(var(--b2));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.NgxEditor__MenuItem {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: hsl(var(--bc));
+}
+
+.NgxEditor__MenuItem:hover {
+  background: hsl(var(--b3));
+}
+
+.NgxEditor__MenuItem--Active {
+  background: hsl(var(--p));
+  color: hsl(var(--pc));
+}
+
+.NgxEditor__Content {
+  padding: 1rem;
+  min-height: 200px;
+  outline: none;
+}
+
+.NgxEditor__Content:focus {
+  outline: none;
+}
+
+.NgxEditor__Placeholder {
+  color: hsl(var(--bc) / 0.4);
+  pointer-events: none;
+}
+

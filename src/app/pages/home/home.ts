@@ -1,0 +1,86 @@
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+import { SessionService } from '../../services/session.service';
+import { ThemeService } from '../../services/theme.service';
+import { LucideSun, LucideMoon, LucideCircleUser } from "@lucide/angular";
+import { ToastService } from '../../services/toast.service';
+
+@Component({
+  selector: 'home-page',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, RouterOutlet, LucideSun, LucideMoon, LucideCircleUser],
+  template: `
+    <div class="h-screen bg-base-200">
+      <main class="h-full overflow-y-auto">
+        <router-outlet />
+      </main>
+      
+      <div class="fixed bottom-4 left-4 bg-base-100 shadow-lg rounded-box p-4 z-30 max-w-xs">
+        <a routerLink="/sessions" class="text-lg font-bold text-primary hover:underline block mb-3">
+          Guitar Studies
+        </a>
+        
+        <div class="flex items-center gap-2">
+          <button class="btn btn-ghost btn-sm btn-circle" (click)="themeService.toggleTheme()" aria-label="Toggle theme">
+            @if (themeService.theme() === 'dark') {
+              <svg lucideSun class="w-5 h-5"></svg>
+            } @else {
+              <svg lucideMoon class="w-5 h-5"></svg>
+            }
+          </button>
+          
+          <div class="dropdown dropdown-top">
+            <button class="btn btn-ghost btn-sm" (click)="toggleMenu()" aria-label="User menu">
+              <svg lucideCircleUser class="w-5 h-5"></svg>
+            </button>
+            @if (menuOpen()) {
+              <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-30 mb-2 w-52 p-2 shadow-lg gap-1">
+                <li class="menu-title px-2 py-1">
+                  <span class="text-xs opacity-60">{{ userEmail() }}</span>
+                </li>
+                <li>
+                  <a routerLink="/sessions" (click)="closeMenu()">
+                    Sessioni
+                  </a>
+                </li>
+                <li>
+                  <a routerLink="/settings" (click)="closeMenu()">
+                    Impostazioni
+                  </a>
+                </li>
+                <li>
+                  <button (click)="onLogout()">
+                    Esci
+                  </button>
+                </li>
+              </ul>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class HomePage implements OnInit {
+  private authService = inject(AuthService);
+  private sessionService = inject(SessionService);
+  public themeService = inject(ThemeService);
+
+  menuOpen = signal(false);
+
+  userEmail = computed(() => this.authService.currentUser()?.email || 'User');
+
+
+  async ngOnInit() {
+    await this.sessionService.loadSessions();
+  }
+
+  toggleMenu() { this.menuOpen.update(v => !v); }
+  closeMenu() { this.menuOpen.set(false); }
+
+  async onLogout() {
+    await this.authService.signOut();
+  }
+}

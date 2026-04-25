@@ -1,13 +1,37 @@
-import { Component } from '@angular/core';
-import { LucideAngularModule, FileIcon } from 'lucide-angular';
+import { Component, inject } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { LoadingComponent } from './components/loading/loading.component';
+import { ToastContainerComponent } from './components/toast/toast.component';
+import { LoginPage } from "./pages/login/login";
+import { AuthService } from './services/auth.service';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
+import { ConfirmService } from './services/confirm.service';
 
 @Component({
   standalone: true,
   selector: 'app-root',
-  templateUrl: './app.html',
-  styleUrl: './app.css',
-  imports: [LucideAngularModule]
+  imports: [RouterOutlet, LoadingComponent, ToastContainerComponent, LoginPage, ConfirmDialogComponent],
+  template: `
+    <app-loading />
+    <app-toast-container />
+    <app-confirm-dialog
+      [isOpen]="confirmService.isOpen()"
+      [title]="confirmService.title()"
+      [message]="confirmService.message()"
+      (confirm)="confirmService.confirm()"
+      (cancel)="confirmService.cancel()"
+    />
+    @if(this.authService.isAuthenticated()){
+      <router-outlet />
+    } @else {
+      <app-login/>
+    }
+  `,
+  styleUrl: './app.css'
 })
 export class App {
-  readonly FileIcon = FileIcon;
+
+  authService = inject(AuthService);
+  confirmService = inject(ConfirmService);
+
 }
