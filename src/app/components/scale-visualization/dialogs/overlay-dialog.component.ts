@@ -3,8 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
 import { LucideTrash2 } from '@lucide/angular';
-
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+import { NOTES } from '../constants';
 
 export interface OverlayItem {
   type: 'scale' | 'chord';

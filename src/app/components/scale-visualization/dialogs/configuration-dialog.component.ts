@@ -2,19 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
-
-const STANDARD_TUNINGS = {
-  'Standard (E)': ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
-  'Drop D': ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'],
-  'Drop C': ['C2', 'G2', 'C3', 'F3', 'A3', 'D4'],
-  'Half Step Down': ['Eb2', 'Ab2', 'Db3', 'Gb3', 'Bb3', 'Eb4'],
-  'Whole Step Down': ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'],
-  'Open D': ['D2', 'A2', 'D3', 'F#3', 'A3', 'D4'],
-  'Open G': ['D2', 'G2', 'D3', 'G3', 'B3', 'D4'],
-  'DADGAD': ['D2', 'A2', 'D3', 'G3', 'A3', 'D4']
-};
-
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+import { STANDARD_TUNINGS, NOTES } from '../constants';
 
 export interface ConfigurationDialogData {
   itemType: 'scale' | 'arpeggio' | 'chord';

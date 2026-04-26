@@ -7,20 +7,7 @@ import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDia
 import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
 import { ScaleRelationsDialogComponent, ScaleRelationsDialogData } from './dialogs/scale-relations-dialog.component';
 import { OverlayDialogComponent, OverlayDialogData, OverlayDialogResult, OverlayItem } from './dialogs/overlay-dialog.component';
-
-const STANDARD_TUNINGS = {
-  'Standard (E)': ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
-  'Drop D': ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'],
-  'Drop C': ['C2', 'G2', 'C3', 'F3', 'A3', 'D4'],
-  'Half Step Down': ['Eb2', 'Ab2', 'Db3', 'Gb3', 'Bb3', 'Eb4'],
-  'Whole Step Down': ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'],
-  'Open D': ['D2', 'A2', 'D3', 'F#3', 'A3', 'D4'],
-  'Open G': ['D2', 'G2', 'D3', 'G3', 'B3', 'D4'],
-  'DADGAD': ['D2', 'A2', 'D3', 'G3', 'A3', 'D4']
-};
-
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const NUM_FRETS = 12;
+import { DEGREE_COLOURS, OCTAVE_COLOURS, STANDARD_TUNINGS, NOTES, NUM_FRETS, FRETBOARD_STYLES } from './constants';
 
 interface FretNote {
   string: number;
@@ -35,246 +22,7 @@ interface FretNote {
   selector: 'app-scale-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers],
-  template: `
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        @if (!hasConfig()) {
-          <!-- Initial prompt to configure -->
-          <div class="text-center py-8">
-            <p class="text-base-content/60 mb-4">
-              Configura la visualizzazione @if (itemType() === 'scale') { della scala }
-              @else if (itemType() === 'arpeggio') { dell'arpeggio }
-              @else { dell'accordo }
-            </p>
-            <button class="btn btn-primary" (click)="openModal()">
-              @if (itemType() === 'scale') { Configura scala }
-              @else if (itemType() === 'arpeggio') { Configura arpeggio }
-              @else { Configura accordo }
-            </button>
-          </div>
-        } @else {
-          <!-- Header with edit/delete buttons -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <h3 class="text-lg font-semibold">
-                    {{ displayTitle() }}
-                  </h3>
-                  <div class="flex gap-1">
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-sm btn-square"
-                      (click)="toggleAlternateNotes()"
-                      [attr.aria-label]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
-                      [title]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
-                    >
-                      @if (areAlternateNotesVisible()) {
-                        <svg lucideEye class="w-4 h-4"></svg>
-                      } @else {
-                        <svg lucideEyeOff class="w-4 h-4"></svg>
-                      }
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-sm btn-square"
-                      (click)="openConfigModal()"
-                      aria-label="Configura visualizzazione"
-                      title="Configura visualizzazione"
-                    >
-                      <svg lucideSettings class="w-4 h-4"></svg>
-                    </button>
-                    @if (itemType() === 'scale') {
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-sm btn-square"
-                        (click)="openRelationsModal()"
-                        aria-label="Relazioni scala"
-                        title="Relazioni scala"
-                      >
-                        <svg lucideNetwork class="w-4 h-4"></svg>
-                      </button>
-                    }
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-sm btn-square"
-                      (click)="openOverlayModal()"
-                      aria-label="Aggiungi sovrapposizione"
-                      title="Aggiungi sovrapposizione scala/accordo"
-                    >
-                      <svg lucideLayers class="w-4 h-4"></svg>
-                    </button>
-                  </div>
-                </div>
-                <p class="text-sm text-base-content/60">
-                  {{ displaySubtitle() }} - {{ getTuningName() }}
-                </p>
-              </div>
-
-              <!-- Notes Toggle -->
-              <div class="flex gap-1 mx-4">
-                @for (noteInfo of notesWithDegrees(); track $index) {
-                  <button
-                    type="button"
-                    class="btn btn-xs flex flex-col gap-0 h-auto py-1 px-2"
-                    [class.btn-primary]="isNoteVisible(noteInfo.note)"
-                    [class.btn-ghost]="!isNoteVisible(noteInfo.note)"
-                    (click)="toggleNote(noteInfo.note)"
-                  >
-                    <span class="text-[10px] leading-tight opacity-60">{{ noteInfo.degree }}</span>
-                    <span class="text-xs font-semibold leading-tight">{{ noteInfo.note }}</span>
-                  </button>
-                }
-              </div>
-
-              <div class="flex gap-2">
-                <button
-                  class="btn btn-ghost btn-sm btn-square"
-                  (click)="openModal()"
-                  aria-label="Modifica configurazione"
-                >
-                  <svg lucidePencil class="w-4 h-4"></svg>
-                </button>
-                <button
-                  class="btn btn-ghost btn-sm btn-square"
-                  (click)="handleDelete()"
-                  aria-label="Elimina"
-                >
-                  <svg lucideTrash2 class="w-4 h-4"></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- SVG Fretboard -->
-          <div class="overflow-x-auto">
-            <svg
-              [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
-              class="w-full"
-            >
-              <!-- Fretboard background (rendered first, behind everything) -->
-              <rect
-                [attr.x]="leftMargin"
-                [attr.y]="getStringY(5)"
-                [attr.width]="fretboardWidth() - leftMargin - rightMargin"
-                [attr.height]="getStringY(0) - getStringY(5)"
-                [attr.fill]="config().fretboardColor || '#fff'"
-                opacity="0.95"
-                style="pointer-events: none;"
-              />
-
-              <!-- Frets (vertical lines) -->
-              @for (fret of frets; track fret) {
-                <line
-                  [attr.x1]="getFretX(fret)"
-                  [attr.y1]="getStringY(5)"
-                  [attr.x2]="getFretX(fret)"
-                  [attr.y2]="getStringY(0)"
-                  [attr.stroke]="fret === 0 ? fretboardColors().nut : fretboardColors().frets"
-                  [attr.stroke-width]="fret === 0 ? 6 : 3"
-                />
-              }
-
-              <!-- Strings (horizontal lines) -->
-              @for (stringNum of strings; track stringNum) {
-                <line
-                  [attr.x1]="leftMargin"
-                  [attr.y1]="getStringY(stringNum)"
-                  [attr.x2]="fretboardWidth() - rightMargin"
-                  [attr.y2]="getStringY(stringNum)"
-                  [attr.stroke]="fretboardColors().strings"
-                  stroke-width="1"
-                />
-              }
-
-              <!-- Fret markers -->
-              @for (marker of fretMarkers; track marker) {
-                <circle
-                  [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
-                  [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
-                  r="7"
-                  [attr.fill]="fretboardColors().inlays"
-                  opacity="0.8"
-                />
-              }
-
-              <!-- Double marker at 12th fret -->
-              <circle
-                [attr.cx]="getFretX(11) + fretWidth / 2"
-                [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
-                r="7"
-                [attr.fill]="fretboardColors().inlays"
-                opacity="0.8"
-              />
-              <circle
-                [attr.cx]="getFretX(11) + fretWidth / 2"
-                [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
-                r="7"
-                [attr.fill]="fretboardColors().inlays"
-                opacity="0.8"
-              />
-
-              <!-- Overlay Notes (rendered behind main notes) -->
-              @for (fretNote of overlayFretNotes(); track 'overlay-' + fretNote.string + '-' + fretNote.fret) {
-                @if (fretNote.isScaleNote && isInFretRange(fretNote.fret)) {
-                  <circle
-                    [attr.cx]="getNoteX(fretNote.fret)"
-                    [attr.cy]="getStringY(fretNote.string)"
-                    r="21"
-                    fill="#000"
-                    opacity="0.4"
-                  />
-                }
-              }
-
-              <!-- Main Notes -->
-              @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
-                @if (fretNote.isScaleNote && isNoteVisible(fretNote.note) && isInFretRange(fretNote.fret)) {
-                  <g>
-                    <circle
-                      [attr.cx]="getNoteX(fretNote.fret)"
-                      [attr.cy]="getStringY(fretNote.string)"
-                      r="16"
-                      [attr.fill]="getNoteColor(fretNote.scaleIndex, fretNote.note, fretNote.octave)"
-                      [attr.opacity]="config().noteOpacity ?? 0.9"
-                    />
-                    @if (config().labelMode !== 'none') {
-                      <text
-                        [attr.x]="getNoteX(fretNote.fret)"
-                        [attr.y]="getStringY(fretNote.string)"
-                        text-anchor="middle"
-                        dominant-baseline="middle"
-                        class="text-sm font-semibold fill-white"
-                      >
-                        @if (config().labelMode === 'note') {
-                          {{ fretNote.note }}
-                        } @else if (config().labelMode === 'degree' && fretNote.scaleIndex !== undefined) {
-                          {{ notesWithDegrees()[fretNote.scaleIndex]?.degree }}
-                        }
-                      </text>
-                    }
-                  </g>
-                }
-              }
-
-              <!-- Fret Numbers -->
-              @for (fretNum of [3, 5, 7, 9, 12]; track fretNum) {
-                <text
-                  [attr.x]="getFretX(fretNum - 1) + fretWidth / 2"
-                  [attr.y]="getStringY(0) + 35"
-                  text-anchor="middle"
-                  class="text-sm"
-                  fill="#999"
-                >
-                  {{ fretNum }}
-                </text>
-              }
-            </svg>
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './scale-visualization.component.html',
   styles: `
     :host {
       display: block;
@@ -303,81 +51,8 @@ export class ScaleVisualizationComponent implements OnInit {
     }
   }
   
-  // Color palette for scale degrees
-  noteColors = [
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#f59e0b', // amber
-    '#10b981', // emerald
-    '#3b82f6', // blue
-    '#f97316', // orange
-    '#06b6d4', // cyan
-    '#6366f1', // indigo
-    '#14b8a6', // teal
-    '#a855f7', // purple
-    '#eab308', // yellow
-    '#ef4444'  // red
-  ];
-  
   // Fretboard styles for visualization
-  fretboardStyles = [
-    {
-      label: 'Chiaro',
-      fretboard: '#fff',
-      frets: '#bbb',
-      strings: '#bbb',
-      inlays: '#bbb',
-      nut: '#555'
-    },
-    {
-      label: 'Acero chiaro',
-      fretboard: '#efd4a5',
-      frets: '#cab0b0',
-      strings: '#555',
-      inlays: '#fff',
-      nut: '#cab0b0'
-    },
-    {
-      label: 'Acero medio',
-      fretboard: '#d8ac85',
-      frets: '#bbb',
-      strings: '#555',
-      inlays: '#fff',
-      nut: '#bbb'
-    },
-    {
-      label: 'Acero scuro',
-      fretboard: '#e6b854',
-      frets: '#ddd',
-      strings: '#555',
-      inlays: '#fff',
-      nut: '#ddd'
-    },
-    {
-      label: 'Ebano chiaro',
-      fretboard: '#333',
-      frets: 'lightgray',
-      strings: '#777',
-      inlays: '#fff',
-      nut: 'lightgray'
-    },
-    {
-      label: 'Ebano medio',
-      fretboard: '#433',
-      frets: 'lightgray',
-      strings: '#777',
-      inlays: '#fff',
-      nut: 'lightgray'
-    },
-    {
-      label: 'Palissandro',
-      fretboard: '#381411',
-      frets: '#eae8c2',
-      strings: '#e0dc98',
-      inlays: '#fff',
-      nut: '#eae8c2'
-    }
-  ];
+  fretboardStyles = FRETBOARD_STYLES;
   
   // SVG dimensions
   leftMargin = 40;
@@ -622,13 +297,13 @@ export class ScaleVisualizationComponent implements OnInit {
     const colorMode = this.config().colorMode;
     
     if (colorMode === 'monocolor') {
-      return this.noteColors[0];
+      return DEGREE_COLOURS['1P'];
     }
     
     if (colorMode === 'octaves') {
-      // Color by octave: all notes in same octave have same color
-      if (octave === undefined) return this.noteColors[0];
-      return this.noteColors[octave % this.noteColors.length];
+      // Color by octave: each octave has its own color
+      if (octave === undefined) return DEGREE_COLOURS['1P'];
+      return OCTAVE_COLOURS[octave] || DEGREE_COLOURS['1P'];
     }
     
     if (colorMode === 'triads') {
@@ -637,17 +312,18 @@ export class ScaleVisualizationComponent implements OnInit {
       // Third (3rd degree, index 2) = orange
       // Fifth (5th degree, index 4) = red
       // All others = blue
-      if (scaleIndex === undefined) return '#3b82f6'; // blue for non-scale notes
+      if (scaleIndex === undefined) return '#3b82f6';
       
-      if (scaleIndex === 0) return '#eab308'; // yellow - tonic
-      if (scaleIndex === 2) return '#f97316'; // orange - third
-      if (scaleIndex === 4) return '#ef4444'; // red - fifth
-      return '#3b82f6'; // blue - all other scale degrees
+      if (scaleIndex === 0) return DEGREE_COLOURS['1P'];
+      if (scaleIndex === 2) return DEGREE_COLOURS['3M'];
+      if (scaleIndex === 4) return DEGREE_COLOURS['5P'];
+      return '#3b82f6';
     }
     
-    // 'all' mode - color by scale degree
-    if (scaleIndex === undefined) return this.noteColors[0];
-    return this.noteColors[scaleIndex % this.noteColors.length];
+    // 'all' mode - color by scale degree using DEGREE_COLOURS
+    if (scaleIndex === undefined) return DEGREE_COLOURS['1P'];
+    const degree = this.notesWithDegrees()[scaleIndex]?.degree || '1P';
+    return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['1P'];
   }
 
   isNoteVisible(note: string): boolean {
@@ -840,7 +516,7 @@ export class ScaleVisualizationComponent implements OnInit {
           labelMode: 'note' as const,
           colorMode: 'all' as const,
           showChordDegrees: false,
-          noteOpacity: 0.9,
+          noteOpacity: 1.0,
           startFret: 0,
           endFret: 12,
           fretboardColor: '#fff'

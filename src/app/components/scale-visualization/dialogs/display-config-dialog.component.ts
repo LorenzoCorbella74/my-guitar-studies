@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
+import { FRETBOARD_STYLES } from '../constants';
 
 export interface DisplayConfigDialogData {
   noteOpacity: number;
@@ -19,65 +20,6 @@ export interface DisplayConfigDialogResult {
   endFret: number;
   fretboardColor: string;
 }
-
-const FRETBOARD_STYLES = [
-  {
-    label: 'Chiaro',
-    fretboard: '#fff',
-    frets: '#bbb',
-    strings: '#bbb',
-    inlays: '#bbb',
-    nut: '#555'
-  },
-  {
-    label: 'Acero chiaro',
-    fretboard: '#efd4a5',
-    frets: '#cab0b0',
-    strings: '#555',
-    inlays: '#fff',
-    nut: '#cab0b0'
-  },
-  {
-    label: 'Acero medio',
-    fretboard: '#d8ac85',
-    frets: '#bbb',
-    strings: '#555',
-    inlays: '#fff',
-    nut: '#bbb'
-  },
-  {
-    label: 'Acero scuro',
-    fretboard: '#e6b854',
-    frets: '#ddd',
-    strings: '#555',
-    inlays: '#fff',
-    nut: '#ddd'
-  },
-  {
-    label: 'Ebano chiaro',
-    fretboard: '#333',
-    frets: 'lightgray',
-    strings: '#777',
-    inlays: '#fff',
-    nut: 'lightgray'
-  },
-  {
-    label: 'Ebano medio',
-    fretboard: '#433',
-    frets: 'lightgray',
-    strings: '#777',
-    inlays: '#fff',
-    nut: 'lightgray'
-  },
-  {
-    label: 'Palissandro',
-    fretboard: '#381411',
-    frets: '#eae8c2',
-    strings: '#e0dc98',
-    inlays: '#fff',
-    nut: '#eae8c2'
-  }
-];
 
 @Component({
   selector: 'app-display-config-dialog',
