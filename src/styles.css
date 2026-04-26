@@ -130,16 +130,54 @@
     display: flex;
   }
 
-  /* Custom CDK Dialog content styles */
+  /* Custom CDK Dialog content styles - Light theme */
   .cdk-dialog-content {
     width: 100%;
     max-height: calc(100vh - 5em);
     overflow-y: auto;
-    background: #ffffff !important;
-    color: #000000 !important;
+    background: #ffffff;
+    color: #000000;
     border-radius: 1rem;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     padding: 1.5rem;
+  }
+  
+  /* Dark theme for dialogs */
+  .dark .cdk-dialog-content {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  /* Ensure inputs and selects inside dialogs follow the theme - Light */
+  .cdk-dialog-content input,
+  .cdk-dialog-content select,
+  .cdk-dialog-content textarea {
+    background: #f9fafb;
+    color: #000000;
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Dark theme for inputs */
+  .dark .cdk-dialog-content input,
+  .dark .cdk-dialog-content select,
+  .dark .cdk-dialog-content textarea {
+    background: #374151;
+    color: #f9fafb;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .cdk-dialog-content input:focus,
+  .cdk-dialog-content select:focus,
+  .cdk-dialog-content textarea:focus {
+    background: #ffffff;
+    border-color: #000000;
+  }
+  
+  .dark .cdk-dialog-content input:focus,
+  .dark .cdk-dialog-content select:focus,
+  .dark .cdk-dialog-content textarea:focus {
+    background: #1f2937;
+    border-color: #60a5fa;
   }
   
   /* Legacy modal-box support (for backward compatibility) */
@@ -147,9 +185,14 @@
     width: 100%;
     max-height: calc(100vh - 5em);
     overflow-y: auto;
-    background: white;
-    color: #1f2937;
+    background: #ffffff;
+    color: #000000;
     border-radius: 1rem;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     padding: 1.5rem;
+  }
+  
+  .dark .cdk-overlay-pane .modal-box {
+    background: #1f2937;
+    color: #f9fafb;
   }
