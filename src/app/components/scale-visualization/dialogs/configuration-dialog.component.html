@@ -1,0 +1,107 @@
+    <div class="cdk-dialog-content">
+      <h3 class="font-bold text-lg mb-4">
+        @if (data.itemType === 'scale') { Configura scala }
+        @else if (data.itemType === 'arpeggio') { Configura arpeggio }
+        @else { Configura accordo }
+      </h3>
+      
+      <form (submit)="onSubmit($event)">
+        <!-- Tuning Selection -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Accordatura</span>
+          </label>
+          <select
+            class="select select-bordered w-full"
+            [(ngModel)]="tuningName"
+            name="tuning"
+            required
+          >
+            @for (tuning of tuningNames; track tuning) {
+              <option [value]="tuning">{{ tuning }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Root Note Selection -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Tonica</span>
+          </label>
+          <select
+            class="select select-bordered w-full"
+            [(ngModel)]="root"
+            name="root"
+            required
+          >
+            @for (note of notes; track note) {
+              <option [value]="note">{{ note }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Scale Selection (only for scales) -->
+        @if (data.itemType === 'scale') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Scala</span>
+            </label>
+            <input
+              list="scale-names"
+              class="input input-bordered w-full"
+              [(ngModel)]="scaleName"
+              name="scale"
+              placeholder="Cerca scala..."
+              required
+            />
+            <datalist id="scale-names">
+              @for (scaleName of scaleNames; track scaleName) {
+                <option [value]="scaleName">{{ scaleName }}</option>
+              }
+            </datalist>
+          </div>
+        }
+
+        <!-- Chord Type Selection (for arpeggios and chords) -->
+        @if (data.itemType === 'arpeggio' || data.itemType === 'chord') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">
+                @if (data.itemType === 'arpeggio') { Tipo di accordo (per arpeggio) }
+                @else { Tipo di accordo }
+              </span>
+            </label>
+            <input
+              list="chord-types"
+              class="input input-bordered w-full"
+              [(ngModel)]="chordType"
+              name="chordType"
+              placeholder="Cerca accordo..."
+              required
+            />
+            <datalist id="chord-types">
+              @for (chordType of chordTypes; track chordType) {
+                <option [value]="chordType">{{ chordType }}</option>
+              }
+            </datalist>
+          </div>
+        }
+
+        <!-- Modal Actions -->
+        <div class="modal-action">
+          <button
+            type="button"
+            class="btn"
+            (click)="dialogRef.close()"
+          >
+            Annulla
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Conferma
+          </button>
+        </div>
+      </form>
+    </div>
