@@ -5,18 +5,19 @@ import { AppRoutes } from '../../enums/routes.enum';
 import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { LucideX, LucideSave } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
 import { ScaleVisualizationComponent } from '../../components/scale-visualization/scale-visualization.component';
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
+import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
 import { ConfirmService } from '../../services/confirm.service';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, LucideX, LucideSave, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent],
+  imports: [FormsModule, RouterLink, LucideX, LucideSave, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
   templateUrl: './session-editor.component.html'
 })
 export class SessionEditorPage implements OnInit {
@@ -209,6 +210,23 @@ export class SessionEditorPage implements OnInit {
         chords: []
       };
       this.items.update(items => [...items, newChordProgression]);
+    } else if (type === 'timeline') {
+      const defaultLayer: TimelineLayer = {
+        id: `layer_${Date.now()}`,
+        root: 'C',
+        chordType: 'major',
+        duration: 0.25,
+        activeNotes: {}
+      };
+      const newTimeline: TimelineItem = {
+        id: newId,
+        type: 'timeline',
+        order: newOrder,
+        bpm: 30,
+        tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        layers: [defaultLayer]
+      };
+      this.items.update(items => [...items, newTimeline]);
     }
   }
 
@@ -234,7 +252,16 @@ export class SessionEditorPage implements OnInit {
       })
     );
   }
-
+  updateTimelineItem(itemId: string, updatedTimeline: TimelineItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'timeline') {
+          return updatedTimeline;
+        }
+        return item;
+      })
+    );
+  }
   updateScale(itemId: string, updatedItem: ScaleItem | ArpeggioItem | ChordItem) {
     this.items.update(items =>
       items.map(item => {

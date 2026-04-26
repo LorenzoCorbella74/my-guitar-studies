@@ -1,0 +1,348 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body">
+    <!-- Header with layer navigation -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Timeline</h3>
+      
+      <div class="flex items-center gap-2">
+        <!-- Layer navigation -->
+        <button
+          type="button"
+          class="btn btn-sm btn-square"
+          (click)="prevLayer()"
+          [disabled]="currentLayerIndex() === 0 || isPlaying()"
+          aria-label="Layer precedente"
+        >
+          <svg lucideChevronLeft class="w-4 h-4"></svg>
+        </button>
+        
+        <span class="text-sm font-medium px-3">
+          Layer {{ currentLayerIndex() + 1 }} / {{ layers().length }}
+        </span>
+        
+        <button
+          type="button"
+          class="btn btn-sm btn-square"
+          (click)="nextLayer()"
+          [disabled]="currentLayerIndex() === layers().length - 1 || isPlaying()"
+          aria-label="Layer successivo"
+        >
+          <svg lucideChevronRight class="w-4 h-4"></svg>
+        </button>
+        
+        <!-- Add/Delete layer -->
+        <button
+          type="button"
+          class="btn btn-sm btn-square btn-primary"
+          (click)="addLayer()"
+          [disabled]="isPlaying()"
+          aria-label="Aggiungi layer"
+        >
+          <svg lucidePlus class="w-4 h-4"></svg>
+        </button>
+        
+        <button
+          type="button"
+          class="btn btn-sm btn-square"
+          (click)="deleteLayer()"
+          [disabled]="layers().length <= 1 || isPlaying()"
+          aria-label="Elimina layer"
+        >
+          <svg lucideTrash2 class="w-4 h-4"></svg>
+        </button>
+
+        <!-- Delete timeline item -->
+        <button
+          type="button"
+          class="btn btn-sm btn-square text-error ml-4"
+          (click)="handleDelete()"
+          aria-label="Elimina timeline"
+        >
+          <svg lucideTrash2 class="w-4 h-4"></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Chord configuration -->
+    <div class="bg-base-200 p-4 rounded-lg mb-4">
+      <h4 class="font-semibold mb-2">Accordo di riferimento</h4>
+      
+      <div class="flex gap-4 items-end">
+        <!-- Root note selector -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Tonica</span>
+          </label>
+          <select
+            class="select select-bordered select-sm"
+            [value]="currentLayer().root"
+            (change)="updateChordRoot($any($event.target).value)"
+            [disabled]="isPlaying()"
+          >
+            @for (note of ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']; track note) {
+              <option [value]="note">{{ note }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Chord type autocomplete -->
+        <div class="form-control flex-1">
+          <label class="label">
+            <span class="label-text">Tipo accordo</span>
+          </label>
+          <input
+            type="text"
+            list="chord-types"
+            class="input input-bordered input-sm"
+            [value]="currentLayer().chordType"
+            (input)="updateChordType($any($event.target).value)"
+            [disabled]="isPlaying()"
+            placeholder="major, minor, 7, m7..."
+          />
+          <datalist id="chord-types">
+            @for (type of chordTypeOptions; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </datalist>
+        </div>
+
+        <!-- Chord notes display -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Note accordo</span>
+          </label>
+          <div class="text-sm font-medium px-3 py-2 bg-base-100 rounded">
+            {{ chordNotes().join(' - ') || 'N/A' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Duration and BPM controls -->
+    <div class="flex gap-6 mb-4">
+      <!-- Duration selector -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Durata layer</span>
+        </label>
+        <div class="flex gap-2">
+          @for (duration of durations; track duration) {
+            <label class="label cursor-pointer gap-2">
+              <input
+                type="radio"
+                name="duration"
+                class="radio radio-sm"
+                [checked]="currentLayer().duration === duration"
+                (change)="updateDuration(duration)"
+                [disabled]="isPlaying()"
+              />
+              <span class="label-text">{{ durationLabels[duration] }}</span>
+            </label>
+          }
+        </div>
+      </div>
+
+      <!-- BPM input -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">BPM</span>
+        </label>
+        <input
+          type="number"
+          class="input input-bordered input-sm w-24"
+          [value]="bpm()"
+          (input)="updateBpm(+$any($event.target).value)"
+          [disabled]="isPlaying()"
+          min="40"
+          max="240"
+        />
+      </div>
+
+      <!-- Playback controls -->
+      <div class="form-control ml-auto">
+        <label class="label">
+          <span class="label-text font-semibold">Playback</span>
+        </label>
+        <div class="flex items-center gap-2">
+          @if (!isPlaying()) {
+            <button
+              type="button"
+              class="btn btn-sm btn-success"
+              (click)="play()"
+              aria-label="Avvia playback"
+            >
+              <svg lucidePlay class="w-4 h-4"></svg>
+              Play
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn btn-sm btn-error"
+              (click)="stop()"
+              aria-label="Ferma playback"
+            >
+              <svg lucideSquare class="w-4 h-4"></svg>
+              Stop
+            </button>
+            <span class="text-xs text-success font-medium ml-2">
+              ▶️ Layer {{ currentLayerIndex() + 1 }}/{{ layers().length }}
+            </span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- SVG Fretboard -->
+    <div class="overflow-x-auto">
+      <svg
+        [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
+        class="w-full"
+      >
+        <!-- Fretboard background -->
+        <rect
+          [attr.x]="leftMargin"
+          [attr.y]="getStringY(5)"
+          [attr.width]="fretboardWidth() - leftMargin - rightMargin"
+          [attr.height]="getStringY(0) - getStringY(5)"
+          fill="#f5f5f5"
+          opacity="0.3"
+        />
+
+        <!-- Frets (vertical lines) -->
+        @for (fret of frets; track fret) {
+          <line
+            [attr.x1]="getFretX(fret)"
+            [attr.y1]="getStringY(5)"
+            [attr.x2]="getFretX(fret)"
+            [attr.y2]="getStringY(0)"
+            [attr.stroke]="fret === 0 ? '#333' : '#999'"
+            [attr.stroke-width]="fret === 0 ? 4 : 2"
+          />
+        }
+
+        <!-- Strings (horizontal lines) -->
+        @for (stringNum of strings; track stringNum) {
+          <line
+            [attr.x1]="leftMargin"
+            [attr.y1]="getStringY(stringNum)"
+            [attr.x2]="fretboardWidth() - rightMargin"
+            [attr.y2]="getStringY(stringNum)"
+            stroke="#666"
+            stroke-width="1"
+          />
+        }
+
+        <!-- Fret markers -->
+        @for (marker of fretMarkers; track marker) {
+          <circle
+            [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
+            [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
+            r="5"
+            fill="#bbb"
+            opacity="0.5"
+          />
+        }
+
+        <!-- Double marker at 12th fret -->
+        <circle
+          [attr.cx]="getFretX(11) + fretWidth / 2"
+          [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
+          r="5"
+          fill="#bbb"
+          opacity="0.5"
+        />
+        <circle
+          [attr.cx]="getFretX(11) + fretWidth / 2"
+          [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
+          r="5"
+          fill="#bbb"
+          opacity="0.5"
+        />
+
+        <!-- Notes (clickable) -->
+        @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
+          <g
+            [class.cursor-pointer]="!isPlaying()"
+            (click)="!isPlaying() && toggleNote(fretNote.string, fretNote.fret)"
+          >
+            @if (fretNote.isActive) {
+              <!-- Active note -->
+              <circle
+                [attr.cx]="getNoteX(fretNote.fret)"
+                [attr.cy]="getStringY(fretNote.string)"
+                r="14"
+                [attr.fill]="getNoteColor(fretNote.degree)"
+                stroke="#000"
+                stroke-width="2"
+                opacity="1"
+              />
+              <text
+                [attr.x]="getNoteX(fretNote.fret)"
+                [attr.y]="getStringY(fretNote.string) - 2"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                class="text-xs font-semibold fill-black"
+              >
+                {{ fretNote.note }}
+              </text>
+              @if (fretNote.degree) {
+                <text
+                  [attr.x]="getNoteX(fretNote.fret)"
+                  [attr.y]="getStringY(fretNote.string) + 8"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  class="text-[10px] font-medium fill-black"
+                >
+                  {{ fretNote.degree }}
+                </text>
+              }
+            } @else if (!isPlaying()) {
+              <!-- Inactive note (all notes clickable) -->
+              <circle
+                [attr.cx]="getNoteX(fretNote.fret)"
+                [attr.cy]="getStringY(fretNote.string)"
+                r="10"
+                [attr.fill]="getNoteColor(fretNote.degree)"
+                opacity="0.3"
+                stroke="#666"
+                stroke-width="1"
+              />
+            }
+          </g>
+        }
+
+        <!-- Fret numbers -->
+        @for (fretNum of [3, 5, 7, 9, 12]; track fretNum) {
+          <text
+            [attr.x]="getFretX(fretNum - 1) + fretWidth / 2"
+            [attr.y]="getStringY(0) + 35"
+            text-anchor="middle"
+            class="text-xs"
+            fill="#999"
+          >
+            {{ fretNum }}
+          </text>
+        }
+
+        <!-- String labels -->
+        @for (openNote of tuning(); track $index; let i = $index) {
+          <text
+            x="20"
+            [attr.y]="getStringY(i)"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            class="text-xs font-medium"
+            fill="#666"
+          >
+            {{ openNote.replace(/\d+/, '') }}
+          </text>
+        }
+      </svg>
+    </div>
+
+    <!-- Instructions -->
+    <div class="text-sm text-base-content/60 mt-2">
+      💡 Clicca su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo.
+    </div>
+  </div>
+</div>

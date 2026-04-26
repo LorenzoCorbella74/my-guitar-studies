@@ -10,7 +10,7 @@ export interface Session {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline';
   order: number;
 }
 
@@ -55,6 +55,23 @@ export interface ComparisonItem extends SessionItem {
     type: 'scale' | 'arpeggio' | 'chord';
     config: VisualizationConfig;
   }>;
+}
+
+export type NoteDuration = 1 | 0.5 | 0.25 | 0.125;
+
+export interface TimelineLayer {
+  id: string;
+  root: string;
+  chordType: string;
+  duration: NoteDuration;
+  activeNotes: Record<string, boolean>;
+}
+
+export interface TimelineItem extends SessionItem {
+  type: 'timeline';
+  bpm: number;
+  tuning: string[];
+  layers: TimelineLayer[];
 }
 
 export interface VisualizationConfig {

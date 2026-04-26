@@ -130,6 +130,13 @@
                   (deleteProgression)="deleteItem(item.id)"
                 />
               }
+              @if (item.type === 'timeline') {
+                <app-timeline-visualization
+                  [timelineItem]="$any(item)"
+                  (update)="updateTimelineItem(item.id, $event)"
+                  (delete)="deleteItem(item.id)"
+                />
+              }
             }
           </div>
         }
