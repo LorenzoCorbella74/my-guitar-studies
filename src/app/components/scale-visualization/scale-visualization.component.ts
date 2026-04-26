@@ -1,8 +1,12 @@
-import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed, inject } from '@angular/core';
+import { Dialog } from '@angular/cdk/dialog';
 import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers } from '@lucide/angular';
 import { ScaleItem, ArpeggioItem, ChordItem } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
+import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
+import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
+import { ScaleRelationsDialogComponent, ScaleRelationsDialogData } from './dialogs/scale-relations-dialog.component';
+import { OverlayDialogComponent, OverlayDialogData, OverlayDialogResult, OverlayItem } from './dialogs/overlay-dialog.component';
 
 const STANDARD_TUNINGS = {
   'Standard (E)': ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
@@ -30,7 +34,7 @@ interface FretNote {
 @Component({
   selector: 'app-scale-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers],
+  imports: [LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers],
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
@@ -270,489 +274,6 @@ interface FretNote {
         }
       </div>
     </div>
-
-    <!-- Configuration Modal -->
-    @if (modalOpen()) {
-      <div class="modal modal-open">
-        <div class="modal-box max-w-2xl">
-          <h3 class="font-bold text-lg mb-4">
-            @if (itemType() === 'scale') { Configura scala }
-            @else if (itemType() === 'arpeggio') { Configura arpeggio }
-            @else { Configura accordo }
-          </h3>
-          
-          <form (submit)="saveConfig($event)">
-            <!-- Tuning Selection -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Accordatura</span>
-              </label>
-              <select
-                class="select select-bordered w-full"
-                [(ngModel)]="tempTuningName"
-                name="tuning"
-                required
-              >
-                @for (tuning of tuningNames; track tuning) {
-                  <option [value]="tuning">{{ tuning }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- Root Note Selection -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Tonica</span>
-              </label>
-              <select
-                class="select select-bordered w-full"
-                [(ngModel)]="tempRoot"
-                name="root"
-                required
-              >
-                @for (note of notes; track note) {
-                  <option [value]="note">{{ note }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- Scale Selection (only for scales) -->
-            @if (itemType() === 'scale') {
-              <div class="form-control mb-4">
-                <label class="label">
-                  <span class="label-text">Scala</span>
-                </label>
-                <input
-                  list="scale-names"
-                  class="input input-bordered w-full"
-                  [(ngModel)]="tempScaleName"
-                  name="scale"
-                  placeholder="Cerca scala..."
-                  required
-                />
-                <datalist id="scale-names">
-                  @for (scaleName of scaleNames; track scaleName) {
-                    <option [value]="scaleName">{{ scaleName }}</option>
-                  }
-                </datalist>
-              </div>
-            }
-
-            <!-- Chord Type Selection (for arpeggios and chords) -->
-            @if (itemType() === 'arpeggio' || itemType() === 'chord') {
-              <div class="form-control mb-4">
-                <label class="label">
-                  <span class="label-text">
-                    @if (itemType() === 'arpeggio') { Tipo di accordo (per arpeggio) }
-                    @else { Tipo di accordo }
-                  </span>
-                </label>
-                <input
-                  list="chord-types"
-                  class="input input-bordered w-full"
-                  [(ngModel)]="tempChordType"
-                  name="chordType"
-                  placeholder="Cerca accordo..."
-                  required
-                />
-                <datalist id="chord-types">
-                  @for (chordType of chordTypes; track chordType) {
-                    <option [value]="chordType">{{ chordType }}</option>
-                  }
-                </datalist>
-              </div>
-            }
-
-            <!-- Modal Actions -->
-            <div class="modal-action">
-              <button
-                type="button"
-                class="btn"
-                (click)="closeModal()"
-              >
-                Annulla
-              </button>
-              <button
-                type="submit"
-                class="btn btn-primary"
-              >
-                Conferma
-              </button>
-            </div>
-          </form>
-        </div>
-        <div class="modal-backdrop" (click)="closeModal()"></div>
-      </div>
-    }
-
-    <!-- Display Configuration Modal -->
-    @if (configModalOpen()) {
-      <div class="modal modal-open">
-        <div class="modal-box max-w-2xl">
-          <h3 class="font-bold text-lg mb-4">Configura visualizzazione</h3>
-          
-          <form (submit)="saveDisplayConfig($event)">
-            <!-- Opacity Slider -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Opacità note</span>
-                <span class="label-text-alt">{{ (tempOpacity() * 100).toFixed(0) }}%</span>
-              </label>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.1"
-                class="range range-primary"
-                [(ngModel)]="tempOpacity"
-                name="opacity"
-              />
-            </div>
-
-            <!-- Fret Range Slider -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Range tasti</span>
-                <span class="label-text-alt">{{ tempStartFret() }} - {{ tempEndFret() }}</span>
-              </label>
-              <div class="flex gap-4 items-center">
-                <input
-                  type="range"
-                  min="0"
-                  max="12"
-                  step="1"
-                  class="range range-primary flex-1"
-                  [(ngModel)]="tempStartFret"
-                  name="startFret"
-                  [max]="tempEndFret() - 1"
-                />
-                <span class="text-sm font-semibold min-w-[3rem] text-center">{{ tempStartFret() }}</span>
-                <span class="text-sm">-</span>
-                <span class="text-sm font-semibold min-w-[3rem] text-center">{{ tempEndFret() }}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="12"
-                  step="1"
-                  class="range range-primary flex-1"
-                  [(ngModel)]="tempEndFret"
-                  name="endFret"
-                  [min]="tempStartFret() + 1"
-                />
-              </div>
-            </div>
-
-            <!-- Fretboard Color Selection -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Colore tastiera</span>
-              </label>
-              <div class="flex gap-2 flex-wrap">
-                @for (style of fretboardStyles; track style.fretboard) {
-                  <button
-                    type="button"
-                    class="btn btn-sm"
-                    [class.btn-primary]="tempFretboardColor() === style.fretboard"
-                    [class.btn-ghost]="tempFretboardColor() !== style.fretboard"
-                    (click)="tempFretboardColor.set(style.fretboard)"
-                  >
-                    <div
-                      class="w-4 h-4 rounded border border-base-content/20 mr-1"
-                      [style.background-color]="style.fretboard"
-                    ></div>
-                    {{ style.label }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Label Mode and Color Mode side by side -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <!-- Label Mode -->
-              <div class="form-control">
-              <label class="label">
-                <span class="label-text">Etichette</span>
-              </label>
-              <div class="flex flex-col gap-2">
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempLabelMode"
-                    name="labelMode"
-                    value="note"
-                  />
-                  <span class="label-text">Note</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempLabelMode"
-                    name="labelMode"
-                    value="degree"
-                  />
-                  <span class="label-text">Gradi</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempLabelMode"
-                    name="labelMode"
-                    value="none"
-                  />
-                  <span class="label-text">Nessuna</span>
-                </label>
-              </div>
-            </div>
-
-              <!-- Color Mode -->
-              <div class="form-control">
-              <label class="label">
-                <span class="label-text">Modalità colori</span>
-              </label>
-              <div class="flex flex-col gap-2">
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempColorMode"
-                    name="colorMode"
-                    value="monocolor"
-                  />
-                  <span class="label-text">Monocromatico</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempColorMode"
-                    name="colorMode"
-                    value="all"
-                  />
-                  <span class="label-text">Tutti diversi</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempColorMode"
-                    name="colorMode"
-                    value="triads"
-                  />
-                  <span class="label-text">Triadi</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="radio"
-                    class="radio radio-primary"
-                    [(ngModel)]="tempColorMode"
-                    name="colorMode"
-                    value="octaves"
-                  />
-                  <span class="label-text">Per ottave</span>
-                </label>
-              </div>
-              </div>
-            </div>
-
-            <!-- Modal Actions -->
-            <div class="modal-action">
-              <button
-                type="button"
-                class="btn"
-                (click)="closeConfigModal()"
-              >
-                Annulla
-              </button>
-              <button
-                type="submit"
-                class="btn btn-primary"
-              >
-                Salva
-              </button>
-            </div>
-          </form>
-        </div>
-        <div class="modal-backdrop" (click)="closeConfigModal()"></div>
-      </div>
-    }
-
-    <!-- Scale Relations Modal -->
-    @if (relationsModalOpen()) {
-      <div class="modal modal-open">
-        <div class="modal-box max-w-3xl">
-          <h3 class="font-bold text-lg mb-4">Relazioni - {{ displayTitle() }}</h3>
-          
-          <div class="space-y-6">
-            <!-- Scale Chords -->
-            <div>
-              <h4 class="font-semibold text-base mb-2">Accordi della scala</h4>
-              <p class="text-sm text-base-content/60 mb-2">Accordi che si adattano a questa scala</p>
-              <div class="flex flex-wrap gap-2">
-                @for (chord of scaleChords(); track chord) {
-                  <span class="badge badge-primary badge-lg">{{ chord }}</span>
-                } @empty {
-                  <p class="text-sm text-base-content/50">Nessun accordo trovato</p>
-                }
-              </div>
-            </div>
-
-            <!-- Extended Scales -->
-            <div>
-              <h4 class="font-semibold text-base mb-2">Scale estese</h4>
-              <p class="text-sm text-base-content/60 mb-2">Scale che contengono tutte le note di questa scala e altre</p>
-              <div class="flex flex-wrap gap-2">
-                @for (scale of extendedScales(); track scale) {
-                  <span class="badge badge-secondary badge-lg">{{ scale }}</span>
-                } @empty {
-                  <p class="text-sm text-base-content/50">Nessuna scala estesa trovata</p>
-                }
-              </div>
-            </div>
-
-            <!-- Reduced Scales -->
-            <div>
-              <h4 class="font-semibold text-base mb-2">Scale ridotte</h4>
-              <p class="text-sm text-base-content/60 mb-2">Scale che sono un sottoinsieme di questa scala</p>
-              <div class="flex flex-wrap gap-2">
-                @for (scale of reducedScales(); track scale) {
-                  <span class="badge badge-accent badge-lg">{{ scale }}</span>
-                } @empty {
-                  <p class="text-sm text-base-content/50">Nessuna scala ridotta trovata</p>
-                }
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-action">
-            <button type="button" class="btn" (click)="closeRelationsModal()">
-              Chiudi
-            </button>
-          </div>
-        </div>
-        <div class="modal-backdrop" (click)="closeRelationsModal()"></div>
-      </div>
-    }
-
-    <!-- Overlay Modal -->
-    @if (overlayModalOpen()) {
-      <div class="modal modal-open">
-        <div class="modal-box max-w-xl">
-          <h3 class="font-bold text-lg mb-4">Aggiungi sovrapposizione</h3>
-          
-          <form (submit)="saveOverlay($event)">
-            <!-- Type Selection -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Tipo</span>
-              </label>
-              <select
-                class="select select-bordered w-full"
-                [(ngModel)]="tempOverlayType"
-                name="overlayType"
-                required
-              >
-                <option value="scale">Scala</option>
-                <option value="chord">Accordo</option>
-              </select>
-            </div>
-
-            <!-- Root Note Selection -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">Tonica</span>
-              </label>
-              <select
-                class="select select-bordered w-full"
-                [(ngModel)]="tempOverlayRoot"
-                name="overlayRoot"
-                required
-              >
-                @for (note of notes; track note) {
-                  <option [value]="note">{{ note }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- Scale/Chord Name -->
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text">
-                  @if (tempOverlayType() === 'scale') { Nome scala } @else { Tipo accordo }
-                </span>
-              </label>
-              @if (tempOverlayType() === 'scale') {
-                <input
-                  list="overlay-scale-names"
-                  class="input input-bordered w-full"
-                  [(ngModel)]="tempOverlayName"
-                  name="overlayName"
-                  placeholder="Cerca scala..."
-                  required
-                />
-                <datalist id="overlay-scale-names">
-                  @for (scaleName of scaleNames; track scaleName) {
-                    <option [value]="scaleName">{{ scaleName }}</option>
-                  }
-                </datalist>
-              } @else {
-                <input
-                  list="overlay-chord-types"
-                  class="input input-bordered w-full"
-                  [(ngModel)]="tempOverlayName"
-                  name="overlayName"
-                  placeholder="Cerca accordo..."
-                  required
-                />
-                <datalist id="overlay-chord-types">
-                  @for (chordType of chordTypes; track chordType) {
-                    <option [value]="chordType">{{ chordType }}</option>
-                  }
-                </datalist>
-              }
-            </div>
-
-            <!-- Current Overlays List -->
-            @if (overlays().length > 0) {
-              <div class="mb-4">
-                <label class="label">
-                  <span class="label-text">Sovrapposizioni attive</span>
-                </label>
-                <div class="space-y-2">
-                  @for (overlay of overlays(); track $index) {
-                    <div class="flex items-center justify-between bg-base-200 p-2 rounded">
-                      <span class="text-sm">
-                        {{ overlay.root }} {{ overlay.name }} ({{ overlay.type === 'scale' ? 'Scala' : 'Accordo' }})
-                      </span>
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs btn-square"
-                        (click)="removeOverlay($index)"
-                      >
-                        <svg lucideTrash2 class="w-3 h-3"></svg>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Modal Actions -->
-            <div class="modal-action">
-              <button type="button" class="btn" (click)="closeOverlayModal()">
-                Chiudi
-              </button>
-              <button type="submit" class="btn btn-primary">
-                Aggiungi
-              </button>
-            </div>
-          </form>
-        </div>
-        <div class="modal-backdrop" (click)="closeOverlayModal()"></div>
-      </div>
-    }
   `,
   styles: `
     :host {
@@ -761,10 +282,17 @@ interface FretNote {
   `
 })
 export class ScaleVisualizationComponent implements OnInit {
+  dialog = inject(Dialog);
+  
   scaleItem = input.required<ScaleItem | ArpeggioItem | ChordItem>();
   update = output<ScaleItem | ArpeggioItem | ChordItem>();
   delete = output<void>();
   cancelFirstConfig = output<void>();
+
+  isFirstConfig = signal(false);
+  
+  // Overlay state
+  overlays = signal<OverlayItem[]>([]);
 
   ngOnInit() {
     // Auto-open modal if item has no configuration
@@ -774,38 +302,24 @@ export class ScaleVisualizationComponent implements OnInit {
       setTimeout(() => this.openModal(), 0);
     }
   }
-
-  modalOpen = signal(false);
-  configModalOpen = signal(false);
-  relationsModalOpen = signal(false);
-  overlayModalOpen = signal(false);
-  isFirstConfig = signal(false);
   
-  // Overlay state
-  overlays = signal<Array<{ type: 'scale' | 'chord'; root: string; name: string }>>([]);
-  tempOverlayType = signal<'scale' | 'chord'>('scale');
-  tempOverlayRoot = signal('C');
-  tempOverlayName = signal('major');
+  // Color palette for scale degrees
+  noteColors = [
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#f59e0b', // amber
+    '#10b981', // emerald
+    '#3b82f6', // blue
+    '#f97316', // orange
+    '#06b6d4', // cyan
+    '#6366f1', // indigo
+    '#14b8a6', // teal
+    '#a855f7', // purple
+    '#eab308', // yellow
+    '#ef4444'  // red
+  ];
   
-  // Temporary values for scale/chord modal form
-  tempTuningName = signal('Standard (E)');
-  tempRoot = signal('C');
-  tempScaleName = signal('major');
-  tempChordType = signal('maj7');
-  
-  // Temporary values for display config modal
-  tempOpacity = signal(0.9);
-  tempLabelMode = signal<'note' | 'degree' | 'none'>('note');
-  tempColorMode = signal<'monocolor' | 'triads' | 'all' | 'octaves'>('all');
-  tempStartFret = signal(0);
-  tempEndFret = signal(12);
-  tempFretboardColor = signal('#fff');
-
-  // Constants
-  tuningNames = Object.keys(STANDARD_TUNINGS);
-  notes = NOTES;
-  scaleNames = ScaleType.names();
-  chordTypes = ChordType.names();
+  // Fretboard styles for visualization
   fretboardStyles = [
     {
       label: 'Chiaro',
@@ -863,22 +377,6 @@ export class ScaleVisualizationComponent implements OnInit {
       inlays: '#fff',
       nut: '#eae8c2'
     }
-  ];
-  
-  // Color palette for scale degrees
-  noteColors = [
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#f59e0b', // amber
-    '#10b981', // emerald
-    '#3b82f6', // blue
-    '#f97316', // orange
-    '#06b6d4', // cyan
-    '#6366f1', // indigo
-    '#14b8a6', // teal
-    '#a855f7', // purple
-    '#eab308', // yellow
-    '#ef4444'  // red
   ];
   
   // SVG dimensions
@@ -1223,141 +721,150 @@ export class ScaleVisualizationComponent implements OnInit {
     this.update.emit(updatedItem);
   }
 
-  openConfigModal() {
+  openConfigModal(): void {
     const cfg = this.config();
-    this.tempOpacity.set(cfg.noteOpacity ?? 0.9);
-    this.tempLabelMode.set(cfg.labelMode || 'note');
-    this.tempColorMode.set(cfg.colorMode || 'all');
-    this.tempStartFret.set(cfg.startFret ?? 0);
-    this.tempEndFret.set(cfg.endFret ?? 12);
-    this.tempFretboardColor.set(cfg.fretboardColor || '#fff');
-    this.configModalOpen.set(true);
-  }
-
-  closeConfigModal() {
-    this.configModalOpen.set(false);
-  }
-
-  openRelationsModal() {
-    this.relationsModalOpen.set(true);
-  }
-
-  closeRelationsModal() {
-    this.relationsModalOpen.set(false);
-  }
-
-  openOverlayModal() {
-    this.tempOverlayType.set('scale');
-    this.tempOverlayRoot.set('C');
-    this.tempOverlayName.set('major');
-    this.overlayModalOpen.set(true);
-  }
-
-  closeOverlayModal() {
-    this.overlayModalOpen.set(false);
-  }
-
-  saveOverlay(event: Event) {
-    event.preventDefault();
     
-    const newOverlay = {
-      type: this.tempOverlayType(),
-      root: this.tempOverlayRoot(),
-      name: this.tempOverlayName()
+    const dialogData: DisplayConfigDialogData = {
+      noteOpacity: cfg.noteOpacity ?? 0.9,
+      labelMode: cfg.labelMode || 'note',
+      colorMode: cfg.colorMode || 'all',
+      startFret: cfg.startFret ?? 0,
+      endFret: cfg.endFret ?? 12,
+      fretboardColor: cfg.fretboardColor || '#fff'
     };
-    
-    this.overlays.update(overlays => [...overlays, newOverlay]);
-    
-    // Reset form
-    this.tempOverlayType.set('scale');
-    this.tempOverlayRoot.set('C');
-    this.tempOverlayName.set('major');
-  }
 
-  removeOverlay(index: number) {
-    this.overlays.update(overlays => overlays.filter((_, i) => i !== index));
-  }
-
-  saveDisplayConfig(event: Event) {
-    event.preventDefault();
-    
-    const updatedItem = {
-      ...this.scaleItem(),
-      config: {
-        ...this.config(),
-        noteOpacity: this.tempOpacity(),
-        labelMode: this.tempLabelMode(),
-        colorMode: this.tempColorMode(),
-        startFret: this.tempStartFret(),
-        endFret: this.tempEndFret(),
-        fretboardColor: this.tempFretboardColor()
+    const dialogRef = this.dialog.open<DisplayConfigDialogResult, DisplayConfigDialogData>(
+      DisplayConfigDialogComponent,
+      {
+        data: dialogData,
+        disableClose: false,
+        hasBackdrop: true,
+        width: '48rem',
+        maxWidth: '90vw',
+        maxHeight: '90vh'
       }
-    };
-    
-    this.update.emit(updatedItem);
-    this.closeConfigModal();
-  }
+    );
 
-  openModal() {
-    if (this.hasConfig()) {
-      const cfg = this.config();
-      const type = this.itemType();
-      this.tempRoot.set(cfg.root);
-      
-      if (type === 'scale') {
-        this.tempScaleName.set(cfg.scaleName || 'major');
-      } else {
-        this.tempChordType.set(cfg.chordType || 'maj7');
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        const updatedItem = {
+          ...this.scaleItem(),
+          config: {
+            ...this.config(),
+            noteOpacity: result.noteOpacity,
+            labelMode: result.labelMode,
+            colorMode: result.colorMode,
+            startFret: result.startFret,
+            endFret: result.endFret,
+            fretboardColor: result.fretboardColor
+          }
+        };
+        
+        this.update.emit(updatedItem);
       }
-      
-      const tuningName = this.getTuningName();
-      this.tempTuningName.set(tuningName !== 'Custom' ? tuningName : 'Standard (E)');
-    }
-    this.modalOpen.set(true);
+    });
   }
 
-  closeModal() {
-    // If closing without config on first attempt, emit cancel event for silent deletion
-    if (this.isFirstConfig() && !this.hasConfig()) {
-      this.cancelFirstConfig.emit();
-      return;
-    }
-    this.modalOpen.set(false);
-  }
-
-  saveConfig(event: Event) {
-    event.preventDefault();
-    
-    const tuning = STANDARD_TUNINGS[this.tempTuningName() as keyof typeof STANDARD_TUNINGS];
-    const type = this.itemType();
-    
-    const baseConfig = {
-      tuning,
-      root: this.tempRoot(),
-      labelMode: 'note' as const,
-      colorMode: 'all' as const,
-      showChordDegrees: false,
-      noteOpacity: 0.9,
-      startFret: 0,
-      endFret: 12,
-      fretboardColor: '#fff'
+  openRelationsModal(): void {
+    const dialogData: ScaleRelationsDialogData = {
+      title: this.displayTitle(),
+      scaleChords: this.scaleChords(),
+      extendedScales: this.extendedScales(),
+      reducedScales: this.reducedScales()
     };
 
-    const config = type === 'scale' 
-      ? { ...baseConfig, scaleName: this.tempScaleName() }
-      : { ...baseConfig, chordType: this.tempChordType() };
-
-    const updatedItem = {
-      ...this.scaleItem(),
-      config
-    };
-
-    this.isFirstConfig.set(false);
-    this.update.emit(updatedItem);
-    this.closeModal();
+    this.dialog.open(ScaleRelationsDialogComponent, {
+      data: dialogData,
+      disableClose: false,
+      hasBackdrop: true,
+      width: '56rem',
+      maxWidth: '90vw',
+      maxHeight: '90vh'
+    });
   }
 
-  handleDelete() {
+  openOverlayModal(): void {
+    const dialogData: OverlayDialogData = {
+      overlays: this.overlays()
+    };
+
+    const dialogRef = this.dialog.open<OverlayDialogResult, OverlayDialogData>(
+      OverlayDialogComponent,
+      {
+        data: dialogData,
+        disableClose: false,
+        hasBackdrop: true,
+        width: '40rem',
+        maxWidth: '90vw',
+        maxHeight: '90vh'
+      }
+    );
+
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        this.overlays.set(result.overlays);
+      }
+    });
+  }
+
+  openModal(): void {
+    const dialogData: ConfigurationDialogData = {
+      itemType: this.itemType(),
+      currentConfig: this.hasConfig() ? {
+        tuning: this.config().tuning,
+        root: this.config().root,
+        scaleName: this.config().scaleName,
+        chordType: this.config().chordType
+      } : undefined
+    };
+
+    const dialogRef = this.dialog.open<ConfigurationDialogResult, ConfigurationDialogData>(
+      ConfigurationDialogComponent,
+      {
+        data: dialogData,
+        disableClose: this.isFirstConfig(),
+        hasBackdrop: true,
+        width: '48rem',
+        maxWidth: '90vw',
+        maxHeight: '90vh'
+      }
+    );
+
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        const type = this.itemType();
+        
+        const baseConfig = {
+          tuning: result.tuning,
+          root: result.root,
+          labelMode: 'note' as const,
+          colorMode: 'all' as const,
+          showChordDegrees: false,
+          noteOpacity: 0.9,
+          startFret: 0,
+          endFret: 12,
+          fretboardColor: '#fff'
+        };
+
+        const config = type === 'scale' 
+          ? { ...baseConfig, scaleName: result.scaleName! }
+          : { ...baseConfig, chordType: result.chordType! };
+
+        const updatedItem = {
+          ...this.scaleItem(),
+          config
+        };
+
+        this.isFirstConfig.set(false);
+        this.update.emit(updatedItem);
+      } else if (this.isFirstConfig() && !this.hasConfig()) {
+        // If closing without config on first attempt, emit cancel event for silent deletion
+        this.cancelFirstConfig.emit();
+      }
+    });
+  }
+
+  handleDelete(): void {
     this.delete.emit();
   }
 }

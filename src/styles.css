@@ -87,3 +87,69 @@
     color: hsl(var(--bc) / 0.4);
     pointer-events: none;
   }
+
+  /* Angular CDK Dialog styles */
+  .cdk-overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .cdk-overlay-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 1000;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .cdk-global-overlay-wrapper {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 1001;
+  }
+
+  .cdk-overlay-pane {
+    position: relative;
+    pointer-events: auto;
+    box-sizing: border-box;
+    z-index: 1001;
+    display: flex;
+  }
+
+  /* Custom CDK Dialog content styles */
+  .cdk-dialog-content {
+    width: 100%;
+    max-height: calc(100vh - 5em);
+    overflow-y: auto;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 1.5rem;
+  }
+  
+  /* Legacy modal-box support (for backward compatibility) */
+  .cdk-overlay-pane .modal-box {
+    width: 100%;
+    max-height: calc(100vh - 5em);
+    overflow-y: auto;
+    background: white;
+    color: #1f2937;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 1.5rem;
+  }
