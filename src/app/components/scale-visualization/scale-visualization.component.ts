@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork } from '@lucide/angular';
+import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers } from '@lucide/angular';
 import { ScaleItem, ArpeggioItem, ChordItem } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 
@@ -30,7 +30,7 @@ interface FretNote {
 @Component({
   selector: 'app-scale-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork],
+  imports: [FormsModule, LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers],
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
@@ -91,6 +91,15 @@ interface FretNote {
                         <svg lucideNetwork class="w-4 h-4"></svg>
                       </button>
                     }
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-square"
+                      (click)="openOverlayModal()"
+                      aria-label="Aggiungi sovrapposizione"
+                      title="Aggiungi sovrapposizione scala/accordo"
+                    >
+                      <svg lucideLayers class="w-4 h-4"></svg>
+                    </button>
                   </div>
                 </div>
                 <p class="text-sm text-base-content/60">
@@ -139,6 +148,17 @@ interface FretNote {
               [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
               class="w-full"
             >
+              <!-- Fretboard background (rendered first, behind everything) -->
+              <rect
+                [attr.x]="leftMargin"
+                [attr.y]="getStringY(5)"
+                [attr.width]="fretboardWidth() - leftMargin - rightMargin"
+                [attr.height]="getStringY(0) - getStringY(5)"
+                [attr.fill]="config().fretboardColor || '#fff'"
+                opacity="0.95"
+                style="pointer-events: none;"
+              />
+
               <!-- Frets (vertical lines) -->
               @for (fret of frets; track fret) {
                 <line
@@ -146,8 +166,8 @@ interface FretNote {
                   [attr.y1]="getStringY(5)"
                   [attr.x2]="getFretX(fret)"
                   [attr.y2]="getStringY(0)"
-                  [attr.stroke]="fret === 0 ? '#666' : '#ccc'"
-                  [attr.stroke-width]="fret === 0 ? 3 : 1"
+                  [attr.stroke]="fret === 0 ? fretboardColors().nut : fretboardColors().frets"
+                  [attr.stroke-width]="fret === 0 ? 6 : 3"
                 />
               }
 
@@ -158,8 +178,8 @@ interface FretNote {
                   [attr.y1]="getStringY(stringNum)"
                   [attr.x2]="fretboardWidth() - rightMargin"
                   [attr.y2]="getStringY(stringNum)"
-                  stroke="#888"
-                  stroke-width="2"
+                  [attr.stroke]="fretboardColors().strings"
+                  stroke-width="1"
                 />
               }
 
@@ -169,8 +189,8 @@ interface FretNote {
                   [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
                   [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
                   r="7"
-                  fill="#ddd"
-                  opacity="0.5"
+                  [attr.fill]="fretboardColors().inlays"
+                  opacity="0.8"
                 />
               }
 
@@ -179,18 +199,31 @@ interface FretNote {
                 [attr.cx]="getFretX(11) + fretWidth / 2"
                 [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
                 r="7"
-                fill="#ddd"
-                opacity="0.5"
+                [attr.fill]="fretboardColors().inlays"
+                opacity="0.8"
               />
               <circle
                 [attr.cx]="getFretX(11) + fretWidth / 2"
                 [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
                 r="7"
-                fill="#ddd"
-                opacity="0.5"
+                [attr.fill]="fretboardColors().inlays"
+                opacity="0.8"
               />
 
-              <!-- Notes -->
+              <!-- Overlay Notes (rendered behind main notes) -->
+              @for (fretNote of overlayFretNotes(); track 'overlay-' + fretNote.string + '-' + fretNote.fret) {
+                @if (fretNote.isScaleNote && isInFretRange(fretNote.fret)) {
+                  <circle
+                    [attr.cx]="getNoteX(fretNote.fret)"
+                    [attr.cy]="getStringY(fretNote.string)"
+                    r="21"
+                    fill="#000"
+                    opacity="0.4"
+                  />
+                }
+              }
+
+              <!-- Main Notes -->
               @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
                 @if (fretNote.isScaleNote && isNoteVisible(fretNote.note) && isInFretRange(fretNote.fret)) {
                   <g>
@@ -409,6 +442,30 @@ interface FretNote {
               </div>
             </div>
 
+            <!-- Fretboard Color Selection -->
+            <div class="form-control mb-4">
+              <label class="label">
+                <span class="label-text">Colore tastiera</span>
+              </label>
+              <div class="flex gap-2 flex-wrap">
+                @for (style of fretboardStyles; track style.fretboard) {
+                  <button
+                    type="button"
+                    class="btn btn-sm"
+                    [class.btn-primary]="tempFretboardColor() === style.fretboard"
+                    [class.btn-ghost]="tempFretboardColor() !== style.fretboard"
+                    (click)="tempFretboardColor.set(style.fretboard)"
+                  >
+                    <div
+                      class="w-4 h-4 rounded border border-base-content/20 mr-1"
+                      [style.background-color]="style.fretboard"
+                    ></div>
+                    {{ style.label }}
+                  </button>
+                }
+              </div>
+            </div>
+
             <!-- Label Mode and Color Mode side by side -->
             <div class="grid grid-cols-2 gap-4 mb-4">
               <!-- Label Mode -->
@@ -578,6 +635,124 @@ interface FretNote {
         <div class="modal-backdrop" (click)="closeRelationsModal()"></div>
       </div>
     }
+
+    <!-- Overlay Modal -->
+    @if (overlayModalOpen()) {
+      <div class="modal modal-open">
+        <div class="modal-box max-w-xl">
+          <h3 class="font-bold text-lg mb-4">Aggiungi sovrapposizione</h3>
+          
+          <form (submit)="saveOverlay($event)">
+            <!-- Type Selection -->
+            <div class="form-control mb-4">
+              <label class="label">
+                <span class="label-text">Tipo</span>
+              </label>
+              <select
+                class="select select-bordered w-full"
+                [(ngModel)]="tempOverlayType"
+                name="overlayType"
+                required
+              >
+                <option value="scale">Scala</option>
+                <option value="chord">Accordo</option>
+              </select>
+            </div>
+
+            <!-- Root Note Selection -->
+            <div class="form-control mb-4">
+              <label class="label">
+                <span class="label-text">Tonica</span>
+              </label>
+              <select
+                class="select select-bordered w-full"
+                [(ngModel)]="tempOverlayRoot"
+                name="overlayRoot"
+                required
+              >
+                @for (note of notes; track note) {
+                  <option [value]="note">{{ note }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Scale/Chord Name -->
+            <div class="form-control mb-4">
+              <label class="label">
+                <span class="label-text">
+                  @if (tempOverlayType() === 'scale') { Nome scala } @else { Tipo accordo }
+                </span>
+              </label>
+              @if (tempOverlayType() === 'scale') {
+                <input
+                  list="overlay-scale-names"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="tempOverlayName"
+                  name="overlayName"
+                  placeholder="Cerca scala..."
+                  required
+                />
+                <datalist id="overlay-scale-names">
+                  @for (scaleName of scaleNames; track scaleName) {
+                    <option [value]="scaleName">{{ scaleName }}</option>
+                  }
+                </datalist>
+              } @else {
+                <input
+                  list="overlay-chord-types"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="tempOverlayName"
+                  name="overlayName"
+                  placeholder="Cerca accordo..."
+                  required
+                />
+                <datalist id="overlay-chord-types">
+                  @for (chordType of chordTypes; track chordType) {
+                    <option [value]="chordType">{{ chordType }}</option>
+                  }
+                </datalist>
+              }
+            </div>
+
+            <!-- Current Overlays List -->
+            @if (overlays().length > 0) {
+              <div class="mb-4">
+                <label class="label">
+                  <span class="label-text">Sovrapposizioni attive</span>
+                </label>
+                <div class="space-y-2">
+                  @for (overlay of overlays(); track $index) {
+                    <div class="flex items-center justify-between bg-base-200 p-2 rounded">
+                      <span class="text-sm">
+                        {{ overlay.root }} {{ overlay.name }} ({{ overlay.type === 'scale' ? 'Scala' : 'Accordo' }})
+                      </span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs btn-square"
+                        (click)="removeOverlay($index)"
+                      >
+                        <svg lucideTrash2 class="w-3 h-3"></svg>
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Modal Actions -->
+            <div class="modal-action">
+              <button type="button" class="btn" (click)="closeOverlayModal()">
+                Chiudi
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Aggiungi
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="modal-backdrop" (click)="closeOverlayModal()"></div>
+      </div>
+    }
   `,
   styles: `
     :host {
@@ -603,7 +778,14 @@ export class ScaleVisualizationComponent implements OnInit {
   modalOpen = signal(false);
   configModalOpen = signal(false);
   relationsModalOpen = signal(false);
+  overlayModalOpen = signal(false);
   isFirstConfig = signal(false);
+  
+  // Overlay state
+  overlays = signal<Array<{ type: 'scale' | 'chord'; root: string; name: string }>>([]);
+  tempOverlayType = signal<'scale' | 'chord'>('scale');
+  tempOverlayRoot = signal('C');
+  tempOverlayName = signal('major');
   
   // Temporary values for scale/chord modal form
   tempTuningName = signal('Standard (E)');
@@ -617,12 +799,71 @@ export class ScaleVisualizationComponent implements OnInit {
   tempColorMode = signal<'monocolor' | 'triads' | 'all' | 'octaves'>('all');
   tempStartFret = signal(0);
   tempEndFret = signal(12);
+  tempFretboardColor = signal('#fff');
 
   // Constants
   tuningNames = Object.keys(STANDARD_TUNINGS);
   notes = NOTES;
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
+  fretboardStyles = [
+    {
+      label: 'Chiaro',
+      fretboard: '#fff',
+      frets: '#bbb',
+      strings: '#bbb',
+      inlays: '#bbb',
+      nut: '#555'
+    },
+    {
+      label: 'Acero chiaro',
+      fretboard: '#efd4a5',
+      frets: '#cab0b0',
+      strings: '#555',
+      inlays: '#fff',
+      nut: '#cab0b0'
+    },
+    {
+      label: 'Acero medio',
+      fretboard: '#d8ac85',
+      frets: '#bbb',
+      strings: '#555',
+      inlays: '#fff',
+      nut: '#bbb'
+    },
+    {
+      label: 'Acero scuro',
+      fretboard: '#e6b854',
+      frets: '#ddd',
+      strings: '#555',
+      inlays: '#fff',
+      nut: '#ddd'
+    },
+    {
+      label: 'Ebano chiaro',
+      fretboard: '#333',
+      frets: 'lightgray',
+      strings: '#777',
+      inlays: '#fff',
+      nut: 'lightgray'
+    },
+    {
+      label: 'Ebano medio',
+      fretboard: '#433',
+      frets: 'lightgray',
+      strings: '#777',
+      inlays: '#fff',
+      nut: 'lightgray'
+    },
+    {
+      label: 'Palissandro',
+      fretboard: '#381411',
+      frets: '#eae8c2',
+      strings: '#e0dc98',
+      inlays: '#fff',
+      nut: '#eae8c2'
+    }
+  ];
   
   // Color palette for scale degrees
   noteColors = [
@@ -652,6 +893,18 @@ export class ScaleVisualizationComponent implements OnInit {
 
   config = computed(() => this.scaleItem().config);
   itemType = computed(() => this.scaleItem().type);
+  
+  // Single computed for all fretboard colors based on current config
+  fretboardColors = computed(() => {
+    const color = this.config().fretboardColor || '#fff';
+    const style = this.fretboardStyles.find(s => s.fretboard === color) || this.fretboardStyles[0];
+    return {
+      frets: style.frets,
+      nut: style.nut,
+      strings: style.strings,
+      inlays: style.inlays
+    };
+  });
   
   hasConfig = computed(() => {
     const cfg = this.config();
@@ -778,6 +1031,60 @@ export class ScaleVisualizationComponent implements OnInit {
     if (!this.hasConfig() || this.itemType() !== 'scale') return [];
     const cfg = this.config();
     return Scale.reduced(`${cfg.root} ${cfg.scaleName}`);
+  });
+
+  overlayFretNotes = computed(() => {
+    if (!this.hasConfig() || this.overlays().length === 0) return [];
+    
+    const cfg = this.config();
+    const allOverlayNotes: FretNote[] = [];
+    
+    // Collect all notes from all overlays
+    const overlayNotesSet = new Set<number>();
+    
+    this.overlays().forEach(overlay => {
+      let notes: string[] = [];
+      
+      if (overlay.type === 'scale') {
+        const scale = Scale.get(`${overlay.root} ${overlay.name}`);
+        notes = scale.notes;
+      } else {
+        const chord = Chord.get(`${overlay.root}${overlay.name}`);
+        notes = chord.notes;
+      }
+      
+      notes.forEach(note => {
+        const noteName = note.replace(/[0-9]/g, '');
+        const chroma = Note.chroma(noteName);
+        if (chroma !== undefined) {
+          overlayNotesSet.add(chroma);
+        }
+      });
+    });
+    
+    // Generate fret notes for overlay
+    cfg.tuning.forEach((openNote, stringIndex) => {
+      const openNoteName = openNote.replace(/[0-9]/g, '');
+      const openChroma = Note.chroma(openNoteName);
+      
+      if (openChroma === undefined) return;
+      
+      for (let fret = 0; fret <= NUM_FRETS; fret++) {
+        const noteChroma = (openChroma + fret) % 12;
+        const isOverlayNote = overlayNotesSet.has(noteChroma);
+        
+        if (isOverlayNote) {
+          allOverlayNotes.push({
+            string: stringIndex,
+            fret,
+            note: NOTES[noteChroma],
+            isScaleNote: true
+          });
+        }
+      }
+    });
+    
+    return allOverlayNotes;
   });
 
   getTuningName(): string {
@@ -923,6 +1230,7 @@ export class ScaleVisualizationComponent implements OnInit {
     this.tempColorMode.set(cfg.colorMode || 'all');
     this.tempStartFret.set(cfg.startFret ?? 0);
     this.tempEndFret.set(cfg.endFret ?? 12);
+    this.tempFretboardColor.set(cfg.fretboardColor || '#fff');
     this.configModalOpen.set(true);
   }
 
@@ -938,6 +1246,38 @@ export class ScaleVisualizationComponent implements OnInit {
     this.relationsModalOpen.set(false);
   }
 
+  openOverlayModal() {
+    this.tempOverlayType.set('scale');
+    this.tempOverlayRoot.set('C');
+    this.tempOverlayName.set('major');
+    this.overlayModalOpen.set(true);
+  }
+
+  closeOverlayModal() {
+    this.overlayModalOpen.set(false);
+  }
+
+  saveOverlay(event: Event) {
+    event.preventDefault();
+    
+    const newOverlay = {
+      type: this.tempOverlayType(),
+      root: this.tempOverlayRoot(),
+      name: this.tempOverlayName()
+    };
+    
+    this.overlays.update(overlays => [...overlays, newOverlay]);
+    
+    // Reset form
+    this.tempOverlayType.set('scale');
+    this.tempOverlayRoot.set('C');
+    this.tempOverlayName.set('major');
+  }
+
+  removeOverlay(index: number) {
+    this.overlays.update(overlays => overlays.filter((_, i) => i !== index));
+  }
+
   saveDisplayConfig(event: Event) {
     event.preventDefault();
     
@@ -949,7 +1289,8 @@ export class ScaleVisualizationComponent implements OnInit {
         labelMode: this.tempLabelMode(),
         colorMode: this.tempColorMode(),
         startFret: this.tempStartFret(),
-        endFret: this.tempEndFret()
+        endFret: this.tempEndFret(),
+        fretboardColor: this.tempFretboardColor()
       }
     };
     
@@ -998,7 +1339,8 @@ export class ScaleVisualizationComponent implements OnInit {
       showChordDegrees: false,
       noteOpacity: 0.9,
       startFret: 0,
-      endFret: 12
+      endFret: 12,
+      fretboardColor: '#fff'
     };
 
     const config = type === 'scale' 

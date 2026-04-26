@@ -18,7 +18,7 @@ import { ToastService } from '../../services/toast.service';
       </main>
       
       <div class="fixed bottom-4 left-4 bg-base-100 shadow-lg rounded-box p-4 z-30 max-w-xs">
-        <a routerLink="/sessions" class="text-lg font-bold text-primary hover:underline block mb-3">
+        <a routerLink="/sessions" class="text-lg font-bold block mb-3">
           Guitar Studies
         </a>
         

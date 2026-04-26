@@ -1,52 +1,89 @@
   @import "tailwindcss";
   @plugin "daisyui";
 
-/* Custom ngx-editor styles */
-.NgxEditor {
-  border: 1px solid hsl(var(--bc) / 0.2);
-  border-radius: 0.5rem;
-  background: hsl(var(--b1));
-}
+  /* Override btn-primary style with black outline */
+  .btn-primary {
+    --tw-bg-opacity: 1;
+    background-color: transparent !important;
+    border: 2px solid #000 !important;
+    color: #000 !important;
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.25) !important;
+  }
 
-.NgxEditor__MenuBar {
-  border-bottom: 1px solid hsl(var(--bc) / 0.1);
-  padding: 0.5rem;
-  background: hsl(var(--b2));
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
+  .btn-primary:hover {
+    background-color: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(1px);
+  }
 
-.NgxEditor__MenuItem {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
-  color: hsl(var(--bc));
-}
+  .btn-primary:active {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
+    transform: translateY(2px);
+  }
 
-.NgxEditor__MenuItem:hover {
-  background: hsl(var(--b3));
-}
+  .btn-primary:disabled {
+    border-color: #ccc !important;
+    color: #ccc !important;
+    background-color: transparent !important;
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1) !important;
+  }
 
-.NgxEditor__MenuItem--Active {
-  background: hsl(var(--p));
-  color: hsl(var(--pc));
-}
+  .classe {
+    --fretboard: #381411;
+    --fretboard_side: #1c0000;
+    --inlays: #fff;
+    --frets: #eae8c2;
+    --strings: #e0dc98;
+    --scale_highlight_note_background: black;
+    --scale_highlight_note_text: #ffffaa;
+  }
 
-.NgxEditor__Content {
-  padding: 1rem;
-  min-height: 200px;
-  outline: none;
-}
+  /* Custom ngx-editor styles */
+  .NgxEditor {
+    border: 1px solid hsl(var(--bc) / 0.2);
+    border-radius: 0.5rem;
+    background: hsl(var(--b1));
+  }
 
-.NgxEditor__Content:focus {
-  outline: none;
-}
+  .NgxEditor__MenuBar {
+    border-bottom: 1px solid hsl(var(--bc) / 0.1);
+    padding: 0.5rem;
+    background: hsl(var(--b2));
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
 
-.NgxEditor__Placeholder {
-  color: hsl(var(--bc) / 0.4);
-  pointer-events: none;
-}
+  .NgxEditor__MenuItem {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: hsl(var(--bc));
+  }
 
+  .NgxEditor__MenuItem:hover {
+    background: hsl(var(--b3));
+  }
+
+  .NgxEditor__MenuItem--Active {
+    background: hsl(var(--p));
+    color: hsl(var(--pc));
+  }
+
+  .NgxEditor__Content {
+    padding: 1rem;
+    min-height: 200px;
+    outline: none;
+  }
+
+  .NgxEditor__Content:focus {
+    outline: none;
+  }
+
+  .NgxEditor__Placeholder {
+    color: hsl(var(--bc) / 0.4);
+    pointer-events: none;
+  }

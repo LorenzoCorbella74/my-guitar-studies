@@ -63,6 +63,7 @@ export interface VisualizationConfig {
   scaleName?: string;
   chordType?: string;
   woodTheme?: 'maple' | 'rosewood' | 'ebony' | 'pau ferro' | 'white';
+  fretboardColor?: string;
   labelMode: LabelMode;
   colorMode: ColorMode;
   showChordDegrees: boolean;

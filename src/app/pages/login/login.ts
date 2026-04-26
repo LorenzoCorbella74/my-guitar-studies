@@ -16,7 +16,7 @@ import { AppRoutes } from '../../enums/routes.enum';
       
       <div class="card bg-base-100 shadow-xl w-full max-w-md">
         <div class="card-body">
-          <h2 class="card-title text-primary text-2xl justify-center mb-4">Accedi</h2>
+          <h1 class="text-4xl font-bold text-center mb-6 tracking-wider">GUITAR STUDIES</h1>
           
           @if (errorMessage()) {
             <div class="alert alert-error mb-4">

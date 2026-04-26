@@ -113,7 +113,7 @@ import { ConfirmService } from '../../services/confirm.service';
             <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
               <div class="card-body">
                 <div class="flex justify-between items-start gap-4">
-                  <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:link hover:text-primary">
+                  <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
                     {{ session.title || 'Senza titolo' }}
                   </a>
                   <div class="flex items-center gap-1">
