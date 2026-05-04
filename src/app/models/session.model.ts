@@ -46,6 +46,7 @@ export interface OverlayItem {
   root?: string;
   name?: string;
   notes?: string[];
+  visible?: boolean; // If undefined, defaults to true
 }
 
 export interface ChordDefinition {

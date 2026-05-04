@@ -5,7 +5,7 @@ import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem } from '../../models/se
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
 import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
-import { ScaleRelationsDialogComponent, ScaleRelationsDialogData } from './dialogs/scale-relations-dialog.component';
+import { ScaleRelationsDialogComponent, ScaleRelationsDialogData, ScaleRelationsDialogResult } from './dialogs/scale-relations-dialog.component';
 import { OverlayDialogComponent, OverlayDialogData, OverlayDialogResult } from './dialogs/overlay-dialog.component';
 import { DEGREE_COLOURS, OCTAVE_COLOURS, STANDARD_TUNINGS, NOTES, NUM_FRETS, FRETBOARD_STYLES } from './constants';
 import { UserSettingsService } from '../../services/user-settings.service';
@@ -229,30 +229,32 @@ export class ScaleVisualizationComponent implements OnInit {
     const cfg = this.config();
     const allOverlayNotes: FretNote[] = [];
     
-    // Collect all notes from all overlays
+    // Collect all notes from all overlays (only visible ones)
     const overlayNotesSet = new Set<number>();
     
-    this.overlays().forEach(overlay => {
-      let notes: string[] = [];
-      
-      if (overlay.type === 'scale' && overlay.root && overlay.name) {
-        const scale = Scale.get(`${overlay.root} ${overlay.name}`);
-        notes = scale.notes;
-      } else if (overlay.type === 'chord' && overlay.root && overlay.name) {
-        const chord = Chord.get(`${overlay.root}${overlay.name}`);
-        notes = chord.notes;
-      } else if (overlay.type === 'notes' && overlay.notes) {
-        notes = overlay.notes;
-      }
-      
-      notes.forEach(note => {
-        const noteName = note.replace(/[0-9]/g, '');
-        const chroma = Note.chroma(noteName);
-        if (chroma !== undefined) {
-          overlayNotesSet.add(chroma);
+    this.overlays()
+      .filter(overlay => overlay.visible ?? true) // Only process visible overlays
+      .forEach(overlay => {
+        let notes: string[] = [];
+        
+        if (overlay.type === 'scale' && overlay.root && overlay.name) {
+          const scale = Scale.get(`${overlay.root} ${overlay.name}`);
+          notes = scale.notes;
+        } else if (overlay.type === 'chord' && overlay.root && overlay.name) {
+          const chord = Chord.get(`${overlay.root}${overlay.name}`);
+          notes = chord.notes;
+        } else if (overlay.type === 'notes' && overlay.notes) {
+          notes = overlay.notes;
         }
+        
+        notes.forEach(note => {
+          const noteName = note.replace(/[0-9]/g, '');
+          const chroma = Note.chroma(noteName);
+          if (chroma !== undefined) {
+            overlayNotesSet.add(chroma);
+          }
+        });
       });
-    });
     
     // Generate fret notes for overlay
     cfg.tuning.forEach((openNote, stringIndex) => {
@@ -461,20 +463,41 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   openRelationsModal(): void {
+    const cfg = this.config();
     const dialogData: ScaleRelationsDialogData = {
       title: this.displayTitle(),
+      currentRoot: cfg.root,
       scaleChords: this.scaleChords(),
       extendedScales: this.extendedScales(),
       reducedScales: this.reducedScales()
     };
 
-    this.dialog.open(ScaleRelationsDialogComponent, {
-      data: dialogData,
-      disableClose: false,
-      hasBackdrop: true,
-      width: '56rem',
-      maxWidth: '90vw',
-      maxHeight: '90vh'
+    const dialogRef = this.dialog.open<ScaleRelationsDialogResult, ScaleRelationsDialogData>(
+      ScaleRelationsDialogComponent,
+      {
+        data: dialogData,
+        disableClose: false,
+        hasBackdrop: true,
+        width: '56rem',
+        maxWidth: '90vw',
+        maxHeight: '90vh'
+      }
+    );
+
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        // Add the new overlay to the existing overlays
+        const currentOverlays = this.overlays();
+        const updatedOverlays = [...currentOverlays, result.overlay];
+        this.overlays.set(updatedOverlays);
+        
+        // Save overlays to item
+        const updatedItem = {
+          ...this.scaleItem(),
+          overlays: updatedOverlays
+        };
+        this.update.emit(updatedItem);
+      }
     });
   }
 

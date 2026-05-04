@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
-import { LucideTrash2 } from '@lucide/angular';
+import { LucideTrash2, LucideEye, LucideEyeOff } from '@lucide/angular';
 import { NOTES } from '../constants';
 import { OverlayItem } from '../../../models/session.model';
 
@@ -17,7 +17,7 @@ export interface OverlayDialogResult {
 @Component({
   selector: 'app-overlay-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideTrash2],
+  imports: [FormsModule, LucideTrash2, LucideEye, LucideEyeOff],
   templateUrl: './overlay-dialog.component.html',
   styles: `
     :host {
@@ -53,7 +53,8 @@ export class OverlayDialogComponent {
       
       const newOverlay: OverlayItem = {
         type: 'notes',
-        notes: [...this.selectedNotes()]
+        notes: [...this.selectedNotes()],
+        visible: true
       };
       
       this.overlays.update(overlays => [...overlays, newOverlay]);
@@ -65,7 +66,8 @@ export class OverlayDialogComponent {
       const newOverlay: OverlayItem = {
         type: this.overlayType(),
         root: this.overlayRoot(),
-        name: this.overlayName()
+        name: this.overlayName(),
+        visible: true
       };
       
       this.overlays.update(overlays => [...overlays, newOverlay]);
@@ -86,6 +88,14 @@ export class OverlayDialogComponent {
   
   removeNoteFromSelection(note: string): void {
     this.selectedNotes.update(notes => notes.filter(n => n !== note));
+  }
+
+  toggleVisibility(index: number): void {
+    this.overlays.update(overlays => 
+      overlays.map((overlay, i) => 
+        i === index ? { ...overlay, visible: !(overlay.visible ?? true) } : overlay
+      )
+    );
   }
 
   removeOverlay(index: number): void {
