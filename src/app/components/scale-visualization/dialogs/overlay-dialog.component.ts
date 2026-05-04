@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
 import { LucideTrash2, LucideEye, LucideEyeOff } from '@lucide/angular';
-import { NOTES } from '../constants';
+import { NOTES_WITH_FLATS } from '../constants';
 import { OverlayItem } from '../../../models/session.model';
 
 export interface OverlayDialogData {
@@ -29,7 +29,7 @@ export class OverlayDialogComponent {
   dialogRef = inject<DialogRef<OverlayDialogResult>>(DialogRef);
   data = inject<OverlayDialogData>(DIALOG_DATA);
 
-  notes = NOTES;
+  notes = NOTES_WITH_FLATS;
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
 

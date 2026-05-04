@@ -37,6 +37,9 @@ export const STANDARD_TUNINGS = {
 
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+// Notes with both sharps and flats for UI dropdowns
+export const NOTES_WITH_FLATS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
+
 export const NUM_FRETS = 12;
 
 export const FRETBOARD_STYLES = [

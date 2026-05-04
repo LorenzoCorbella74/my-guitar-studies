@@ -79,7 +79,7 @@
             (change)="updateChordRoot($any($event.target).value)"
             [disabled]="isPlaying()"
           >
-            @for (note of ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']; track note) {
+            @for (note of noteOptions; track note) {
               <option [value]="note">{{ note }}</option>
             }
           </select>

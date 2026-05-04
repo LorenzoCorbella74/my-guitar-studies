@@ -4,6 +4,7 @@ import { LucideTrash2, LucidePlus, LucideX } from '@lucide/angular';
 import { Chord, ChordType, Interval, Scale, ScaleType } from 'tonal';
 import { FormsModule } from '@angular/forms';
 import { ConfirmService } from '../../services/confirm.service';
+import { NOTES_WITH_FLATS } from '../scale-visualization/constants';
 
 interface ComparisonElement {
   type: 'scale' | 'arpeggio' | 'chord';
@@ -21,8 +22,6 @@ interface TransposedRow {
   isFirstElement: boolean;
   notePresentInFirst: boolean[];
 }
-
-const CHROMATIC_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 @Component({
   selector: 'app-comparison-table',
@@ -202,7 +201,7 @@ export class ComparisonTableComponent {
   newElementRoot = signal('C');
   newElementName = signal('major');
   
-  chromaticNotes = CHROMATIC_NOTES;
+  chromaticNotes = NOTES_WITH_FLATS;
   
   availableNames = computed(() => {
     if (this.newElementType() === 'scale') {

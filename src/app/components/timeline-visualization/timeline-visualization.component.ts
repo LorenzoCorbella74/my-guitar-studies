@@ -2,8 +2,8 @@ import { Component, ChangeDetectionStrategy, input, output, signal, computed, ef
 import { FormsModule } from '@angular/forms';
 import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare } from '@lucide/angular';
 import { TimelineItem, TimelineLayer, NoteDuration } from '../../models/session.model';
-import { Chord, ChordType, Interval } from 'tonal';
-import { DEGREE_COLOURS, NUM_FRETS } from '../scale-visualization/constants';
+import { Chord, ChordType, Interval, Note } from 'tonal';
+import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS } from '../scale-visualization/constants';
 import { MetronomeService } from '../../services/metronome.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
 
@@ -55,6 +55,7 @@ export class TimelineVisualizationComponent {
   });
 
   chordTypeOptions = ChordType.all().map(ct => ct.aliases[0] || ct.name);
+  noteOptions = NOTES_WITH_FLATS;
 
   // Fretboard layout constants (same as scale-visualization)
   leftMargin = 40;
@@ -78,6 +79,17 @@ export class TimelineVisualizationComponent {
     if (tuning.length === 0) return notes;
 
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    
+    // Create a map from chroma to the correct chord note name
+    // This ensures we use the chord's enharmonic spelling (e.g., Ab not G#)
+    const chromaToChordNote = new Map<number, string>();
+    chordNotes.forEach(cn => {
+      const noteName = cn.replace(/\d+/, '');
+      const chroma = Note.chroma(noteName);
+      if (chroma !== undefined) {
+        chromaToChordNote.set(chroma, noteName);
+      }
+    });
 
     tuning.forEach((openNote, stringIndex) => {
       const noteName = openNote.replace(/\d+/, '');
@@ -91,11 +103,18 @@ export class TimelineVisualizationComponent {
         const key = `${stringIndex}-${fret}`;
         const isActive = activeNotes[key] === true;
 
-        // Calculate interval degree for all notes relative to chord root
+        // Get the chroma of the current fret note
+        const currentChroma = Note.chroma(currentNote);
+        
+        // Check if this note is part of the chord using chroma comparison
+        const isChordNote = currentChroma !== undefined && chromaToChordNote.has(currentChroma);
+
+        // Calculate interval degree using the chord's note name (not the fretboard's)
         let degree: string | undefined;
-        const isChordNote = chordNotes.some(cn => cn.replace(/\d+/, '') === currentNote);
-        if (layer.root) {
-          const interval = Interval.distance(layer.root, currentNote);
+        if (layer.root && currentChroma !== undefined) {
+          // Use the chord note name if this is a chord note, otherwise use fretboard note
+          const noteForInterval = chromaToChordNote.get(currentChroma) || currentNote;
+          const interval = Interval.distance(layer.root, noteForInterval);
           degree = interval;
         }
 

@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
-import { STANDARD_TUNINGS, NOTES } from '../constants';
+import { STANDARD_TUNINGS, NOTES_WITH_FLATS } from '../constants';
 
 export interface ConfigurationDialogData {
   itemType: 'scale' | 'arpeggio' | 'chord';
@@ -37,7 +37,7 @@ export class ConfigurationDialogComponent {
   data = inject<ConfigurationDialogData>(DIALOG_DATA);
 
   tuningNames = Object.keys(STANDARD_TUNINGS);
-  notes = NOTES;
+  notes = NOTES_WITH_FLATS;
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
 
