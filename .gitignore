@@ -45,6 +45,10 @@ Thumbs.db
 /.agents
 /.github
 
-# Firebase credentials
-/src/environments/environment.ts
+# Environment variables
+.env.local
+.env.*.local
+
+# Firebase credentials (auto-generated)
+/src/firebase.ts
 

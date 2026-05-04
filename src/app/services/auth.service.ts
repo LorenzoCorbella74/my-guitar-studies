@@ -11,7 +11,7 @@ import {
   User
 } from 'firebase/auth';
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { environment } from '../../environments/environment';
+import { firebaseConfig } from '../../firebase';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -27,7 +27,7 @@ export class AuthService {
   isAuthenticated = computed(() => this._currentUser() !== null);
 
   constructor() {
-    this.app = initializeApp(environment.firebase);
+    this.app = initializeApp(firebaseConfig);
     this.auth = getAuth(this.app);
 
     onAuthStateChanged(this.auth, (user) => {
