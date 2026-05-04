@@ -4,13 +4,7 @@ import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { ScaleType, ChordType } from 'tonal';
 import { LucideTrash2 } from '@lucide/angular';
 import { NOTES } from '../constants';
-
-export interface OverlayItem {
-  type: 'scale' | 'chord' | 'notes';
-  root?: string;
-  name?: string;
-  notes?: string[];
-}
+import { OverlayItem } from '../../../models/session.model';
 
 export interface OverlayDialogData {
   overlays: OverlayItem[];

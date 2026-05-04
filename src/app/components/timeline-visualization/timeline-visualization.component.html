@@ -121,49 +121,55 @@
     <!-- Duration and BPM controls -->
     <div class="flex gap-6 mb-4">
       <!-- Duration selector -->
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">Durata layer</span>
-        </label>
-        <div class="flex gap-2">
-          @for (duration of durations; track duration) {
-            <label class="label cursor-pointer gap-2">
-              <input
-                type="radio"
-                name="duration"
-                class="radio radio-sm"
-                [checked]="currentLayer().duration === duration"
-                (change)="updateDuration(duration)"
-                [disabled]="isPlaying()"
-              />
-              <span class="label-text">{{ durationLabels[duration] }}</span>
-            </label>
-          }
+      <div class="form-control mt-1">
+        <div class="flex items-center gap-4">
+          <span class="label-text font-bold">Durata layer</span>
+          <div class="flex gap-2">
+            @for (duration of durations; track duration) {
+              <label class="label cursor-pointer gap-2">
+                <input
+                  type="radio"
+                  name="duration"
+                  class="radio radio-sm"
+                  [checked]="currentLayer().duration === duration"
+                  (change)="updateDuration(duration)"
+                  [disabled]="isPlaying()"
+                />
+                <span class="label-text">{{ durationLabels[duration] }}</span>
+              </label>
+            }
+          </div>
         </div>
       </div>
 
       <!-- BPM input -->
       <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">BPM</span>
-        </label>
-        <input
-          type="number"
-          class="input input-bordered input-sm w-24"
-          [value]="bpm()"
-          (input)="updateBpm(+$any($event.target).value)"
-          [disabled]="isPlaying()"
-          min="40"
-          max="240"
-        />
+        <div class="flex items-center gap-4">
+          <span class="label-text font-bold">BPM</span>
+          <input
+            type="number"
+            class="input input-bordered input-sm w-24"
+            [value]="bpm()"
+            (input)="updateBpm(+$any($event.target).value)"
+            [disabled]="isPlaying()"
+            min="40"
+            max="240"
+          />
+        </div>
       </div>
 
       <!-- Playback controls -->
       <div class="form-control ml-auto">
-        <label class="label">
+        <!-- <label class="label">
           <span class="label-text font-semibold">Playback</span>
-        </label>
-        <div class="flex items-center gap-2">
+        </label -->
+        <div class="flex items-center gap-4">
+          <!-- Beat Indicator -->
+          @if (isPlaying()) {
+            <app-beat-indicator [currentBeat]="currentBeat()" />
+          }
+          
+          <!-- Play/Stop buttons -->
           @if (!isPlaying()) {
             <button
               type="button"
@@ -184,7 +190,7 @@
               <svg lucideSquare class="w-4 h-4"></svg>
               Stop
             </button>
-            <span class="text-xs text-success font-medium ml-2">
+            <span class="text-xs text-success font-medium">
               ▶️ Layer {{ currentLayerIndex() + 1 }}/{{ layers().length }}
             </span>
           }

@@ -1,3 +1,74 @@
-<div class="settings-content">
-        <p>Pagina delle impostazioni utente.</p>
+<div class="container mx-auto p-6 max-w-2xl">
+  <h1 class="text-3xl font-bold mb-6">Impostazioni</h1>
+
+  @if (settings(); as userSettings) {
+    <div class="space-y-6">
+      <!-- Theme Settings -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Tema</h2>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Seleziona il tema dell'applicazione</span>
+            </label>
+            <select 
+              class="select select-bordered w-full"
+              [value]="currentTheme()"
+              (change)="onThemeChange($event)"
+            >
+              <option value="light">Chiaro</option>
+              <option value="dark">Scuro</option>
+            </select>
+          </div>
+        </div>
       </div>
+
+      <!-- Fretboard Style Settings -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Stile Tastiera</h2>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Stile predefinito per le visualizzazioni della tastiera</span>
+            </label>
+            <select 
+              class="select select-bordered w-full"
+              [value]="selectedFretboardIndex()"
+              (change)="onFretboardStyleChange($event)"
+            >
+              @for (style of fretboardStyles; track $index) {
+                <option [value]="$index">{{ style.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Preview -->
+          <div class="mt-4">
+            <label class="label">
+              <span class="label-text font-semibold">Anteprima</span>
+            </label>
+            <div class="p-4 rounded-lg border-2 border-base-300">
+              <div 
+                class="w-full h-24 rounded"
+                [style.background-color]="fretboardStyles[selectedFretboardIndex()].fretboard"
+              >
+                <div class="flex items-center justify-center h-full">
+                  <div 
+                    class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
+                    [style.background-color]="fretboardStyles[selectedFretboardIndex()].frets"
+                    [style.color]="fretboardStyles[selectedFretboardIndex()].inlays"
+                  >
+                    {{ fretboardStyles[selectedFretboardIndex()].label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  } @else {
+    <p>Caricamento impostazioni...</p>
+  }
+</div>

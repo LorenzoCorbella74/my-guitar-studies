@@ -4,6 +4,8 @@ import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, Lucide
 import { TimelineItem, TimelineLayer, NoteDuration } from '../../models/session.model';
 import { Chord, ChordType, Interval } from 'tonal';
 import { DEGREE_COLOURS, NUM_FRETS } from '../scale-visualization/constants';
+import { MetronomeService } from '../../services/metronome.service';
+import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
 
 interface FretNote {
   string: number;
@@ -17,7 +19,7 @@ interface FretNote {
 @Component({
   selector: 'app-timeline-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare],
+  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, BeatIndicatorComponent],
   templateUrl: './timeline-visualization.component.html',
   styles: `
     :host {
@@ -29,10 +31,13 @@ export class TimelineVisualizationComponent {
   timelineItem = input.required<TimelineItem>();
   update = output<TimelineItem>();
   delete = output<void>();
+  
+  private metronomeService = inject(MetronomeService);
 
   // State signals
   currentLayerIndex = signal(0);
   isPlaying = signal(false);
+  currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
 
   // Computed values
@@ -225,15 +230,27 @@ export class TimelineVisualizationComponent {
   }
 
   // Playback methods
-  play() {
+  async play() {
     if (this.isPlaying()) return;
+    
+    console.log('▶️ Starting playback...');
+    
+    // Resume AudioContext (required by some browsers)
+    await this.metronomeService.resumeAudioContext();
+    
     this.isPlaying.set(true);
     this.currentLayerIndex.set(0);
+    this.currentBeat.set(0);
+    
+    console.log('isPlaying:', this.isPlaying(), 'currentBeat:', this.currentBeat());
+    
     this.startPlayback();
   }
 
   stop() {
+    console.log('⏹️ Stopping playback...');
     this.isPlaying.set(false);
+    this.currentBeat.set(0);
     if (this.playbackInterval !== null) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
@@ -242,32 +259,43 @@ export class TimelineVisualizationComponent {
   }
 
   private startPlayback() {
-    const calculateInterval = () => {
-      const layer = this.currentLayer();
-      const bpm = this.bpm();
-      const beatDuration = 60000 / bpm; // milliseconds per beat
-      return beatDuration * (layer.duration / 0.25); // duration relative to quarter note
-    };
-
-    const advance = () => {
+    const bpm = this.bpm();
+    const beatDuration = 60000 / bpm; // milliseconds per quarter note beat
+    let beatCounter = 0; // Counter for beats within the measure (0-3)
+    
+    console.log(`🎵 BPM: ${bpm}, Beat duration: ${beatDuration}ms`);
+    
+    // Play first beat immediately
+    this.metronomeService.playClick(true); // Accent on first beat
+    this.currentBeat.set(1);
+    console.log('Beat 1 - currentBeat:', this.currentBeat());
+    
+    const tick = () => {
       if (!this.isPlaying()) return;
-
-      const nextIndex = this.currentLayerIndex() + 1;
-      if (nextIndex >= this.layers().length) {
-        // Loop back to start
-        this.currentLayerIndex.set(0);
-      } else {
-        this.currentLayerIndex.set(nextIndex);
+      
+      beatCounter++;
+      const currentBeatNumber = (beatCounter % 4) + 1; // 1-4
+      
+      // Update beat indicator
+      this.currentBeat.set(currentBeatNumber);
+      console.log(`Beat ${currentBeatNumber} - currentBeat:`, this.currentBeat());
+      
+      // Play click (accent on beat 1)
+      this.metronomeService.playClick(currentBeatNumber === 1);
+      
+      // Advance layer only every 4 beats (one measure)
+      if (currentBeatNumber === 4) {
+        const nextIndex = this.currentLayerIndex() + 1;
+        if (nextIndex >= this.layers().length) {
+          // Loop back to start
+          this.currentLayerIndex.set(0);
+        } else {
+          this.currentLayerIndex.set(nextIndex);
+        }
       }
-
-      // Recalculate interval for new layer
-      if (this.playbackInterval !== null) {
-        clearInterval(this.playbackInterval);
-      }
-      this.playbackInterval = window.setInterval(advance, calculateInterval());
     };
-
-    this.playbackInterval = window.setInterval(advance, calculateInterval());
+    
+    this.playbackInterval = window.setInterval(tick, beatDuration);
   }
 
   // SVG helper methods (reused from scale-visualization)

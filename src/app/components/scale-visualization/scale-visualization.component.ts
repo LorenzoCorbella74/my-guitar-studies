@@ -1,13 +1,14 @@
 import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed, inject } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers } from '@lucide/angular';
-import { ScaleItem, ArpeggioItem, ChordItem } from '../../models/session.model';
+import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
 import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
 import { ScaleRelationsDialogComponent, ScaleRelationsDialogData } from './dialogs/scale-relations-dialog.component';
-import { OverlayDialogComponent, OverlayDialogData, OverlayDialogResult, OverlayItem } from './dialogs/overlay-dialog.component';
+import { OverlayDialogComponent, OverlayDialogData, OverlayDialogResult } from './dialogs/overlay-dialog.component';
 import { DEGREE_COLOURS, OCTAVE_COLOURS, STANDARD_TUNINGS, NOTES, NUM_FRETS, FRETBOARD_STYLES } from './constants';
+import { UserSettingsService } from '../../services/user-settings.service';
 
 interface FretNote {
   string: number;
@@ -31,6 +32,7 @@ interface FretNote {
 })
 export class ScaleVisualizationComponent implements OnInit {
   dialog = inject(Dialog);
+  userSettingsService = inject(UserSettingsService);
   
   scaleItem = input.required<ScaleItem | ArpeggioItem | ChordItem>();
   update = output<ScaleItem | ArpeggioItem | ChordItem>();
@@ -52,6 +54,12 @@ export class ScaleVisualizationComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Load overlays from saved item
+    const item = this.scaleItem();
+    if (item.overlays) {
+      this.overlays.set([...item.overlays]);
+    }
+    
     // Auto-open modal if item has no configuration
     if (!this.hasConfig()) {
       this.isFirstConfig.set(true);
@@ -490,6 +498,13 @@ export class ScaleVisualizationComponent implements OnInit {
     dialogRef.closed.subscribe(result => {
       if (result) {
         this.overlays.set(result.overlays);
+        
+        // Save overlays to item
+        const updatedItem = {
+          ...this.scaleItem(),
+          overlays: result.overlays
+        };
+        this.update.emit(updatedItem);
       }
     });
   }
@@ -520,6 +535,9 @@ export class ScaleVisualizationComponent implements OnInit {
     dialogRef.closed.subscribe(result => {
       if (result) {
         const type = this.itemType();
+        // Get default fretboard color from user settings
+        const fretboardStyleIndex = this.userSettingsService.getDefaultFretboardStyleIndex();
+        const defaultFretboardColor = FRETBOARD_STYLES[fretboardStyleIndex]?.fretboard || '#fff';
         
         const baseConfig = {
           tuning: result.tuning,
@@ -530,7 +548,7 @@ export class ScaleVisualizationComponent implements OnInit {
           noteOpacity: 1.0,
           startFret: 0,
           endFret: 12,
-          fretboardColor: '#fff'
+          fretboardColor: defaultFretboardColor
         };
 
         const config = type === 'scale' 

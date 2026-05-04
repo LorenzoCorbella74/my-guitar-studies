@@ -24,18 +24,28 @@ export interface ScaleItem extends SessionItem {
   type: 'scale';
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
+  overlays?: OverlayItem[];
 }
 
 export interface ArpeggioItem extends SessionItem {
   type: 'arpeggio';
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
+  overlays?: OverlayItem[];
 }
 
 export interface ChordItem extends SessionItem {
   type: 'chord';
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
+  overlays?: OverlayItem[];
+}
+
+export interface OverlayItem {
+  type: 'scale' | 'chord' | 'notes';
+  root?: string;
+  name?: string;
+  notes?: string[];
 }
 
 export interface ChordDefinition {

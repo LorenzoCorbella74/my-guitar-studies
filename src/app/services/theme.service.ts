@@ -19,9 +19,8 @@ export class ThemeService {
       const saved = localStorage.getItem(THEME_KEY) as 'light' | 'dark' | null;
       if (saved) {
         this._theme.set(saved);
-      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        this._theme.set('dark');
       }
+      // Default theme is 'light' (set in signal initialization)
       this.applyTheme(this._theme());
     }
   }
@@ -42,5 +41,10 @@ export class ThemeService {
   toggleTheme() {
     this._theme.update(t => t === 'light' ? 'dark' : 'light');
     this.applyTheme(this._theme());
+  }
+
+  setTheme(theme: 'light' | 'dark') {
+    this._theme.set(theme);
+    this.applyTheme(theme);
   }
 }

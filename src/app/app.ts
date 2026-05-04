@@ -4,6 +4,7 @@ import { LoadingComponent } from './components/loading/loading.component';
 import { ToastContainerComponent } from './components/toast/toast.component';
 import { LoginPage } from "./pages/login/login";
 import { AuthService } from './services/auth.service';
+import { UserSettingsService } from './services/user-settings.service';
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 import { ConfirmService } from './services/confirm.service';
 
@@ -33,5 +34,6 @@ export class App {
 
   authService = inject(AuthService);
   confirmService = inject(ConfirmService);
+  userSettingsService = inject(UserSettingsService); // Initialize user settings
 
 }
