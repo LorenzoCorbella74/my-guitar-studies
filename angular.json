@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "my-test1": {
+    "my-guitar-studies": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -59,10 +59,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "my-test1:build:production"
+              "buildTarget": "my-guitar-studies:build:production"
             },
             "development": {
-              "buildTarget": "my-test1:build:development"
+              "buildTarget": "my-guitar-studies:build:development"
             }
           },
           "defaultConfiguration": "development"
