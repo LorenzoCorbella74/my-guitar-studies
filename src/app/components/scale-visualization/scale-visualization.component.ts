@@ -131,7 +131,7 @@ export class ScaleVisualizationComponent implements OnInit {
   });
 
   fretboardWidth = computed(() => this.leftMargin + (NUM_FRETS * this.fretWidth) + this.rightMargin);
-  fretboardHeight = computed(() => (this.strings.length - 1) * this.stringSpacing + (this.stringSpacing * 2) + 30);
+  fretboardHeight = computed(() => (this.strings.length - 1) * this.stringSpacing + (this.stringSpacing * 2) + 10);
 
   scaleNotes = computed(() => {
     if (!this.hasConfig()) return [];
@@ -240,6 +240,7 @@ export class ScaleVisualizationComponent implements OnInit {
     
     // Collect all notes from all overlays (only visible ones)
     const overlayNotesSet = new Set<number>();
+    const overlayNotesWithOctaves = new Map<string, number>(); // "C" -> 3, "E" -> 4, etc.
     
     this.overlays()
       .filter(overlay => overlay.visible ?? true) // Only process visible overlays
@@ -254,6 +255,18 @@ export class ScaleVisualizationComponent implements OnInit {
           notes = chord.notes;
         } else if (overlay.type === 'notes' && overlay.notes) {
           notes = overlay.notes;
+        } else if (overlay.type === 'notes-with-octaves' && overlay.notes) {
+          // For notes with octaves, store them separately
+          overlay.notes.forEach(noteWithOctave => {
+            const noteName = noteWithOctave.replace(/[0-9]/g, '');
+            const octave = parseInt(noteWithOctave.match(/\d+/)?.[0] || '0', 10);
+            const chroma = Note.chroma(noteName);
+            if (chroma !== undefined && octave > 0) {
+              const key = `${chroma}-${octave}`;
+              overlayNotesWithOctaves.set(key, chroma);
+            }
+          });
+          return; // Skip the normal processing for this overlay
         }
         
         notes.forEach(note => {
@@ -269,14 +282,24 @@ export class ScaleVisualizationComponent implements OnInit {
     cfg.tuning.forEach((openNote, stringIndex) => {
       const openNoteName = openNote.replace(/[0-9]/g, '');
       const openChroma = Note.chroma(openNoteName);
+      const openOctave = parseInt(openNote.match(/\d+/)?.[0] || '0', 10);
       
       if (openChroma === undefined) return;
       
       for (let fret = 0; fret <= NUM_FRETS; fret++) {
         const noteChroma = (openChroma + fret) % 12;
+        const totalSemitones = openChroma + fret;
+        const octaveOffset = Math.floor(totalSemitones / 12);
+        const currentOctave = openOctave + octaveOffset;
+        
+        // Check for normal overlay notes (all octaves)
         const isOverlayNote = overlayNotesSet.has(noteChroma);
         
-        if (isOverlayNote) {
+        // Check for notes with specific octaves
+        const key = `${noteChroma}-${currentOctave}`;
+        const isOverlayNoteWithOctave = overlayNotesWithOctaves.has(key);
+        
+        if (isOverlayNote || isOverlayNoteWithOctave) {
           allOverlayNotes.push({
             string: stringIndex,
             fret,

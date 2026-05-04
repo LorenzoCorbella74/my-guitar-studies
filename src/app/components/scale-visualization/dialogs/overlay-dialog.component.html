@@ -16,11 +16,12 @@
             <option value="scale">Scala</option>
             <option value="chord">Accordo</option>
             <option value="notes">Note singole</option>
+            <option value="notes-with-octaves">Note singole con ottave</option>
           </select>
         </div>
 
         <!-- Root Note Selection -->
-        @if (overlayType() !== 'notes') {
+        @if (overlayType() !== 'notes' && overlayType() !== 'notes-with-octaves') {
           <div class="form-control mb-4">
             <label class="label">
               <span class="label-text">Tonica</span>
@@ -80,7 +81,7 @@
         }
 
         <!-- Notes Selection -->
-        @if (overlayType() === 'notes') {
+        @if (overlayType() === 'notes' || overlayType() === 'notes-with-octaves') {
           <div class="form-control mb-4">
             <label class="label">
               <span class="label-text">Seleziona note</span>
@@ -95,6 +96,17 @@
                   <option [value]="note">{{ note }}</option>
                 }
               </select>
+              @if (overlayType() === 'notes-with-octaves') {
+                <select
+                  class="select select-bordered w-20"
+                  [(ngModel)]="selectedOctave"
+                  name="selectedOctave"
+                >
+                  @for (octave of octaves; track octave) {
+                    <option [value]="octave">{{ octave }}</option>
+                  }
+                </select>
+              }
               <button
                 type="button"
                 class="btn btn-primary"
@@ -135,6 +147,8 @@
                   <span class="text-sm" [class.opacity-50]="!(overlay.visible ?? true)">
                     @if (overlay.type === 'notes') {
                       Note: {{ overlay.notes?.join(', ') }}
+                    } @else if (overlay.type === 'notes-with-octaves') {
+                      Note con ottave: {{ overlay.notes?.join(', ') }}
                     } @else {
                       {{ overlay.root }} {{ overlay.name }} ({{ overlay.type === 'scale' ? 'Scala' : 'Accordo' }})
                     }

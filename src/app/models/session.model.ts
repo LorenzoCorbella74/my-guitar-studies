@@ -42,10 +42,10 @@ export interface ChordItem extends SessionItem {
 }
 
 export interface OverlayItem {
-  type: 'scale' | 'chord' | 'notes';
+  type: 'scale' | 'chord' | 'notes' | 'notes-with-octaves';
   root?: string;
   name?: string;
-  notes?: string[];
+  notes?: string[]; // For 'notes': ['C', 'E', 'G'], for 'notes-with-octaves': ['C3', 'E4', 'G5']
   visible?: boolean; // If undefined, defaults to true
 }
 

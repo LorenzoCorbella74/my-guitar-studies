@@ -32,27 +32,29 @@ export class OverlayDialogComponent {
   notes = NOTES_WITH_FLATS;
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
+  octaves = [2, 3, 4, 5];
 
-  overlayType = signal<'scale' | 'chord' | 'notes'>('scale');
+  overlayType = signal<'scale' | 'chord' | 'notes' | 'notes-with-octaves'>('scale');
   overlayRoot = signal('C');
   overlayName = signal('major');
   overlays = signal<OverlayItem[]>([...this.data.overlays]);
   
   // For notes type
   selectedNote = signal('C');
+  selectedOctave = signal(2);
   selectedNotes = signal<string[]>([]);
 
   onSubmit(event: Event): void {
     event.preventDefault();
     
-    if (this.overlayType() === 'notes') {
-      // For notes type, check if there are notes to add
+    if (this.overlayType() === 'notes' || this.overlayType() === 'notes-with-octaves') {
+      // For notes types, check if there are notes to add
       if (this.selectedNotes().length === 0) {
         return;
       }
       
       const newOverlay: OverlayItem = {
-        type: 'notes',
+        type: this.overlayType(),
         notes: [...this.selectedNotes()],
         visible: true
       };
@@ -62,6 +64,7 @@ export class OverlayDialogComponent {
       // Reset notes
       this.selectedNotes.set([]);
       this.selectedNote.set('C');
+      this.selectedOctave.set(2);
     } else {
       const newOverlay: OverlayItem = {
         type: this.overlayType(),
@@ -80,7 +83,10 @@ export class OverlayDialogComponent {
   }
   
   addNoteToSelection(): void {
-    const note = this.selectedNote();
+    const note = this.overlayType() === 'notes-with-octaves' 
+      ? `${this.selectedNote()}${this.selectedOctave()}` 
+      : this.selectedNote();
+    
     if (!this.selectedNotes().includes(note)) {
       this.selectedNotes.update(notes => [...notes, note]);
     }
