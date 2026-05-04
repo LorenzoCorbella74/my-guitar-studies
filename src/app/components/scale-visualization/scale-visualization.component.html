@@ -185,12 +185,20 @@
                 <circle
                   [attr.cx]="getNoteX(fretNote.fret)"
                   [attr.cy]="getStringY(fretNote.string)"
-                  r="21"
+                  r="19"
                   fill="none"
+                  [attr.stroke]="noteStrokeColor()"
+                  stroke-width="1"
+                  opacity="0.5"
+                  style="pointer-events: none;"
+                />
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="19"
+                  fill="#000"
                   stroke="#000"
-                  stroke-width="3"
-                  stroke-dasharray="5"
-                  opacity="0.4"
+                  opacity="0.2"
                   style="pointer-events: none;"
                 />
                 <!-- Invisible larger circle to capture mouse events -->
@@ -215,21 +223,21 @@
                 <circle
                   [attr.cx]="getNoteX(fretNote.fret)"
                   [attr.cy]="getStringY(fretNote.string)"
-                  r="16"
+                  r="15"
                   [attr.fill]="getNoteColor(fretNote.scaleIndex, fretNote.note, fretNote.octave)"
                   [attr.opacity]="config().noteOpacity ?? 1.0"
                   stroke="#000"
-                  stroke-width="2"
+                  stroke-width="1.5"
                 />
                 @if (isNoteHighlighted(fretNote)) {
                   <circle
                     [attr.cx]="getNoteX(fretNote.fret)"
                     [attr.cy]="getStringY(fretNote.string)"
-                    r="20"
+                    r="22"
                     fill="none"
                     stroke="#ff0000"
                     stroke-width="3"
-                    stroke-dasharray="4,4"
+                    stroke-dasharray="4"
                     opacity="0.9"
                     style="pointer-events: none;"
                   />
@@ -237,7 +245,7 @@
                 @if (config().labelMode !== 'none') {
                   <text
                     [attr.x]="getNoteX(fretNote.fret)"
-                    [attr.y]="getStringY(fretNote.string)"
+                    [attr.y]="getStringY(fretNote.string) + 1"
                     text-anchor="middle"
                     dominant-baseline="middle"
                     class="text-sm font-semibold fill-black"

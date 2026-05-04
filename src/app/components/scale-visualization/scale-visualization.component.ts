@@ -96,6 +96,14 @@ export class ScaleVisualizationComponent implements OnInit {
     };
   });
   
+  // Computed for note stroke color based on fretboard color
+  noteStrokeColor = computed(() => {
+    const fretboardColor = this.config().fretboardColor || '#fff';
+    // Black stroke for light fretboard colors
+    const lightColors = ['#fff', '#efd4a5', '#d8ac85', '#e6b854'];
+    return lightColors.includes(fretboardColor) ? '#000' : 'white';
+  });
+  
   hasConfig = computed(() => {
     const cfg = this.config();
     const type = this.itemType();
