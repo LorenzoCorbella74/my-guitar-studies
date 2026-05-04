@@ -273,6 +273,19 @@ export class SessionEditorPage implements OnInit {
     );
   }
 
+  cloneScale(clonedItem: ScaleItem | ArpeggioItem | ChordItem) {
+    const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const newOrder = this.items().length;
+    
+    const newItem = {
+      ...clonedItem,
+      id: newId,
+      order: newOrder
+    };
+    
+    this.items.update(items => [...items, newItem]);
+  }
+
   updateChordProgression(itemId: string, updatedProgression: ChordProgressionItem) {
     this.items.update(items =>
       items.map(item => {

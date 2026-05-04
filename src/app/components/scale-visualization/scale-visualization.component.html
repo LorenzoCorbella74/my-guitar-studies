@@ -17,26 +17,18 @@
     } @else {
       <!-- Header with edit/delete buttons -->
       <div>
-        <div class="flex justify-between items-center mb-2">
-          <div class="flex-1">
+        <div class="flex justify-between items-center">
+        
             <div class="flex items-center gap-2">
-              <h3 class="text-lg font-semibold">
-                {{ displayTitle() }}
-              </h3>
+              <div>
+                <h3 class="text-lg font-semibold">
+                  {{ displayTitle() }}
+                </h3>
+                <p class="text-xs text-base-content/60">
+                  {{ displaySubtitle() }} - {{ getTuningName() }}
+                </p>
+              </div>
               <div class="flex gap-1">
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-sm btn-square"
-                  (click)="toggleAlternateNotes()"
-                  [attr.aria-label]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
-                  [title]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
-                >
-                  @if (areAlternateNotesVisible()) {
-                    <svg lucideEye class="w-4 h-4"></svg>
-                  } @else {
-                    <svg lucideEyeOff class="w-4 h-4"></svg>
-                  }
-                </button>
                 <button
                   type="button"
                   class="btn btn-ghost btn-sm btn-square"
@@ -68,13 +60,24 @@
                 </button>
               </div>
             </div>
-            <p class="text-sm text-base-content/60">
-              {{ displaySubtitle() }} - {{ getTuningName() }}
-            </p>
-          </div>
+
+
 
           <!-- Notes Toggle -->
           <div class="flex gap-1 mx-4">
+             <button
+                  type="button"
+                  class="btn btn-ghost btn-sm btn-square mr-2"
+                  (click)="toggleAlternateNotes()"
+                  [attr.aria-label]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
+                  [title]="areAlternateNotesVisible() ? 'Nascondi 2°,4°,6° nota' : 'Mostra 2°,4°,6° nota'"
+                >
+                  @if (areAlternateNotesVisible()) {
+                    <svg lucideEye class="w-4 h-4"></svg>
+                  } @else {
+                    <svg lucideEyeOff class="w-4 h-4"></svg>
+                  }
+                </button>
             @for (noteInfo of notesWithDegrees(); track $index) {
               <button
                 type="button"
@@ -94,13 +97,23 @@
               class="btn btn-ghost btn-sm btn-square"
               (click)="openModal()"
               aria-label="Modifica configurazione"
+              title="Modifica configurazione"
             >
               <svg lucidePencil class="w-4 h-4"></svg>
             </button>
             <button
               class="btn btn-ghost btn-sm btn-square"
+              (click)="handleClone()"
+              aria-label="Clona visualizzazione"
+              title="Clona visualizzazione"
+            >
+              <svg lucideCopy class="w-4 h-4"></svg>
+            </button>
+            <button
+              class="btn btn-ghost btn-sm btn-square"
               (click)="handleDelete()"
               aria-label="Elimina"
+              title="Elimina visualizzazione"
             >
               <svg lucideTrash2 class="w-4 h-4"></svg>
             </button>

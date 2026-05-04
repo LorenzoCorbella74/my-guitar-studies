@@ -113,6 +113,7 @@
                   [scaleItem]="$any(item)"
                   (update)="updateScale(item.id, $event)"
                   (delete)="deleteItem(item.id)"
+                  (clone)="cloneScale($event)"
                   (cancelFirstConfig)="removeItemSilently(item.id)"
                 />
               }

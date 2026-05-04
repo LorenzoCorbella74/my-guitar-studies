@@ -27,6 +27,44 @@ export class SessionService {
     return collection(this.firestore, `users/${this.userId}/sessions`);
   }
 
+  /**
+   * Remove undefined values recursively from an object.
+   * Firestore does not support undefined values.
+   */
+  private removeUndefined(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeUndefined(item));
+    }
+
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
+          cleaned[key] = this.removeUndefined(obj[key]);
+        }
+      }
+      return cleaned;
+    }
+
+    return obj;
+  }
+
+  /**
+   * Safely convert a Firestore Timestamp to Date.
+   * Returns null if the value is not a valid Timestamp.
+   */
+  private toDate(timestamp: any): Date | null {
+    if (!timestamp) return null;
+    if (typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    return null;
+  }
+
   async loadSessions(): Promise<void> {
     try {
       const q = query(this.sessionsRef, orderBy('updatedAt', 'desc'));
@@ -41,8 +79,8 @@ export class SessionService {
           tags: (docData['tags'] as string[]) || [],
           isFavorite: (docData['isFavorite'] as boolean) || false,
           items: (docData['items'] as unknown[]) || [],
-          createdAt: (docData['createdAt'] as Timestamp)?.toDate() || null,
-          updatedAt: (docData['updatedAt'] as Timestamp)?.toDate() || null
+          createdAt: this.toDate(docData['createdAt']),
+          updatedAt: this.toDate(docData['updatedAt'])
         } as Session);
       });
       this._sessions.set(data);
@@ -67,8 +105,8 @@ export class SessionService {
         tags: (docData['tags'] as string[]) || [],
         isFavorite: (docData['isFavorite'] as boolean) || false,
         items: (docData['items'] as unknown[]) || [],
-        createdAt: (docData['createdAt'] as Timestamp)?.toDate() || null,
-        updatedAt: (docData['updatedAt'] as Timestamp)?.toDate() || null
+        createdAt: this.toDate(docData['createdAt']),
+        updatedAt: this.toDate(docData['updatedAt'])
       } as Session;
     } catch (e) {
       console.error('getSession error:', e);
@@ -100,10 +138,11 @@ export class SessionService {
     if (!this.userId) throw new Error('Not authenticated');
     try {
       const docRef = doc(this.firestore, `users/${this.userId}/sessions`, id);
-      await this.loadingService.track(updateDoc(docRef, {
+      const cleanData = this.removeUndefined({
         ...data,
         updatedAt: serverTimestamp()
-      }));
+      });
+      await this.loadingService.track(updateDoc(docRef, cleanData));
       await this.loadSessions();
     } catch (e) {
       console.error('updateSession error:', e);
@@ -121,7 +160,7 @@ export class SessionService {
     }
   }
 
-async toggleFavorite(id: string): Promise<void> {
+  async toggleFavorite(id: string): Promise<void> {
     const session = this._sessions().find(s => s.id === id);
     if (!session) return;
     try {

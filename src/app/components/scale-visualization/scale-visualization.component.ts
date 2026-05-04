@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed, inject } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
-import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers } from '@lucide/angular';
+import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers, LucideCopy } from '@lucide/angular';
 import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
@@ -22,7 +22,7 @@ interface FretNote {
 @Component({
   selector: 'app-scale-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers],
+  imports: [LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers, LucideCopy],
   templateUrl: './scale-visualization.component.html',
   styles: `
     :host {
@@ -37,6 +37,7 @@ export class ScaleVisualizationComponent implements OnInit {
   scaleItem = input.required<ScaleItem | ArpeggioItem | ChordItem>();
   update = output<ScaleItem | ArpeggioItem | ChordItem>();
   delete = output<void>();
+  clone = output<ScaleItem | ArpeggioItem | ChordItem>();
   cancelFirstConfig = output<void>();
 
   isFirstConfig = signal(false);
@@ -602,6 +603,13 @@ export class ScaleVisualizationComponent implements OnInit {
 
   handleDelete(): void {
     this.delete.emit();
+  }
+
+  handleClone(): void {
+    // Emit a copy of the current item (without id, createdAt, updatedAt)
+    const item = this.scaleItem();
+    const { id, createdAt, updatedAt, ...clonedItem } = item as any;
+    this.clone.emit(clonedItem as ScaleItem | ArpeggioItem | ChordItem);
   }
 
   handleNoteClick(fretNote: FretNote): void {
