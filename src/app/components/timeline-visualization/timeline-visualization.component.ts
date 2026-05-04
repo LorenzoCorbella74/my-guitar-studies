@@ -261,34 +261,44 @@ export class TimelineVisualizationComponent {
   private startPlayback() {
     const bpm = this.bpm();
     const beatDuration = 60000 / bpm; // milliseconds per quarter note beat
-    let beatCounter = 0; // Counter for beats within the measure (0-3)
+    let globalBeatCounter = 0; // Counter for beats across all measures (for beat indicator 1-4)
+    let layerBeatCounter = 0; // Counter for beats within current layer
     
     console.log(`🎵 BPM: ${bpm}, Beat duration: ${beatDuration}ms`);
     
     // Play first beat immediately
     this.metronomeService.playClick(true); // Accent on first beat
     this.currentBeat.set(1);
-    console.log('Beat 1 - currentBeat:', this.currentBeat());
+    // console.log('Beat 1 - Layer 0 - currentBeat:', this.currentBeat());
     
     const tick = () => {
       if (!this.isPlaying()) return;
       
-      beatCounter++;
-      const currentBeatNumber = (beatCounter % 4) + 1; // 1-4
+      globalBeatCounter++;
+      layerBeatCounter++;
+      const currentBeatNumber = (globalBeatCounter % 4) + 1; // 1-4 for visual indicator
       
       // Update beat indicator
       this.currentBeat.set(currentBeatNumber);
-      console.log(`Beat ${currentBeatNumber} - currentBeat:`, this.currentBeat());
       
-      // Play click (accent on beat 1)
+      // Play click (accent on beat 1 of each measure)
       this.metronomeService.playClick(currentBeatNumber === 1);
       
-      // Advance layer only every 4 beats (one measure)
-      if (currentBeatNumber === 4) {
+      // Calculate how many beats the current layer should last
+      const currentLayer = this.layers()[this.currentLayerIndex()];
+      const beatsForLayer = currentLayer.duration * 4; // Convert duration to beats
+      
+      // console.log(`Beat ${currentBeatNumber} - Layer ${this.currentLayerIndex()} - layerBeat ${layerBeatCounter}/${beatsForLayer}`);
+      
+      // Advance layer when we've played all beats for current layer
+      if (layerBeatCounter >= beatsForLayer) {
+        layerBeatCounter = 0; // Reset layer beat counter
         const nextIndex = this.currentLayerIndex() + 1;
         if (nextIndex >= this.layers().length) {
           // Loop back to start
           this.currentLayerIndex.set(0);
+          globalBeatCounter = 0; // Reset to sync beat indicator
+          this.currentBeat.set(1); // Start from beat 1 again
         } else {
           this.currentLayerIndex.set(nextIndex);
         }
