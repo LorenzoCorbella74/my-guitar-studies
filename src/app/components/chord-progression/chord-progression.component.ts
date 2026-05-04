@@ -11,7 +11,7 @@ import { LucidePlus, LucideTrash2 } from '@lucide/angular';
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-2">
           <h3 class="text-lg font-semibold">Progressione Accordi</h3>
           <div class="flex gap-2">
             <button

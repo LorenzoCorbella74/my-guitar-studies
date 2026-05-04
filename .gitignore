@@ -41,3 +41,10 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+/.agents
+/.github
+
+# Firebase credentials
+/src/environments/environment.ts
+

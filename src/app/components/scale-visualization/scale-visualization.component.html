@@ -179,20 +179,39 @@
           <!-- Overlay Notes (rendered behind main notes) -->
           @for (fretNote of overlayFretNotes(); track 'overlay-' + fretNote.string + '-' + fretNote.fret) {
             @if (fretNote.isScaleNote && isInFretRange(fretNote.fret)) {
-              <circle
-                [attr.cx]="getNoteX(fretNote.fret)"
-                [attr.cy]="getStringY(fretNote.string)"
-                r="21"
-                fill="#000"
-                opacity="0.4"
-              />
+              <g style="cursor: help;">
+                <title>{{ getOverlayTooltip(fretNote.note) }}</title>
+                <!-- Visible dotted border -->
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="21"
+                  fill="none"
+                  stroke="#000"
+                  stroke-width="3"
+                  stroke-dasharray="5"
+                  opacity="0.4"
+                  style="pointer-events: none;"
+                />
+                <!-- Invisible larger circle to capture mouse events -->
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="24"
+                  fill="transparent"
+                  stroke="none"
+                />
+              </g>
             }
           }
 
           <!-- Main Notes -->
           @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
             @if (fretNote.isScaleNote && isNoteVisible(fretNote.note) && isInFretRange(fretNote.fret)) {
-              <g>
+              <g 
+                (click)="handleNoteClick(fretNote)" 
+                style="cursor: pointer;"
+              >
                 <circle
                   [attr.cx]="getNoteX(fretNote.fret)"
                   [attr.cy]="getStringY(fretNote.string)"
@@ -202,6 +221,19 @@
                   stroke="#000"
                   stroke-width="2"
                 />
+                @if (isNoteHighlighted(fretNote)) {
+                  <circle
+                    [attr.cx]="getNoteX(fretNote.fret)"
+                    [attr.cy]="getStringY(fretNote.string)"
+                    r="20"
+                    fill="none"
+                    stroke="#ff0000"
+                    stroke-width="3"
+                    stroke-dasharray="4,4"
+                    opacity="0.9"
+                    style="pointer-events: none;"
+                  />
+                }
                 @if (config().labelMode !== 'none') {
                   <text
                     [attr.x]="getNoteX(fretNote.fret)"
@@ -209,6 +241,7 @@
                     text-anchor="middle"
                     dominant-baseline="middle"
                     class="text-sm font-semibold fill-black"
+                    style="pointer-events: none;"
                   >
                     @if (config().labelMode === 'note') {
                       {{ fretNote.note }}

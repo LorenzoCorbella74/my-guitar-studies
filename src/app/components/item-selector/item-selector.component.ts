@@ -29,6 +29,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             </button>
           </li>
           <li>
+            <button type="button" (mousedown)="selectItem('comparison')">
+              <svg lucideGrid3x3 class="w-4 h-4"></svg>
+              Confronti note
+            </button>
+          </li>
+          <li>
             <button type="button" (mousedown)="selectItem('scale')">
               <svg lucideMusic class="w-4 h-4"></svg>
               Scala
@@ -50,12 +56,6 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             <button type="button" (mousedown)="selectItem('chordprogression')">
               <svg lucideGuitar class="w-4 h-4"></svg>
               Progressione accordi
-            </button>
-          </li>
-          <li>
-            <button type="button" (mousedown)="selectItem('comparison')">
-              <svg lucideGrid3x3 class="w-4 h-4"></svg>
-              Confronti note
             </button>
           </li>
           <li>

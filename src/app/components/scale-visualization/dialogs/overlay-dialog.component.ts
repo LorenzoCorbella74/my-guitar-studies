@@ -6,9 +6,10 @@ import { LucideTrash2 } from '@lucide/angular';
 import { NOTES } from '../constants';
 
 export interface OverlayItem {
-  type: 'scale' | 'chord';
-  root: string;
-  name: string;
+  type: 'scale' | 'chord' | 'notes';
+  root?: string;
+  name?: string;
+  notes?: string[];
 }
 
 export interface OverlayDialogData {
@@ -38,26 +39,59 @@ export class OverlayDialogComponent {
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
 
-  overlayType = signal<'scale' | 'chord'>('scale');
+  overlayType = signal<'scale' | 'chord' | 'notes'>('scale');
   overlayRoot = signal('C');
   overlayName = signal('major');
   overlays = signal<OverlayItem[]>([...this.data.overlays]);
+  
+  // For notes type
+  selectedNote = signal('C');
+  selectedNotes = signal<string[]>([]);
 
   onSubmit(event: Event): void {
     event.preventDefault();
     
-    const newOverlay: OverlayItem = {
-      type: this.overlayType(),
-      root: this.overlayRoot(),
-      name: this.overlayName()
-    };
-    
-    this.overlays.update(overlays => [...overlays, newOverlay]);
-    
-    // Reset form
-    this.overlayType.set('scale');
-    this.overlayRoot.set('C');
-    this.overlayName.set('major');
+    if (this.overlayType() === 'notes') {
+      // For notes type, check if there are notes to add
+      if (this.selectedNotes().length === 0) {
+        return;
+      }
+      
+      const newOverlay: OverlayItem = {
+        type: 'notes',
+        notes: [...this.selectedNotes()]
+      };
+      
+      this.overlays.update(overlays => [...overlays, newOverlay]);
+      
+      // Reset notes
+      this.selectedNotes.set([]);
+      this.selectedNote.set('C');
+    } else {
+      const newOverlay: OverlayItem = {
+        type: this.overlayType(),
+        root: this.overlayRoot(),
+        name: this.overlayName()
+      };
+      
+      this.overlays.update(overlays => [...overlays, newOverlay]);
+      
+      // Reset form
+      this.overlayType.set('scale');
+      this.overlayRoot.set('C');
+      this.overlayName.set('major');
+    }
+  }
+  
+  addNoteToSelection(): void {
+    const note = this.selectedNote();
+    if (!this.selectedNotes().includes(note)) {
+      this.selectedNotes.update(notes => [...notes, note]);
+    }
+  }
+  
+  removeNoteFromSelection(note: string): void {
+    this.selectedNotes.update(notes => notes.filter(n => n !== note));
   }
 
   removeOverlay(index: number): void {

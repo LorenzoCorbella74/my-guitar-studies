@@ -15,34 +15,35 @@
           >
             <option value="scale">Scala</option>
             <option value="chord">Accordo</option>
+            <option value="notes">Note singole</option>
           </select>
         </div>
 
         <!-- Root Note Selection -->
-        <div class="form-control mb-4">
-          <label class="label">
-            <span class="label-text">Tonica</span>
-          </label>
-          <select
-            class="select select-bordered w-full"
-            [(ngModel)]="overlayRoot"
-            name="overlayRoot"
-            required
-          >
-            @for (note of notes; track note) {
-              <option [value]="note">{{ note }}</option>
-            }
-          </select>
-        </div>
+        @if (overlayType() !== 'notes') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Tonica</span>
+            </label>
+            <select
+              class="select select-bordered w-full"
+              [(ngModel)]="overlayRoot"
+              name="overlayRoot"
+              required
+            >
+              @for (note of notes; track note) {
+                <option [value]="note">{{ note }}</option>
+              }
+            </select>
+          </div>
+        }
 
         <!-- Scale/Chord Name -->
-        <div class="form-control mb-4">
-          <label class="label">
-            <span class="label-text">
-              @if (overlayType() === 'scale') { Nome scala } @else { Tipo accordo }
-            </span>
-          </label>
-          @if (overlayType() === 'scale') {
+        @if (overlayType() === 'scale') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Nome scala</span>
+            </label>
             <input
               list="overlay-scale-names"
               class="input input-bordered w-full"
@@ -56,7 +57,12 @@
                 <option [value]="scaleName">{{ scaleName }}</option>
               }
             </datalist>
-          } @else {
+          </div>
+        } @else if (overlayType() === 'chord') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Tipo accordo</span>
+            </label>
             <input
               list="overlay-chord-types"
               class="input input-bordered w-full"
@@ -70,8 +76,52 @@
                 <option [value]="chordType">{{ chordType }}</option>
               }
             </datalist>
-          }
-        </div>
+          </div>
+        }
+
+        <!-- Notes Selection -->
+        @if (overlayType() === 'notes') {
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Seleziona note</span>
+            </label>
+            <div class="flex gap-2">
+              <select
+                class="select select-bordered flex-1"
+                [(ngModel)]="selectedNote"
+                name="selectedNote"
+              >
+                @for (note of notes; track note) {
+                  <option [value]="note">{{ note }}</option>
+                }
+              </select>
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="addNoteToSelection()"
+              >
+                Aggiungi
+              </button>
+            </div>
+            
+            @if (selectedNotes().length > 0) {
+              <div class="mt-3 flex flex-wrap gap-2">
+                @for (note of selectedNotes(); track note) {
+                  <div class="badge badge-lg gap-2">
+                    {{ note }}
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs btn-circle"
+                      (click)="removeNoteFromSelection(note)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
 
         <!-- Current Overlays List -->
         @if (overlays().length > 0) {
@@ -83,7 +133,11 @@
               @for (overlay of overlays(); track $index) {
                 <div class="flex items-center justify-between bg-base-200 p-2 rounded">
                   <span class="text-sm">
-                    {{ overlay.root }} {{ overlay.name }} ({{ overlay.type === 'scale' ? 'Scala' : 'Accordo' }})
+                    @if (overlay.type === 'notes') {
+                      Note: {{ overlay.notes?.join(', ') }}
+                    } @else {
+                      {{ overlay.root }} {{ overlay.name }} ({{ overlay.type === 'scale' ? 'Scala' : 'Accordo' }})
+                    }
                   </span>
                   <button
                     type="button"

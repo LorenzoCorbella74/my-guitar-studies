@@ -41,6 +41,15 @@ export class ScaleVisualizationComponent implements OnInit {
   
   // Overlay state
   overlays = signal<OverlayItem[]>([]);
+  
+  // Note highlight state
+  // Level 0: no highlight, Level 1: single position, Level 2: all instances of note
+  highlightState = signal<{ string: number; fret: number; note: string; level: 0 | 1 | 2 }>({ 
+    string: -1, 
+    fret: -1, 
+    note: '', 
+    level: 0 
+  });
 
   ngOnInit() {
     // Auto-open modal if item has no configuration
@@ -218,12 +227,14 @@ export class ScaleVisualizationComponent implements OnInit {
     this.overlays().forEach(overlay => {
       let notes: string[] = [];
       
-      if (overlay.type === 'scale') {
+      if (overlay.type === 'scale' && overlay.root && overlay.name) {
         const scale = Scale.get(`${overlay.root} ${overlay.name}`);
         notes = scale.notes;
-      } else {
+      } else if (overlay.type === 'chord' && overlay.root && overlay.name) {
         const chord = Chord.get(`${overlay.root}${overlay.name}`);
         notes = chord.notes;
+      } else if (overlay.type === 'notes' && overlay.notes) {
+        notes = overlay.notes;
       }
       
       notes.forEach(note => {
@@ -542,5 +553,68 @@ export class ScaleVisualizationComponent implements OnInit {
 
   handleDelete(): void {
     this.delete.emit();
+  }
+
+  handleNoteClick(fretNote: FretNote): void {
+    const current = this.highlightState();
+    
+    // Check if clicking the same position
+    const isSamePosition = current.string === fretNote.string && current.fret === fretNote.fret;
+    
+    if (isSamePosition) {
+      // Cycle through levels: 1 -> 2 -> 0
+      if (current.level === 1) {
+        this.highlightState.set({ 
+          string: fretNote.string, 
+          fret: fretNote.fret, 
+          note: fretNote.note, 
+          level: 2 
+        });
+      } else if (current.level === 2) {
+        this.highlightState.set({ string: -1, fret: -1, note: '', level: 0 });
+      }
+    } else {
+      // Different position: reset and start with level 1
+      this.highlightState.set({ 
+        string: fretNote.string, 
+        fret: fretNote.fret, 
+        note: fretNote.note, 
+        level: 1 
+      });
+    }
+  }
+
+  isNoteHighlighted(fretNote: FretNote): boolean {
+    const state = this.highlightState();
+    if (state.level === 0) return false;
+    
+    if (state.level === 1) {
+      // Highlight only specific position
+      return state.string === fretNote.string && state.fret === fretNote.fret;
+    }
+    
+    // Level 2: highlight all instances of the same note
+    return state.note === fretNote.note;
+  }
+
+  getOverlayTooltip(note: string): string {
+    if (!this.hasConfig()) return note;
+    
+    const noteChroma = Note.chroma(note);
+    if (noteChroma === undefined) return note;
+    
+    // Check if the overlay note is part of the main scale/chord
+    const notesWithDegreesArray = this.notesWithDegrees();
+    const matchingNote = notesWithDegreesArray.find(n => {
+      const nChroma = Note.chroma(n.note);
+      return nChroma !== undefined && nChroma === noteChroma;
+    });
+    
+    if (matchingNote) {
+      return `${note} (${matchingNote.degree})`;
+    }
+    
+    // If not in the main scale, just show the note
+    return note;
   }
 }
