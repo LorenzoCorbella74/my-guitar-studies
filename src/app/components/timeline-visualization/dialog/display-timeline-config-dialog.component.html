@@ -1,0 +1,51 @@
+<div class="cdk-dialog-content">
+      <h3 class="text-lg font-bold mb-4">Configura visualizzazione</h3>
+      
+      <form (submit)="onSubmit($event)">
+        <!-- Color Mode -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text font-semibold">Modalità colori</span>
+          </label>
+          <select 
+            class="select select-bordered w-full"
+            [value]="colorMode()"
+            (change)="colorMode.set($any($event.target).value)"
+          >
+            <option value="monocolor">Monocromatico</option>
+            <option value="triads">Triadi (Tonica, 3°, 5°)</option>
+            <option value="all">Tutti i gradi</option>
+            <option value="octaves">Per ottave</option>
+          </select>
+        </div>
+
+        <!-- Fretboard Color -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text font-semibold">Colore tastiera</span>
+          </label>
+          <div class="flex gap-2 flex-wrap">
+            @for (style of fretboardStyles; track style.fretboard) {
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="fretboardColor() === style.fretboard"
+                [class.btn-ghost]="fretboardColor() !== style.fretboard"
+                (click)="fretboardColor.set(style.fretboard)"
+              >
+                <div
+                  class="w-4 h-4 rounded border border-base-content/20 mr-1"
+                  [style.background-color]="style.fretboard"
+                ></div>
+                {{ style.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button type="button" class="btn" (click)="dialogRef.close()">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>

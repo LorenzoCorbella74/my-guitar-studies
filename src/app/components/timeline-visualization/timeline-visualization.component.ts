@@ -1,11 +1,13 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare } from '@lucide/angular';
-import { TimelineItem, TimelineLayer, NoteDuration } from '../../models/session.model';
+import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, LucideSettings, LucideCopy } from '@lucide/angular';
+import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem } from '../../models/session.model';
 import { Chord, ChordType, Interval, Note } from 'tonal';
-import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS } from '../scale-visualization/constants';
+import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS, FRETBOARD_STYLES, OCTAVE_COLOURS } from '../scale-visualization/constants';
 import { MetronomeService } from '../../services/metronome.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
+import { Dialog } from '@angular/cdk/dialog';
+import { DisplayTimelineConfigDialogComponent, DisplayTimelineConfigDialogData, DisplayTimelineConfigDialogResult } from './dialog/display-timeline-config-dialog.component';
 
 interface FretNote {
   string: number;
@@ -14,12 +16,14 @@ interface FretNote {
   octave: number;
   isActive: boolean;
   degree?: string;
+  scaleIndex?: number;
+  isOverlay?: boolean;
 }
 
 @Component({
   selector: 'app-timeline-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, BeatIndicatorComponent],
+  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, BeatIndicatorComponent, LucideSettings, LucideCopy],
   templateUrl: './timeline-visualization.component.html',
   styles: `
     :host {
@@ -27,24 +31,58 @@ interface FretNote {
     }
   `
 })
-export class TimelineVisualizationComponent {
+export class TimelineVisualizationComponent implements OnInit {
   timelineItem = input.required<TimelineItem>();
   update = output<TimelineItem>();
   delete = output<void>();
   
   private metronomeService = inject(MetronomeService);
+  private dialog = inject(Dialog);
+
+  ngOnInit() {
+    // Load overlays from current layer
+    const layer = this.currentLayer();
+    if (layer?.overlays) {
+      this.overlays.set([...layer.overlays]);
+    }
+  }
 
   // State signals
   currentLayerIndex = signal(0);
   isPlaying = signal(false);
   currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
+  overlays = signal<OverlayItem[]>([]);
+  
+  constructor() {
+    // Sync overlays when layer changes
+    effect(() => {
+      const layer = this.currentLayer();
+      if (layer) {
+        this.overlays.set(layer.overlays || []);
+      }
+    }, { allowSignalWrites: true });
+  }
 
   // Computed values
   layers = computed(() => this.timelineItem().layers);
   currentLayer = computed(() => this.layers()[this.currentLayerIndex()] || this.layers()[0]);
   bpm = computed(() => this.timelineItem().bpm);
   tuning = computed(() => this.timelineItem().tuning);
+  colorMode = computed(() => this.timelineItem().colorMode || 'all');
+  fretboardColor = computed(() => this.timelineItem().fretboardColor || '#fff');
+  
+  // Fretboard colors based on current config
+  fretboardColors = computed(() => {
+    const color = this.fretboardColor();
+    const style = FRETBOARD_STYLES.find(s => s.fretboard === color) || FRETBOARD_STYLES[0];
+    return {
+      frets: style.frets,
+      nut: style.nut,
+      strings: style.strings,
+      inlays: style.inlays
+    };
+  });
 
   // Chord information
   chordNotes = computed(() => {
@@ -54,6 +92,23 @@ export class TimelineVisualizationComponent {
     return chord.notes || [];
   });
 
+  // Notes with degrees for the current chord (like scale-visualization)
+  chordNotesWithDegrees = computed(() => {
+    const layer = this.currentLayer();
+    if (!layer) return [];
+    const notes = this.chordNotes();
+    const root = layer.root;
+    
+    return notes.map(note => {
+      const noteName = note.replace(/[0-9]/g, '');
+      const degree = Interval.distance(root, noteName);
+      return {
+        note: noteName,
+        degree: degree || '1P'
+      };
+    });
+  });
+
   chordTypeOptions = ChordType.all().map(ct => ct.aliases[0] || ct.name);
   noteOptions = NOTES_WITH_FLATS;
 
@@ -61,7 +116,7 @@ export class TimelineVisualizationComponent {
   leftMargin = 40;
   rightMargin = 15;
   fretWidth = 80;
-  stringSpacing = 28;
+  stringSpacing = 38;
   fretboardWidth = computed(() => this.leftMargin + (NUM_FRETS * this.fretWidth) + this.rightMargin);
   fretboardHeight = computed(() => 60 + (this.strings.length - 1) * this.stringSpacing + 20);
   frets = Array.from({ length: NUM_FRETS + 1 }, (_, i) => i);
@@ -73,6 +128,7 @@ export class TimelineVisualizationComponent {
     const tuning = this.tuning();
     const layer = this.currentLayer();
     const chordNotes = this.chordNotes();
+    const chordNotesWithDegrees = this.chordNotesWithDegrees();
     const activeNotes = layer?.activeNotes || {};
     const notes: FretNote[] = [];
 
@@ -80,14 +136,13 @@ export class TimelineVisualizationComponent {
 
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     
-    // Create a map from chroma to the correct chord note name
-    // This ensures we use the chord's enharmonic spelling (e.g., Ab not G#)
-    const chromaToChordNote = new Map<number, string>();
-    chordNotes.forEach(cn => {
+    // Create a map from chroma to the correct chord note name and its index
+    const chromaToChordInfo = new Map<number, { noteName: string; index: number }>();
+    chordNotes.forEach((cn, idx) => {
       const noteName = cn.replace(/\d+/, '');
       const chroma = Note.chroma(noteName);
       if (chroma !== undefined) {
-        chromaToChordNote.set(chroma, noteName);
+        chromaToChordInfo.set(chroma, { noteName, index: idx });
       }
     });
 
@@ -106,16 +161,25 @@ export class TimelineVisualizationComponent {
         // Get the chroma of the current fret note
         const currentChroma = Note.chroma(currentNote);
         
-        // Check if this note is part of the chord using chroma comparison
-        const isChordNote = currentChroma !== undefined && chromaToChordNote.has(currentChroma);
+        // Get chord info (note name and index)
+        const chordInfo = currentChroma !== undefined ? chromaToChordInfo.get(currentChroma) : undefined;
+        const isChordNote = chordInfo !== undefined;
 
-        // Calculate interval degree using the chord's note name (not the fretboard's)
+        // Calculate interval degree for ALL notes relative to root
         let degree: string | undefined;
+        let scaleIndex: number | undefined;
+        
         if (layer.root && currentChroma !== undefined) {
-          // Use the chord note name if this is a chord note, otherwise use fretboard note
-          const noteForInterval = chromaToChordNote.get(currentChroma) || currentNote;
+          // For chord notes, use the chord's enharmonic spelling
+          // For non-chord notes, use the fretboard note name
+          const noteForInterval = chordInfo ? chordInfo.noteName : currentNote;
           const interval = Interval.distance(layer.root, noteForInterval);
           degree = interval;
+          
+          // scaleIndex is only for chord notes (used for triads coloring)
+          if (chordInfo) {
+            scaleIndex = chordInfo.index;
+          }
         }
 
         notes.push({
@@ -124,7 +188,8 @@ export class TimelineVisualizationComponent {
           note: currentNote,
           octave: currentOctave,
           isActive,
-          degree
+          degree,
+          scaleIndex
         });
       }
     });
@@ -167,7 +232,8 @@ export class TimelineVisualizationComponent {
       root: 'C',
       chordType: 'major',
       duration: 0.25,
-      activeNotes: {}
+      activeNotes: {},
+      overlays: []
     };
     const updated: TimelineItem = {
       ...this.timelineItem(),
@@ -348,9 +414,164 @@ export class TimelineVisualizationComponent {
     }
   }
 
-  getNoteColor(degree?: string): string {
-    if (!degree) return '#cccccc'; // Gray for non-chord notes
-    return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['1P'];
+  getNoteColor(degree?: string, noteName?: string, octave?: number, scaleIndex?: number): string {
+    const colorMode = this.colorMode();
+    
+    // If no degree calculated, use default yellow
+    if (!degree) return DEGREE_COLOURS['1P'];
+    
+    if (colorMode === 'monocolor') {
+      return DEGREE_COLOURS['1P'];
+    }
+    
+    if (colorMode === 'octaves') {
+      if (octave === undefined) return DEGREE_COLOURS['1P'];
+      return OCTAVE_COLOURS[octave] || DEGREE_COLOURS['1P'];
+    }
+    
+    if (colorMode === 'triads') {
+      // For triads: highlight root, third, and fifth with specific colors
+      // All other notes (including other chord tones like 7th, 9th, etc.) get blue
+      
+      // Root (1P) = yellow
+      if (degree === '1P') return DEGREE_COLOURS['1P'];
+      
+      // Third (3M or 3m) = orange  
+      if (degree === '3M' || degree === '3m') {
+        return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS];
+      }
+      
+      // Fifth (5P, 5d, or 5A) = red
+      if (degree === '5P' || degree === '5d' || degree === '5A') {
+        return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['5P'];
+      }
+      
+      // All other notes = blue
+      return '#3b82f6';
+    }
+    
+    // 'all' mode - color by degree using DEGREE_COLOURS (same as scale-visualization)
+    // Use the actual degree for proper color mapping
+    const color = DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS];
+    return color || DEGREE_COLOURS['1P'];
+  }
+
+  handleNoteClick(fretNote: FretNote, event: MouseEvent) {
+    if (this.isPlaying()) return;
+    
+    if (event.ctrlKey) {
+      // Ctrl+click: toggle overlay
+      this.toggleOverlayNote(fretNote.string, fretNote.fret);
+    } else {
+      // Normal click: toggle active note
+      this.toggleNote(fretNote.string, fretNote.fret);
+    }
+  }
+
+  toggleOverlayNote(stringIndex: number, fret: number) {
+    const currentLayer = this.currentLayer();
+    const overlays = currentLayer.overlays || [];
+    
+    // Find or create overlay for timeline positions
+    let overlay = overlays.find(o => o.type === 'notes');
+    const positions = overlay?.notes || [];
+    
+    // Create position key (e.g., "0-3" for string 0, fret 3)
+    const positionKey = `${stringIndex}-${fret}`;
+    
+    // Toggle position visibility
+    const positionIndex = positions.indexOf(positionKey);
+    let updatedPositions: string[];
+    if (positionIndex >= 0) {
+      updatedPositions = positions.filter((_, i) => i !== positionIndex);
+    } else {
+      updatedPositions = [...positions, positionKey];
+    }
+    
+    const updatedOverlay: OverlayItem = {
+      type: 'notes',
+      notes: updatedPositions,
+      visible: true
+    };
+    
+    const updatedOverlays = overlay
+      ? overlays.map(o => o.type === 'notes' ? updatedOverlay : o)
+      : [...overlays, updatedOverlay];
+    
+    // Update the current layer with new overlays
+    const layerIndex = this.currentLayerIndex();
+    const layers = this.layers();
+    const updatedLayer = {
+      ...currentLayer,
+      overlays: updatedOverlays
+    };
+    const newLayers = layers.map((layer, i) => i === layerIndex ? updatedLayer : layer);
+    
+    const updated: TimelineItem = {
+      ...this.timelineItem(),
+      layers: newLayers
+    };
+    this.update.emit(updated);
+  }
+
+  isOverlayNote(fretNote: FretNote): boolean {
+    const overlays = this.overlays();
+    const positionKey = `${fretNote.string}-${fretNote.fret}`;
+    
+    return overlays.some(overlay => {
+      if (!overlay.visible && overlay.visible !== undefined) return false;
+      if (overlay.type === 'notes' && overlay.notes) {
+        return overlay.notes.includes(positionKey);
+      }
+      return false;
+    });
+  }
+
+  openConfigModal(): void {
+    const dialogData: DisplayTimelineConfigDialogData = {
+      colorMode: this.colorMode(),
+      fretboardColor: this.fretboardColor()
+    };
+
+    const dialogRef = this.dialog.open<DisplayTimelineConfigDialogResult, DisplayTimelineConfigDialogData>(
+      DisplayTimelineConfigDialogComponent,
+      {
+        data: dialogData,
+        disableClose: false,
+        hasBackdrop: true,
+        width: '48rem',
+        maxWidth: '90vw',
+        maxHeight: '90vh'
+      }
+    );
+
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        const updated: TimelineItem = {
+          ...this.timelineItem(),
+          colorMode: result.colorMode,
+          fretboardColor: result.fretboardColor
+        };
+        this.update.emit(updated);
+      }
+    });
+  }
+
+  cloneLayer() {
+    if (this.isPlaying()) return;
+    const currentLayer = this.currentLayer();
+    const clonedLayer: TimelineLayer = {
+      ...currentLayer,
+      id: `layer_${Date.now()}`,
+      activeNotes: { ...currentLayer.activeNotes },
+      overlays: currentLayer.overlays ? [...currentLayer.overlays] : []
+    };
+    const updated: TimelineItem = {
+      ...this.timelineItem(),
+      layers: [...this.layers(), clonedLayer]
+    };
+    this.update.emit(updated);
+    this.currentLayerIndex.set(this.layers().length);
   }
 
   handleDelete() {

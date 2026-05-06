@@ -76,6 +76,7 @@ export interface TimelineLayer {
   chordType: string;
   duration: NoteDuration;
   activeNotes: Record<string, boolean>;
+  overlays?: OverlayItem[];
 }
 
 export interface TimelineItem extends SessionItem {
@@ -83,6 +84,8 @@ export interface TimelineItem extends SessionItem {
   bpm: number;
   tuning: string[];
   layers: TimelineLayer[];
+  colorMode?: ColorMode;
+  fretboardColor?: string;
 }
 
 export interface VisualizationConfig {

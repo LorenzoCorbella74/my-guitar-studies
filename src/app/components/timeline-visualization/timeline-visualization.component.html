@@ -2,7 +2,18 @@
   <div class="card-body">
     <!-- Header with layer navigation -->
     <div class="flex justify-between items-center mb-2">
-      <h3 class="text-lg font-semibold">Timeline</h3>
+      <div class="flex items-center gap-2">
+        <h3 class="text-lg font-semibold">Timeline</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="openConfigModal()"
+          aria-label="Configura visualizzazione"
+          title="Configura visualizzazione"
+        >
+          <svg lucideSettings class="w-4 h-4"></svg>
+        </button>
+      </div>
       
       <div class="flex items-center gap-2">
         <!-- Layer navigation -->
@@ -39,6 +50,17 @@
           aria-label="Aggiungi layer"
         >
           <svg lucidePlus class="w-4 h-4"></svg>
+        </button>
+        
+        <button
+          type="button"
+          class="btn btn-sm btn-square"
+          (click)="cloneLayer()"
+          [disabled]="isPlaying()"
+          aria-label="Clona layer"
+          title="Clona layer corrente"
+        >
+          <svg lucideCopy class="w-4 h-4"></svg>
         </button>
         
         <button
@@ -210,8 +232,8 @@
           [attr.y]="getStringY(5)"
           [attr.width]="fretboardWidth() - leftMargin - rightMargin"
           [attr.height]="getStringY(0) - getStringY(5)"
-          fill="#f5f5f5"
-          opacity="0.3"
+          [attr.fill]="fretboardColor()"
+          opacity="0.95"
         />
 
         <!-- Frets (vertical lines) -->
@@ -221,8 +243,8 @@
             [attr.y1]="getStringY(5)"
             [attr.x2]="getFretX(fret)"
             [attr.y2]="getStringY(0)"
-            [attr.stroke]="fret === 0 ? '#333' : '#999'"
-            [attr.stroke-width]="fret === 0 ? 4 : 2"
+            [attr.stroke]="fret === 0 ? fretboardColors().nut : fretboardColors().frets"
+            [attr.stroke-width]="fret === 0 ? 6 : 3"
           />
         }
 
@@ -233,7 +255,7 @@
             [attr.y1]="getStringY(stringNum)"
             [attr.x2]="fretboardWidth() - rightMargin"
             [attr.y2]="getStringY(stringNum)"
-            stroke="#666"
+            [attr.stroke]="fretboardColors().strings"
             stroke-width="1"
           />
         }
@@ -243,9 +265,9 @@
           <circle
             [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
             [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
-            r="5"
-            fill="#bbb"
-            opacity="0.5"
+            r="7"
+            [attr.fill]="fretboardColors().inlays"
+            opacity="0.8"
           />
         }
 
@@ -253,31 +275,57 @@
         <circle
           [attr.cx]="getFretX(11) + fretWidth / 2"
           [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
-          r="5"
-          fill="#bbb"
-          opacity="0.5"
+          r="7"
+          [attr.fill]="fretboardColors().inlays"
+          opacity="0.8"
         />
         <circle
           [attr.cx]="getFretX(11) + fretWidth / 2"
           [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
-          r="5"
-          fill="#bbb"
-          opacity="0.5"
+          r="7"
+          [attr.fill]="fretboardColors().inlays"
+          opacity="0.8"
         />
 
         <!-- Notes (clickable) -->
         @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
           <g
             [class.cursor-pointer]="!isPlaying()"
-            (click)="!isPlaying() && toggleNote(fretNote.string, fretNote.fret)"
+            (click)="handleNoteClick(fretNote, $event)"
           >
+            @if (isOverlayNote(fretNote)) {
+              <!-- Overlay note (same style as scale-visualization) -->
+              <g style="cursor: help;">
+                <title>Overlay</title>
+                <!-- Visible dotted border -->
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="19"
+                  fill="none"
+                  stroke="#666"
+                  stroke-width="1"
+                  opacity="0.5"
+                  style="pointer-events: none;"
+                />
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="19"
+                  fill="#000"
+                  stroke="#000"
+                  opacity="0.2"
+                  style="pointer-events: none;"
+                />
+              </g>
+            }
             @if (fretNote.isActive) {
               <!-- Active note -->
               <circle
                 [attr.cx]="getNoteX(fretNote.fret)"
                 [attr.cy]="getStringY(fretNote.string)"
                 r="14"
-                [attr.fill]="getNoteColor(fretNote.degree)"
+                [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
                 stroke="#000"
                 stroke-width="2"
                 opacity="1"
@@ -308,7 +356,7 @@
                 [attr.cx]="getNoteX(fretNote.fret)"
                 [attr.cy]="getStringY(fretNote.string)"
                 r="10"
-                [attr.fill]="getNoteColor(fretNote.degree)"
+                [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
                 opacity="0.3"
                 stroke="#666"
                 stroke-width="1"
@@ -347,8 +395,8 @@
     </div>
 
     <!-- Instructions -->
-    <div class="text-sm text-base-content/60 mt-2">
-      💡 Clicca su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo.
+    <div class="text-xs text-base-content/60 mt-2">
+      💡 Clicca su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo. Tieni premuto Ctrl e clicca per aggiungere/rimuovere overlay.
     </div>
   </div>
 </div>
