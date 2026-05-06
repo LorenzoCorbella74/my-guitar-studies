@@ -11,7 +11,7 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
     <div class="relative">
       <button
         type="button"
-        class="btn btn-primary btn-block btn-sm"
+        class="btn btn-dash btn-primary btn-block btn-sm"
         (click)="toggleDropdown()"
         (blur)="onBlur()"
         aria-label="Aggiungi elemento"

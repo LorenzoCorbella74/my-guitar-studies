@@ -8,7 +8,7 @@
             @if (!notFound()) {
               <div class="flex gap-2">
                 <app-item-selector (itemSelected)="addItem($event)" />
-                <button class="btn btn-primary btn-sm" (click)="save()" [disabled]="saving()">
+                <button class="btn btn-dash btn-primary btn-sm" (click)="save()" [disabled]="saving()">
                   <svg lucideSave class="w-4 h-4"></svg> Salva
                 </button>
               </div>
@@ -23,7 +23,7 @@
             <div class="card-body">
               <h2 class="card-title text-error">Sessione non trovata</h2>
               <div class="card-actions">
-                <a routerLink="/sessions" class="btn btn-primary">Torna alla lista</a>
+                <a routerLink="/sessions" class="btn btn-dash btn-primary">Torna alla lista</a>
               </div>
             </div>
           </div>
@@ -86,7 +86,7 @@
 
         @if (!notFound()) {
           <!-- Items Section -->
-          <div class="space-y-4 mb-4">
+          <div class="space-y-4 mb-4" #itemsContainer>
             
             @if (items().length === 0) {
               <div class="card bg-base-100 shadow-md">

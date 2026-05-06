@@ -44,7 +44,7 @@
         <!-- Add/Delete layer -->
         <button
           type="button"
-          class="btn btn-sm btn-square btn-primary"
+          class="btn btn-sm btn-square"
           (click)="addLayer()"
           [disabled]="isPlaying()"
           aria-label="Aggiungi layer"
@@ -298,20 +298,26 @@
               <g style="cursor: help;">
                 <title>Overlay</title>
                 <!-- Visible dotted border -->
-                <circle
-                  [attr.cx]="getNoteX(fretNote.fret)"
-                  [attr.cy]="getStringY(fretNote.string)"
-                  r="19"
+                <rect
+                  [attr.x]="getNoteX(fretNote.fret) - 19"
+                  [attr.y]="getStringY(fretNote.string) - 19"
+                  width="38"
+                  height="38"
+                  rx="5"
+                  ry="5"
                   fill="none"
                   stroke="#666"
                   stroke-width="1"
                   opacity="0.5"
                   style="pointer-events: none;"
                 />
-                <circle
-                  [attr.cx]="getNoteX(fretNote.fret)"
-                  [attr.cy]="getStringY(fretNote.string)"
-                  r="19"
+                <rect
+                  [attr.x]="getNoteX(fretNote.fret) - 19"
+                  [attr.y]="getStringY(fretNote.string) - 19"
+                  width="38"
+                  height="38"
+                  rx="5"
+                  ry="5"
                   fill="#000"
                   stroke="#000"
                   opacity="0.2"
@@ -324,7 +330,7 @@
               <circle
                 [attr.cx]="getNoteX(fretNote.fret)"
                 [attr.cy]="getStringY(fretNote.string)"
-                r="14"
+                r="15"
                 [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
                 stroke="#000"
                 stroke-width="2"

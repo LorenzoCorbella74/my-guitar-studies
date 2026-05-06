@@ -16,7 +16,7 @@ import { LucidePlus, LucideTrash2 } from '@lucide/angular';
           <div class="flex gap-2">
             <button
               type="button"
-              class="btn btn-primary btn-sm"
+              class="btn btn-dash btn-primary btn-sm"
               (click)="openChordBuilder()"
             >
               <svg lucidePlus class="w-4 h-4"></svg>

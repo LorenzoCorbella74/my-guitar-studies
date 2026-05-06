@@ -96,7 +96,7 @@ interface TransposedRow {
                   <span class="label-text">&nbsp;</span>
                 </label>
                 <div class="flex gap-2">
-                  <button class="btn btn-primary btn-sm flex-1" (click)="confirmAddElement()">
+                  <button class="btn btn-dash btn-primary btn-sm flex-1" (click)="confirmAddElement()">
                     Aggiungi
                   </button>
                   <button class="btn btn-ghost btn-sm" (click)="cancelAddElement()">

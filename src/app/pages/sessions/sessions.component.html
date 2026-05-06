@@ -55,7 +55,7 @@
           <div class="join">
             <button
               type="button"
-              class="btn btn-sm join-item"
+              class="btn btn-sm btn-dash join-item"
               [class.btn-primary]="isDateSort()"
               [class.btn-ghost]="!isDateSort()"
               (click)="toggleDateSort()"
@@ -70,7 +70,7 @@
             </button>
             <button
               type="button"
-              class="btn btn-sm join-item"
+              class="btn btn-sm btn-dash join-item"
               [class.btn-primary]="isTitleSort()"
               [class.btn-ghost]="!isTitleSort()"
               (click)="toggleTitleSort()"
@@ -84,7 +84,7 @@
             </button>
           </div>
 
-          <a [routerLink]="[ '/' + routes.SessionNew]" class="btn btn-primary btn-sm">
+          <a [routerLink]="[ '/' + routes.SessionNew]" class="btn btn-dash btn-primary btn-sm">
             <svg lucidePlus class="w-5 h-5 mr-2"></svg>
             Nuova sessione
           </a>

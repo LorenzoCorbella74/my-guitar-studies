@@ -191,7 +191,7 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-primary btn-sm"
+                  class="btn btn-dash btn-primary btn-sm"
                   [disabled]="!canSave()"
                 >
                   {{ editingChord() ? 'Aggiorna' : 'Aggiungi' }}

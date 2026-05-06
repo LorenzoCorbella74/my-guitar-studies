@@ -8,7 +8,7 @@
           @else if (itemType() === 'arpeggio') { dell'arpeggio }
           @else { dell'accordo }
         </p>
-        <button class="btn btn-primary" (click)="openModal()">
+        <button class="btn btn-dash btn-primary" (click)="openModal()">
           @if (itemType() === 'scale') { Configura scala }
           @else if (itemType() === 'arpeggio') { Configura arpeggio }
           @else { Configura accordo }
@@ -81,7 +81,7 @@
             @for (noteInfo of notesWithDegrees(); track $index) {
               <button
                 type="button"
-                class="btn btn-xs flex flex-col gap-0 h-auto py-1 px-2"
+                class="btn btn-xs btn-dash flex flex-col gap-0 h-auto py-1 px-2"
                 [class.btn-primary]="isNoteVisible(noteInfo.note)"
                 [class.btn-ghost]="!isNoteVisible(noteInfo.note)"
                 (click)="toggleNote(noteInfo.note)"
@@ -195,20 +195,26 @@
               <g style="cursor: help;">
                 <title>{{ getOverlayTooltip(fretNote.note) }}</title>
                 <!-- Visible dotted border -->
-                <circle
-                  [attr.cx]="getNoteX(fretNote.fret)"
-                  [attr.cy]="getStringY(fretNote.string)"
-                  r="19"
+                <rect
+                  [attr.x]="getNoteX(fretNote.fret) - 19"
+                  [attr.y]="getStringY(fretNote.string) - 19"
+                  width="38"
+                  height="38"
+                  rx="12"
+                  ry="12"
                   fill="none"
                   [attr.stroke]="noteStrokeColor()"
                   stroke-width="1"
                   opacity="0.5"
                   style="pointer-events: none;"
                 />
-                <circle
-                  [attr.cx]="getNoteX(fretNote.fret)"
-                  [attr.cy]="getStringY(fretNote.string)"
-                  r="19"
+                <rect
+                  [attr.x]="getNoteX(fretNote.fret) - 19"
+                  [attr.y]="getStringY(fretNote.string) - 19"
+                  width="38"
+                  height="38"
+                  rx="12"
+                  ry="12"
                   fill="#000"
                   stroke="#000"
                   opacity="0.2"

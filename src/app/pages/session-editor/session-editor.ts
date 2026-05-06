@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SessionService } from '../../services/session.service';
 import { AppRoutes } from '../../enums/routes.enum';
@@ -26,6 +26,8 @@ export class SessionEditorPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private confirmService = inject(ConfirmService);
+
+  @ViewChild('itemsContainer') itemsContainer?: ElementRef<HTMLDivElement>;
 
   routes = AppRoutes;
 
@@ -228,6 +230,14 @@ export class SessionEditorPage implements OnInit {
       };
       this.items.update(items => [...items, newTimeline]);
     }
+    
+    // Scroll to the newly added item
+    /* setTimeout(() => { */
+      const container = this.itemsContainer?.nativeElement;
+      if (container && container.lastElementChild) {
+        container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+  /*   }, 150); */
   }
 
   updateSection(itemId: string, data: { title: string; content: string }) {

@@ -1,4 +1,5 @@
   @import "tailwindcss";
+
   @plugin "daisyui";
 
   /* Fullscreen background image */
@@ -9,35 +10,6 @@
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
-  }
-
-  /* Override btn-primary style with black outline */
-  .btn-primary {
-    --tw-bg-opacity: 1;
-    background-color: transparent !important;
-    /*border: 2px solid #000 !important;*/
-    border: none !important;
-    color: #000 !important;
-    /* box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.25) !important; */
-  }
-
-  .btn-primary:hover {
-    background-color: #000 !important;
-    color: #fff !important;
-    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.3) !important;
-    transform: translateY(1px);
-  }
-
-  .btn-primary:active {
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
-    transform: translateY(2px);
-  }
-
-  .btn-primary:disabled {
-    border-color: #ccc !important;
-    color: #ccc !important;
-    background-color: transparent !important;
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1) !important;
   }
 
   .classe {
@@ -152,13 +124,13 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     padding: 1.5rem;
   }
-  
+
   /* Dark theme for dialogs */
   .dark .cdk-dialog-content {
     background: #1f2937;
     color: #f9fafb;
   }
-  
+
   /* Ensure inputs and selects inside dialogs follow the theme - Light */
   .cdk-dialog-content input,
   .cdk-dialog-content select,
@@ -167,7 +139,7 @@
     color: #000000;
     border-color: rgba(0, 0, 0, 0.2);
   }
-  
+
   /* Dark theme for inputs */
   .dark .cdk-dialog-content input,
   .dark .cdk-dialog-content select,
@@ -176,21 +148,21 @@
     color: #f9fafb;
     border-color: rgba(255, 255, 255, 0.2);
   }
-  
+
   .cdk-dialog-content input:focus,
   .cdk-dialog-content select:focus,
   .cdk-dialog-content textarea:focus {
     background: #ffffff;
     border-color: #000000;
   }
-  
+
   .dark .cdk-dialog-content input:focus,
   .dark .cdk-dialog-content select:focus,
   .dark .cdk-dialog-content textarea:focus {
     background: #1f2937;
     border-color: #60a5fa;
   }
-  
+
   /* Legacy modal-box support (for backward compatibility) */
   .cdk-overlay-pane .modal-box {
     width: 100%;
@@ -202,7 +174,7 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     padding: 1.5rem;
   }
-  
+
   .dark .cdk-overlay-pane .modal-box {
     background: #1f2937;
     color: #f9fafb;
