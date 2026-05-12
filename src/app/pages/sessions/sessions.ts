@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SessionService } from '../../services/session.service';
 import { Session, SessionSortBy } from '../../models/session.model';
 import { AppRoutes } from '../../enums/routes.enum';
-import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ } from "@lucide/angular";
+import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid } from "@lucide/angular";
 import { TagService } from '../../services/tag.service';
 import { ConfirmService } from '../../services/confirm.service';
 
@@ -11,7 +11,7 @@ import { ConfirmService } from '../../services/confirm.service';
   selector: 'sessions-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ],
+  imports: [RouterLink, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid],
   templateUrl: './sessions.component.html'
 })
 export class SessionsListPage implements OnInit {
@@ -26,6 +26,7 @@ export class SessionsListPage implements OnInit {
   tagDropdownOpen = signal(false);
   filterFavorites = signal(false);
   sortBy = signal<SessionSortBy>('updatedAt_desc');
+  viewMode = signal<'card' | 'table'>('card');
 
   filteredSessions = signal<Session[]>([]);
 
@@ -73,6 +74,10 @@ export class SessionsListPage implements OnInit {
   onFilterFavoritesChange() {
     this.filterFavorites.update(v => !v);
     this.updateFiltered();
+  }
+
+  toggleViewMode() {
+    this.viewMode.update(v => v === 'card' ? 'table' : 'card');
   }
 
   toggleDateSort() {

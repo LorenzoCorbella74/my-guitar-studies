@@ -4,7 +4,8 @@ import { SessionService } from '../../services/session.service';
 import { AppRoutes } from '../../enums/routes.enum';
 import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
-import { LucideX, LucideSave } from '@lucide/angular';
+import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { LucideX, LucideSave, LucideGripVertical } from '@lucide/angular';
 import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
@@ -17,8 +18,62 @@ import { ConfirmService } from '../../services/confirm.service';
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, LucideX, LucideSave, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
-  templateUrl: './session-editor.component.html'
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
+  templateUrl: './session-editor.component.html',
+  styles: [`
+    .drag-item-wrapper {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      color: oklch(var(--bc) / 0.4);
+      transition: color 0.2s;
+      flex-shrink: 0;
+      margin-top: 0.5rem;
+    }
+
+    .drag-handle:hover {
+      color: oklch(var(--bc) / 0.7);
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cdk-drag-preview {
+      opacity: 0.8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+    }
+
+    .cdk-drag-placeholder {
+      opacity: 0.3;
+      border: 2px dashed oklch(var(--bc) / 0.3);
+      border-radius: 0.5rem;
+      background: oklch(var(--b1));
+    }
+
+    .cdk-drag-animating {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    .cdk-drop-list-dragging .drag-item-wrapper:not(.cdk-drag-placeholder) {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+  `]
 })
 export class SessionEditorPage implements OnInit {
   private sessionService = inject(SessionService);
@@ -333,5 +388,18 @@ export class SessionEditorPage implements OnInit {
     if (this.editingItemId() === itemId) {
       this.editingItemId.set(null);
     }
+  }
+
+  onItemDrop(event: CdkDragDrop<SessionItem[]>) {
+    const itemsArray = [...this.items()];
+    moveItemInArray(itemsArray, event.previousIndex, event.currentIndex);
+    
+    // Recalculate order field for all items
+    const reorderedItems = itemsArray.map((item, index) => ({
+      ...item,
+      order: index * 10
+    }));
+    
+    this.items.set(reorderedItems);
   }
 }

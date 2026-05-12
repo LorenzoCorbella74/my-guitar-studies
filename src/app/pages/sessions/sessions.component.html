@@ -52,6 +52,19 @@
             <span class="label-text">Solo preferiti</span>
           </button>
 
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            (click)="toggleViewMode()"
+            [attr.aria-label]="viewMode() === 'card' ? 'Visualizza come tabella' : 'Visualizza come card'"
+          >
+            @if (viewMode() === 'card') {
+              <svg lucideList class="w-5 h-5"></svg>
+            } @else {
+              <svg lucideGrid class="w-5 h-5"></svg>
+            }
+          </button>
+
           <div class="join">
             <button
               type="button"
@@ -93,37 +106,81 @@
       </div>
 
       <div class="max-w-5xl mx-auto px-4 pb-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-          @for (session of filteredSessions(); track session.id) {
-            <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
-              <div class="card-body">
-                <div class="flex justify-between items-start gap-4">
-                  <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
-                    {{ session.title || 'Senza titolo' }}
-                  </a>
-                  <div class="flex items-center gap-1">
-                    <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
-                      <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
-                    </button>
-                    <button class="btn btn-ghost btn-sm" (click)="confirmDelete(session, $event)" aria-label="Elimina sessione">
-                      <svg lucideTrash class="w-4 h-4"></svg>
-                    </button>
+        @if (viewMode() === 'card') {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+            @for (session of filteredSessions(); track session.id) {
+              <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="card-body">
+                  <div class="flex justify-between items-start gap-4">
+                    <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
+                      {{ session.title || 'Senza titolo' }}
+                    </a>
+                    <div class="flex items-center gap-1">
+                      <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
+                        <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
+                      </button>
+                      <button class="btn btn-ghost btn-sm" (click)="confirmDelete(session, $event)" aria-label="Elimina sessione">
+                        <svg lucideTrash class="w-4 h-4"></svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div class="flex flex-wrap gap-2 mt-2">
+                    @for (tag of session.tags; track tag) {
+                      <div class="badge badge-primary badge-outline">{{ tag }}</div>
+                    }
                   </div>
                 </div>
-                
-                <div class="flex flex-wrap gap-2 mt-2">
-                  @for (tag of session.tags; track tag) {
-                    <div class="badge badge-primary badge-outline">{{ tag }}</div>
-                  }
-                </div>
               </div>
+            } @empty {
+              <div class="text-center py-12 text-base-content/60">
+                <p class="text-lg">Nessuna sessione</p>
+                <p class="text-sm">Crea la tua prima sessione!</p>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="pt-4">
+            <div class="bg-base-100 rounded-lg shadow-md overflow-hidden">
+              <table class="table w-full">
+                <tbody>
+                  @for (session of filteredSessions(); track session.id) {
+                    <tr class="hover">
+                      <td class="w-1/3">
+                        <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="font-semibold hover:text-primary">
+                          {{ session.title || 'Senza titolo' }}
+                        </a>
+                      </td>
+                      <td class="w-1/3">
+                        <div class="flex flex-wrap gap-2">
+                          @for (tag of session.tags; track tag) {
+                            <div class="badge badge-primary badge-outline badge-sm">{{ tag }}</div>
+                          }
+                        </div>
+                      </td>
+                      <td class="w-1/3">
+                        <div class="flex items-center gap-1 justify-end">
+                          <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
+                            <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
+                          </button>
+                          <button class="btn btn-ghost btn-sm" (click)="confirmDelete(session, $event)" aria-label="Elimina sessione">
+                            <svg lucideTrash class="w-4 h-4"></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="text-center py-12 text-base-content/60">
+                        <p class="text-lg">Nessuna sessione</p>
+                        <p class="text-sm">Crea la tua prima sessione!</p>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
-          } @empty {
-            <div class="text-center py-12 text-base-content/60">
-              <p class="text-lg">Nessuna sessione</p>
-              <p class="text-sm">Crea la tua prima sessione!</p>
-            </div>
-          }
-        </div>
+          </div>
+        }
       </div>
     </div>

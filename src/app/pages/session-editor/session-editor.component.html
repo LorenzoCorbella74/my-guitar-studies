@@ -86,7 +86,7 @@
 
         @if (!notFound()) {
           <!-- Items Section -->
-          <div class="space-y-4 mb-4" #itemsContainer>
+          <div class="space-y-4 mb-4" #itemsContainer cdkDropList (cdkDropListDropped)="onItemDrop($event)">
             
             @if (items().length === 0) {
               <div class="card bg-base-100 shadow-md">
@@ -99,45 +99,53 @@
             }
             
             @for (item of items(); track item.id) {
-              @if (item.type === 'section') {
-                <app-section-editor
-                  [section]="$any(item)"
-                  [editMode]="editingItemId() === item.id"
-                  (edit)="editingItemId.set(item.id)"
-                  (save)="updateSection(item.id, $event)"
-                  (delete)="deleteItem(item.id)"
-                />
-              }
-              @if (item.type === 'scale' || item.type === 'arpeggio' || item.type === 'chord') {
-                <app-scale-visualization
-                  [scaleItem]="$any(item)"
-                  (update)="updateScale(item.id, $event)"
-                  (delete)="deleteItem(item.id)"
-                  (clone)="cloneScale($event)"
-                  (cancelFirstConfig)="removeItemSilently(item.id)"
-                />
-              }
-              @if (item.type === 'comparison') {
-                <app-comparison-table
-                  [comparison]="$any(item)"
-                  (update)="updateComparison(item.id, $event)"
-                  (delete)="deleteItem(item.id)"
-                />
-              }
-              @if (item.type === 'chordprogression') {
-                <app-chord-progression
-                  [progression]="$any(item)"
-                  (update)="updateChordProgression(item.id, $event)"
-                  (deleteProgression)="deleteItem(item.id)"
-                />
-              }
-              @if (item.type === 'timeline') {
-                <app-timeline-visualization
-                  [timelineItem]="$any(item)"
-                  (update)="updateTimelineItem(item.id, $event)"
-                  (delete)="deleteItem(item.id)"
-                />
-              }
+              <div cdkDrag class="drag-item-wrapper">
+                <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
+                  <svg lucideGripVertical class="w-5 h-5"></svg>
+                </div>
+                
+                <div class="item-content">
+                  @if (item.type === 'section') {
+                    <app-section-editor
+                      [section]="$any(item)"
+                      [editMode]="editingItemId() === item.id"
+                      (edit)="editingItemId.set(item.id)"
+                      (save)="updateSection(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
+                  @if (item.type === 'scale' || item.type === 'arpeggio' || item.type === 'chord') {
+                    <app-scale-visualization
+                      [scaleItem]="$any(item)"
+                      (update)="updateScale(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                      (clone)="cloneScale($event)"
+                      (cancelFirstConfig)="removeItemSilently(item.id)"
+                    />
+                  }
+                  @if (item.type === 'comparison') {
+                    <app-comparison-table
+                      [comparison]="$any(item)"
+                      (update)="updateComparison(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
+                  @if (item.type === 'chordprogression') {
+                    <app-chord-progression
+                      [progression]="$any(item)"
+                      (update)="updateChordProgression(item.id, $event)"
+                      (deleteProgression)="deleteItem(item.id)"
+                    />
+                  }
+                  @if (item.type === 'timeline') {
+                    <app-timeline-visualization
+                      [timelineItem]="$any(item)"
+                      (update)="updateTimelineItem(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
+                </div>
+              </div>
             }
           </div>
         }
