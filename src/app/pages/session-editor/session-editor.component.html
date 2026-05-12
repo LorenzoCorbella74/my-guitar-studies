@@ -3,7 +3,7 @@
         <div class="max-w-5xl mx-auto px-4 py-3">
           <div class="flex justify-between items-center">
             <a routerLink="/sessions" class="btn btn-ghost btn-sm">
-              ← Torna alle sessioni
+              <svg lucideArrowLeft class="w-4 h-4"></svg> Torna alle sessioni
             </a>
             @if (!notFound()) {
               <div class="flex gap-2">
@@ -99,7 +99,7 @@
             }
             
             @for (item of items(); track item.id) {
-              <div cdkDrag class="drag-item-wrapper">
+              <div cdkDrag class="drag-item-wrapper" @fadeSlideUp>
                 <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
                   <svg lucideGripVertical class="w-5 h-5"></svg>
                 </div>

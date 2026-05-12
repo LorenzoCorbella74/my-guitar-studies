@@ -6,13 +6,15 @@ import { AppRoutes } from '../../enums/routes.enum';
 import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid } from "@lucide/angular";
 import { TagService } from '../../services/tag.service';
 import { ConfirmService } from '../../services/confirm.service';
+import { fadeSlideUp, listStagger } from '../../animations';
 
 @Component({
   selector: 'sessions-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid],
-  templateUrl: './sessions.component.html'
+  templateUrl: './sessions.component.html',
+  animations: [fadeSlideUp, listStagger]
 })
 export class SessionsListPage implements OnInit {
   sessionService = inject(SessionService);

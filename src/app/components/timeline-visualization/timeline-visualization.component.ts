@@ -8,6 +8,7 @@ import { MetronomeService } from '../../services/metronome.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
 import { Dialog } from '@angular/cdk/dialog';
 import { DisplayTimelineConfigDialogComponent, DisplayTimelineConfigDialogData, DisplayTimelineConfigDialogResult } from './dialog/display-timeline-config-dialog.component';
+import { fade } from '../../animations';
 
 interface FretNote {
   string: number;
@@ -25,6 +26,7 @@ interface FretNote {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, BeatIndicatorComponent, LucideSettings, LucideCopy],
   templateUrl: './timeline-visualization.component.html',
+  animations: [fade],
   styles: `
     :host {
       display: block;
@@ -40,10 +42,13 @@ export class TimelineVisualizationComponent implements OnInit {
   private dialog = inject(Dialog);
 
   ngOnInit() {
-    // Load overlays from current layer
+    // Initialize signals from current layer
     const layer = this.currentLayer();
-    if (layer?.overlays) {
-      this.overlays.set([...layer.overlays]);
+    if (layer) {
+      this.overlays.set(layer.overlays || []);
+      this.layerRoot.set(layer.root);
+      this.layerChordType.set(layer.chordType);
+      this.layerDuration.set(layer.duration);
     }
   }
 
@@ -54,15 +59,10 @@ export class TimelineVisualizationComponent implements OnInit {
   private playbackInterval: number | null = null;
   overlays = signal<OverlayItem[]>([]);
   
-  constructor() {
-    // Sync overlays when layer changes
-    effect(() => {
-      const layer = this.currentLayer();
-      if (layer) {
-        this.overlays.set(layer.overlays || []);
-      }
-    }, { allowSignalWrites: true });
-  }
+  // Layer-specific signals for form binding
+  layerRoot = signal<string>('C');
+  layerChordType = signal<string>('major');
+  layerDuration = signal<NoteDuration>(0.25);
 
   // Computed values
   layers = computed(() => this.timelineItem().layers);
@@ -213,6 +213,7 @@ export class TimelineVisualizationComponent implements OnInit {
     const index = this.currentLayerIndex();
     if (index > 0) {
       this.currentLayerIndex.set(index - 1);
+      this.syncLayerSignals();
     }
   }
 
@@ -222,6 +223,17 @@ export class TimelineVisualizationComponent implements OnInit {
     const maxIndex = this.layers().length - 1;
     if (index < maxIndex) {
       this.currentLayerIndex.set(index + 1);
+      this.syncLayerSignals();
+    }
+  }
+
+  private syncLayerSignals() {
+    const layer = this.currentLayer();
+    if (layer) {
+      this.layerRoot.set(layer.root);
+      this.layerChordType.set(layer.chordType);
+      this.layerDuration.set(layer.duration);
+      this.overlays.set(layer.overlays || []);
     }
   }
 
@@ -241,6 +253,11 @@ export class TimelineVisualizationComponent implements OnInit {
     };
     this.update.emit(updated);
     this.currentLayerIndex.set(this.layers().length);
+    // Sync with new layer values
+    this.layerRoot.set(newLayer.root);
+    this.layerChordType.set(newLayer.chordType);
+    this.layerDuration.set(newLayer.duration);
+    this.overlays.set(newLayer.overlays || []);
   }
 
   deleteLayer() {
@@ -257,24 +274,32 @@ export class TimelineVisualizationComponent implements OnInit {
     this.update.emit(updated);
 
     // Adjust current index if needed
+    let newIndex = index;
     if (index >= newLayers.length) {
-      this.currentLayerIndex.set(newLayers.length - 1);
+      newIndex = newLayers.length - 1;
+      this.currentLayerIndex.set(newIndex);
     }
+    
+    // Sync with the layer we're now on
+    setTimeout(() => this.syncLayerSignals(), 0);
   }
 
   // Editing methods
   updateChordRoot(root: string) {
     if (this.isPlaying()) return;
+    this.layerRoot.set(root);
     this.updateCurrentLayer({ root });
   }
 
   updateChordType(chordType: string) {
     if (this.isPlaying()) return;
+    this.layerChordType.set(chordType);
     this.updateCurrentLayer({ chordType });
   }
 
   updateDuration(duration: NoteDuration) {
     if (this.isPlaying()) return;
+    this.layerDuration.set(duration);
     this.updateCurrentLayer({ duration });
   }
 
@@ -325,6 +350,7 @@ export class TimelineVisualizationComponent implements OnInit {
     
     this.isPlaying.set(true);
     this.currentLayerIndex.set(0);
+    this.syncLayerSignals(); // Sync with layer 0 at start
     this.currentBeat.set(0);
     
     console.log('isPlaying:', this.isPlaying(), 'currentBeat:', this.currentBeat());
@@ -341,6 +367,7 @@ export class TimelineVisualizationComponent implements OnInit {
       this.playbackInterval = null;
     }
     this.currentLayerIndex.set(0);
+    this.syncLayerSignals(); // Sync back to layer 0
   }
 
   private startPlayback() {
@@ -382,10 +409,12 @@ export class TimelineVisualizationComponent implements OnInit {
         if (nextIndex >= this.layers().length) {
           // Loop back to start
           this.currentLayerIndex.set(0);
+          this.syncLayerSignals();
           globalBeatCounter = 0; // Reset to sync beat indicator
           this.currentBeat.set(1); // Start from beat 1 again
         } else {
           this.currentLayerIndex.set(nextIndex);
+          this.syncLayerSignals();
         }
       }
     };
@@ -512,6 +541,9 @@ export class TimelineVisualizationComponent implements OnInit {
       layers: newLayers
     };
     this.update.emit(updated);
+    
+    // Sync local overlays signal
+    this.overlays.set(updatedOverlays);
   }
 
   isOverlayNote(fretNote: FretNote): boolean {
@@ -572,6 +604,11 @@ export class TimelineVisualizationComponent implements OnInit {
     };
     this.update.emit(updated);
     this.currentLayerIndex.set(this.layers().length);
+    // Sync with cloned layer values (same as current)
+    this.layerRoot.set(clonedLayer.root);
+    this.layerChordType.set(clonedLayer.chordType);
+    this.layerDuration.set(clonedLayer.duration);
+    this.overlays.set(clonedLayer.overlays || []);
   }
 
   handleDelete() {

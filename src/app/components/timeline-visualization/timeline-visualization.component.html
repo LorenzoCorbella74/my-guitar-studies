@@ -86,7 +86,7 @@
     </div>
 
     <!-- Chord configuration -->
-    <div class="bg-base-200 p-4 rounded-lg mb-4">
+    <div class="bg-base-200 p-4 rounded-lg mb-4" @fade>
       <h4 class="font-semibold mb-2">Accordo di riferimento</h4>
       
       <div class="flex gap-4 items-end">
@@ -97,7 +97,7 @@
           </label>
           <select
             class="select select-bordered select-sm"
-            [value]="currentLayer().root"
+            [value]="layerRoot()"
             (change)="updateChordRoot($any($event.target).value)"
             [disabled]="isPlaying()"
           >
@@ -116,7 +116,7 @@
             type="text"
             list="chord-types"
             class="input input-bordered input-sm"
-            [value]="currentLayer().chordType"
+            [value]="layerChordType()"
             (input)="updateChordType($any($event.target).value)"
             [disabled]="isPlaying()"
             placeholder="major, minor, 7, m7..."
@@ -153,7 +153,7 @@
                   type="radio"
                   name="duration"
                   class="radio radio-sm"
-                  [checked]="currentLayer().duration === duration"
+                  [checked]="layerDuration() === duration"
                   (change)="updateDuration(duration)"
                   [disabled]="isPlaying()"
                 />
@@ -363,7 +363,7 @@
                 [attr.cy]="getStringY(fretNote.string)"
                 r="10"
                 [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
-                opacity="0.3"
+                opacity="0.2"
                 stroke="#666"
                 stroke-width="1"
               />
@@ -401,8 +401,8 @@
     </div>
 
     <!-- Instructions -->
-    <div class="text-xs text-base-content/60 mt-2">
-      💡 Clicca su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo. Tieni premuto Ctrl e clicca per aggiungere/rimuovere overlay.
+    <div class="text-base-content/60 mt-2 text-center" style="font-size: 10px;">
+      <strong>Clicca</strong> su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo. Tieni premuto <strong>Ctrl e clicca</strong> per aggiungere/rimuovere note in overlay.
     </div>
   </div>
 </div>

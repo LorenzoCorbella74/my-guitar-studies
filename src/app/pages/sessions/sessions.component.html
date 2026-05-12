@@ -109,7 +109,7 @@
         @if (viewMode() === 'card') {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             @for (session of filteredSessions(); track session.id) {
-              <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+              <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow" @fadeSlideUp>
                 <div class="card-body">
                   <div class="flex justify-between items-start gap-4">
                     <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
@@ -145,7 +145,7 @@
               <table class="table w-full">
                 <tbody>
                   @for (session of filteredSessions(); track session.id) {
-                    <tr class="hover">
+                    <tr class="hover" @fadeSlideUp>
                       <td class="w-1/3">
                         <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="font-semibold hover:text-primary">
                           {{ session.title || 'Senza titolo' }}

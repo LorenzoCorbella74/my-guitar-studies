@@ -14,6 +14,7 @@ import { Component, ChangeDetectionStrategy, input, effect } from '@angular/core
           [class.bg-base-300]="beat > currentBeat()"
           [class.border-base-300]="beat > currentBeat()"
           [class.shadow-lg]="beat === currentBeat()"
+          [class.beat-pulse]="beat === currentBeat()"
         ></div>
       }
     </div>
@@ -21,6 +22,19 @@ import { Component, ChangeDetectionStrategy, input, effect } from '@angular/core
   styles: `
     :host {
       display: block;
+    }
+    
+    @keyframes beatPulse {
+      0%, 100% {
+        transform: scaleY(1);
+      }
+      50% {
+        transform: scaleY(1.15);
+      }
+    }
+    
+    .beat-pulse {
+      animation: beatPulse 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
   `
 })

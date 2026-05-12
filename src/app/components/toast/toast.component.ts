@@ -1,15 +1,17 @@
 import { Component, Signal } from '@angular/core';
 import { Toast, ToastService } from '../../services/toast.service';
+import { slideInRight } from '../../animations';
 
 
 @Component({
   selector: 'app-toast-container',
   standalone: true,
   imports: [],
+  animations: [slideInRight],
   template: `
     <div class="toast-container">
       @for (toast of toasts(); track toast.id) {
-        <div class="alert" [class]="'alert-' + toast.type">
+        <div class="alert" [class]="'alert-' + toast.type" @slideInRight>
           <span>{{ toast.message }}</span>
           <button class="btn btn-sm btn-ghost" (click)="dismissToast(toast.id)">
             <!-- <svg lucide-x class="w-4 h-4"></svg> --> X

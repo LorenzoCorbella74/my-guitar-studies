@@ -5,7 +5,7 @@ import { AppRoutes } from '../../enums/routes.enum';
 import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { LucideX, LucideSave, LucideGripVertical } from '@lucide/angular';
+import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
 import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
@@ -14,12 +14,14 @@ import { ScaleVisualizationComponent } from '../../components/scale-visualizatio
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
 import { ConfirmService } from '../../services/confirm.service';
+import { fadeSlideUp } from '../../animations';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
   templateUrl: './session-editor.component.html',
+  animations: [fadeSlideUp],
   styles: [`
     .drag-item-wrapper {
       position: relative;
