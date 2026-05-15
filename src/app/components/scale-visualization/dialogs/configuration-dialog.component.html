@@ -6,6 +6,20 @@
       </h3>
       
       <form (submit)="onSubmit($event)">
+        <!-- Title Input -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Titolo (opzionale)</span>
+          </label>
+          <input
+            type="text"
+            class="input input-bordered w-full"
+            [(ngModel)]="title"
+            name="title"
+            placeholder="Es. Scala del mio assolo preferito"
+          />
+        </div>
+
         <!-- Tuning Selection -->
         <div class="form-control mb-4">
           <label class="label">

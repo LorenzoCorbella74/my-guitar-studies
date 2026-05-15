@@ -120,6 +120,13 @@ export class ScaleVisualizationComponent implements OnInit {
   displayTitle = computed(() => {
     if (!this.hasConfig()) return '';
     const cfg = this.config();
+    
+    // If custom title exists, use it
+    if (cfg.title) {
+      return cfg.title;
+    }
+    
+    // Otherwise, use default title
     const type = this.itemType();
     if (type === 'scale') {
       return `${cfg.root} ${cfg.scaleName}`;
@@ -129,10 +136,16 @@ export class ScaleVisualizationComponent implements OnInit {
   });
 
   displaySubtitle = computed(() => {
+    if (!this.hasConfig()) return '';
+    const cfg = this.config();
     const type = this.itemType();
-    if (type === 'scale') return 'Scala';
-    if (type === 'arpeggio') return 'Arpeggio';
-    return 'Accordo';
+    
+    // Show the formula (root + scale/chord name)
+    if (type === 'scale') {
+      return `${cfg.root} ${cfg.scaleName}`;
+    } else {
+      return `${cfg.root}${cfg.chordType}`;
+    }
   });
 
   fretboardWidth = computed(() => this.leftMargin + (NUM_FRETS * this.fretWidth) + this.rightMargin);
@@ -297,12 +310,12 @@ export class ScaleVisualizationComponent implements OnInit {
         const octaveOffset = Math.floor(totalSemitones / 12);
         const currentOctave = openOctave + octaveOffset;
         
-        // Check for normal overlay notes (all octaves)
-        const isOverlayNote = overlayNotesSet.has(noteChroma);
-        
         // Check for notes with specific octaves
         const key = `${noteChroma}-${currentOctave}`;
         const isOverlayNoteWithOctave = overlayNotesWithOctaves.has(key);
+        
+        // Check for normal overlay notes (all octaves)
+        const isOverlayNote = overlayNotesSet.has(noteChroma);
         
         if (isOverlayNote || isOverlayNoteWithOctave) {
           allOverlayNotes.push({
@@ -573,6 +586,7 @@ export class ScaleVisualizationComponent implements OnInit {
     const dialogData: ConfigurationDialogData = {
       itemType: this.itemType(),
       currentConfig: this.hasConfig() ? {
+        title: this.config().title,
         tuning: this.config().tuning,
         root: this.config().root,
         scaleName: this.config().scaleName,
@@ -600,6 +614,7 @@ export class ScaleVisualizationComponent implements OnInit {
         const defaultFretboardColor = FRETBOARD_STYLES[fretboardStyleIndex]?.fretboard || '#fff';
         
         const baseConfig = {
+          title: result.title,
           tuning: result.tuning,
           root: result.root,
           labelMode: 'note' as const,
@@ -640,7 +655,13 @@ export class ScaleVisualizationComponent implements OnInit {
     this.clone.emit(clonedItem as ScaleItem | ArpeggioItem | ChordItem);
   }
 
-  handleNoteClick(fretNote: FretNote): void {
+  handleNoteClick(event: MouseEvent, fretNote: FretNote): void {
+    // Check if CTRL key is pressed
+    if (event.ctrlKey) {
+      this.toggleNoteInOverlay(fretNote);
+      return;
+    }
+    
     const current = this.highlightState();
     
     // Check if clicking the same position
@@ -666,6 +687,75 @@ export class ScaleVisualizationComponent implements OnInit {
         note: fretNote.note, 
         level: 1 
       });
+    }
+  }
+
+  toggleNoteInOverlay(fretNote: FretNote): void {
+    // Ensure octave is defined
+    if (fretNote.octave === undefined) {
+      return;
+    }
+    
+    // Create note with octave string (e.g., "C3", "E4")
+    const noteWithOctave = `${fretNote.note}${fretNote.octave}`;
+    
+    const currentOverlays = this.overlays();
+    let overlayIndex = currentOverlays.findIndex(o => o.type === 'notes-with-octaves');
+    
+    if (overlayIndex === -1) {
+      // Create new overlay with the note
+      const newOverlay: OverlayItem = {
+        type: 'notes-with-octaves',
+        notes: [noteWithOctave],
+        visible: true
+      };
+      
+      const updatedOverlays = [...currentOverlays, newOverlay];
+      this.overlays.set(updatedOverlays);
+      
+      // Save to item
+      const updatedItem = {
+        ...this.scaleItem(),
+        overlays: updatedOverlays
+      };
+      this.update.emit(updatedItem);
+    } else {
+      // Toggle note in existing overlay
+      const overlay = currentOverlays[overlayIndex];
+      const notes = overlay.notes || [];
+      const noteIndex = notes.indexOf(noteWithOctave);
+      
+      let updatedNotes: string[];
+      if (noteIndex === -1) {
+        // Add note
+        updatedNotes = [...notes, noteWithOctave];
+      } else {
+        // Remove note
+        updatedNotes = notes.filter(n => n !== noteWithOctave);
+      }
+      
+      // Update overlay
+      const updatedOverlay = {
+        ...overlay,
+        notes: updatedNotes
+      };
+      
+      const updatedOverlays = [...currentOverlays];
+      updatedOverlays[overlayIndex] = updatedOverlay;
+      
+      // Remove overlay if no notes remain
+      if (updatedNotes.length === 0) {
+        updatedOverlays.splice(overlayIndex, 1);
+      }
+      
+      this.overlays.set(updatedOverlays);
+      
+      // Save to item
+      const updatedItem = {
+        ...this.scaleItem(),
+        overlays: updatedOverlays
+      };
+      this.update.emit(updatedItem);
     }
   }
 

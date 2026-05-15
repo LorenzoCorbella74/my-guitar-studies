@@ -7,6 +7,7 @@ import { STANDARD_TUNINGS, NOTES_WITH_FLATS } from '../constants';
 export interface ConfigurationDialogData {
   itemType: 'scale' | 'arpeggio' | 'chord';
   currentConfig?: {
+    title?: string;
     tuning?: string[];
     root?: string;
     scaleName?: string;
@@ -15,6 +16,7 @@ export interface ConfigurationDialogData {
 }
 
 export interface ConfigurationDialogResult {
+  title?: string;
   tuning: string[];
   root: string;
   scaleName?: string;
@@ -41,6 +43,7 @@ export class ConfigurationDialogComponent {
   scaleNames = ScaleType.names();
   chordTypes = ChordType.names();
 
+  title = signal(this.data.currentConfig?.title || '');
   tuningName = signal(this.getTuningName() || 'Standard (E)');
   root = signal(this.data.currentConfig?.root || 'C');
   scaleName = signal(this.data.currentConfig?.scaleName || 'major');
@@ -64,6 +67,7 @@ export class ConfigurationDialogComponent {
     const tuning = STANDARD_TUNINGS[this.tuningName() as keyof typeof STANDARD_TUNINGS];
     
     const result: ConfigurationDialogResult = {
+      title: this.title() || undefined,
       tuning,
       root: this.root()
     };

@@ -89,6 +89,7 @@ export interface TimelineItem extends SessionItem {
 }
 
 export interface VisualizationConfig {
+  title?: string;
   tuning: string[];
   root: string;
   scaleName?: string;

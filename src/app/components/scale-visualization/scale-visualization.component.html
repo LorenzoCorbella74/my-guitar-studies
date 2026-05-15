@@ -19,13 +19,18 @@
       <div>
         <div class="flex justify-between items-center">
         
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-4">
               <div>
                 <h3 class="text-lg font-semibold">
                   {{ displayTitle() }}
                 </h3>
-                <p class="text-xs text-base-content/60">
-                  {{ displaySubtitle() }} - {{ getTuningName() }}
+                <p class="text-sm text-base-content/70">
+                  {{ displaySubtitle() }} 
+                  <span> - 
+                      @if (itemType() === 'scale') { Scala }
+                      @else if (itemType() === 'arpeggio') { Arpeggio }
+                      @else { Accordo }
+                  </span>
                 </p>
               </div>
               <div class="flex gap-1">
@@ -236,7 +241,7 @@
           @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
             @if (fretNote.isScaleNote && isNoteVisible(fretNote.note) && isInFretRange(fretNote.fret)) {
               <g 
-                (click)="handleNoteClick(fretNote)" 
+                (click)="handleNoteClick($event, fretNote)" 
                 style="cursor: pointer;"
               >
                 <circle
