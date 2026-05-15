@@ -103,6 +103,7 @@ export interface VisualizationConfig {
   noteOpacity?: number;
   startFret?: number;
   endFret?: number;
+  fretShift?: number; // Offset for rendering fretboard (0-12)
 }
 
 export type LabelMode = 'note' | 'degree' | 'none';

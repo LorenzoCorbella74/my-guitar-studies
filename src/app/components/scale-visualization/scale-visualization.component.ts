@@ -84,8 +84,28 @@ export class ScaleVisualizationComponent implements OnInit {
   fretWidth = 80;
   
   strings = [0, 1, 2, 3, 4, 5];
-  frets = Array.from({ length: NUM_FRETS + 1 }, (_, i) => i);
-  fretMarkers = [3, 5, 7, 9];
+  
+  // Computed frets based on fretShift
+  frets = computed(() => {
+    const shift = this.config().fretShift || 0;
+    return Array.from({ length: NUM_FRETS + 1 }, (_, i) => i + shift);
+  });
+  
+  // Computed fret markers based on fretShift
+  fretMarkers = computed(() => {
+    const shift = this.config().fretShift || 0;
+    const allMarkers = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
+    // Show only markers that fall within the visible fret range
+    return allMarkers.filter(m => m >= shift && m <= shift + NUM_FRETS);
+  });
+  
+  // Computed fret numbers to display
+  fretNumbers = computed(() => {
+    const shift = this.config().fretShift || 0;
+    const allFretNumbers = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
+    // Show only fret numbers that fall within the visible fret range
+    return allFretNumbers.filter(f => f >= shift && f <= shift + NUM_FRETS);
+  });
 
   config = computed(() => this.scaleItem().config);
   itemType = computed(() => this.scaleItem().type);
@@ -207,7 +227,9 @@ export class ScaleVisualizationComponent implements OnInit {
       
       if (openChroma === undefined) return;
 
-      for (let fret = 0; fret <= NUM_FRETS; fret++) {
+      // Generate notes up to fret 24 to cover all possible shifts
+      const maxFret = 24;
+      for (let fret = 0; fret <= maxFret; fret++) {
         const noteChroma = (openChroma + fret) % 12;
         const scaleNoteData = scaleNotesMap.get(noteChroma);
         const isScaleNote = !!scaleNoteData;
@@ -304,7 +326,9 @@ export class ScaleVisualizationComponent implements OnInit {
       
       if (openChroma === undefined) return;
       
-      for (let fret = 0; fret <= NUM_FRETS; fret++) {
+      // Generate notes up to fret 24 to cover all possible shifts
+      const maxFret = 24;
+      for (let fret = 0; fret <= maxFret; fret++) {
         const noteChroma = (openChroma + fret) % 12;
         const totalSemitones = openChroma + fret;
         const octaveOffset = Math.floor(totalSemitones / 12);
@@ -345,7 +369,9 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   getFretX(fret: number): number {
-    return this.leftMargin + (fret * this.fretWidth);
+    const shift = this.config().fretShift || 0;
+    // Calculate position relative to the shifted fretboard
+    return this.leftMargin + ((fret - shift) * this.fretWidth);
   }
 
   getStringY(stringIndex: number): number {
@@ -355,11 +381,13 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   getNoteX(fret: number): number {
-    if (fret === 0) {
-      // Corde a vuoto: a sinistra del capotasto
-      return this.getFretX(0) - 20;
+    const shift = this.config().fretShift || 0;
+    
+    if (fret === shift) {
+      // First visible fret (acts like nut): slightly left of the fret line
+      return this.getFretX(shift) - 20;
     } else {
-      // Note sui tasti: al centro tra due frets
+      // Notes on frets: center between two frets
       return this.getFretX(fret - 1) + this.fretWidth / 2;
     }
   }
@@ -477,7 +505,8 @@ export class ScaleVisualizationComponent implements OnInit {
       colorMode: cfg.colorMode || 'all',
       startFret: cfg.startFret ?? 0,
       endFret: cfg.endFret ?? 12,
-      fretboardColor: cfg.fretboardColor || '#fff'
+      fretboardColor: cfg.fretboardColor || '#fff',
+      fretShift: cfg.fretShift ?? 0
     };
 
     const dialogRef = this.dialog.open<DisplayConfigDialogResult, DisplayConfigDialogData>(
@@ -503,7 +532,8 @@ export class ScaleVisualizationComponent implements OnInit {
             colorMode: result.colorMode,
             startFret: result.startFret,
             endFret: result.endFret,
-            fretboardColor: result.fretboardColor
+            fretboardColor: result.fretboardColor,
+            fretShift: result.fretShift
           }
         };
         
@@ -623,7 +653,8 @@ export class ScaleVisualizationComponent implements OnInit {
           noteOpacity: 1.0,
           startFret: 0,
           endFret: 12,
-          fretboardColor: defaultFretboardColor
+          fretboardColor: defaultFretboardColor,
+          fretShift: 0
         };
 
         const config = type === 'scale' 

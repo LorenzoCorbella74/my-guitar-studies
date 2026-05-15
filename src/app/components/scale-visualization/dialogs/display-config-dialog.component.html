@@ -19,6 +19,27 @@
           />
         </div>
 
+        <!-- Fret Shift Slider (NEW) -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Posizione tastiera (tasti {{ fretShift() }} - {{ fretShift() + 12 }})</span>
+            <span class="label-text-alt">Shift: {{ fretShift() }}</span>
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="12"
+            step="1"
+            class="range range-primary ml-2"
+            [value]="fretShift()"
+            (input)="onFretShiftChange(+$any($event.target).value)"
+            name="fretShift"
+          />
+          <div class="text-xs text-base-content/60 mt-1">
+            Sposta il rendering della tastiera dal capotasto (0) fino al 12° tasto
+          </div>
+        </div>
+
         <!-- Fret Range Slider -->
         <div class="form-control mb-4">
           <label class="label">
@@ -29,7 +50,7 @@
             <input
               type="range"
               min="0"
-              max="12"
+              max="24"
               step="1"
               class="range range-primary flex-1"
               [(ngModel)]="startFret"
@@ -42,7 +63,7 @@
             <input
               type="range"
               min="0"
-              max="12"
+              max="24"
               step="1"
               class="range range-primary flex-1"
               [(ngModel)]="endFret"

@@ -10,6 +10,7 @@ export interface DisplayConfigDialogData {
   startFret: number;
   endFret: number;
   fretboardColor: string;
+  fretShift: number;
 }
 
 export interface DisplayConfigDialogResult {
@@ -19,6 +20,7 @@ export interface DisplayConfigDialogResult {
   startFret: number;
   endFret: number;
   fretboardColor: string;
+  fretShift: number;
 }
 
 @Component({
@@ -44,6 +46,13 @@ export class DisplayConfigDialogComponent {
   startFret = signal(this.data.startFret);
   endFret = signal(this.data.endFret);
   fretboardColor = signal(this.data.fretboardColor);
+  fretShift = signal(this.data.fretShift);
+
+  onFretShiftChange(newShift: number): void {
+    this.fretShift.set(newShift);
+    this.startFret.set(newShift);
+    this.endFret.set(newShift + 12);
+  }
 
   onSubmit(event: Event): void {
     event.preventDefault();
@@ -54,7 +63,8 @@ export class DisplayConfigDialogComponent {
       colorMode: this.colorMode(),
       startFret: this.startFret(),
       endFret: this.endFret(),
-      fretboardColor: this.fretboardColor()
+      fretboardColor: this.fretboardColor(),
+      fretShift: this.fretShift()
     };
 
     this.dialogRef.close(result);
