@@ -57,6 +57,7 @@ export interface ChordDefinition {
 
 export interface ChordProgressionItem extends SessionItem {
   type: 'chordprogression';
+  title: string;
   chords: ChordDefinition[];
 }
 

@@ -7,7 +7,7 @@ import { LucidePencil, LucideTrash2 } from '@lucide/angular';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LucidePencil, LucideTrash2],
   template: `
-    <div class="flex flex-col items-center p-4 bg-base-100 rounded-lg border border-base-300 hover:shadow-md transition-shadow">
+    <div class="flex flex-col items-center p-1 bg-base-100 rounded-lg border border-base-300 hover:shadow-md transition-shadow">
       <!-- Chord Name -->
       <h4 class="font-semibold text-lg mb-2">{{ chord().name || 'Unnamed' }}</h4>
       

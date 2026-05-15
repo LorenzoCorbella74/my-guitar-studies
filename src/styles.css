@@ -2,14 +2,28 @@
 
   @plugin "daisyui";
 
-  /* Fullscreen background image */
+  /* Fullscreen background image with theme-aware opacity overlay */
   body {
-    background-image: url('/guitar.jpg');
+    min-height: 100vh;
+    background-color: hsl(var(--b2));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    min-height: 100vh;
+  }
+
+  /* Light theme: white overlay */
+  [data-theme="light"] body {
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)),
+      url('/guitar12.jpeg');
+  }
+
+  /* Dark theme: dark overlay */
+  [data-theme="dark"] body {
+    background-image: 
+      linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+      url('/guitar12.jpeg');
   }
 
   .classe {

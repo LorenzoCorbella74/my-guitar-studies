@@ -13,13 +13,14 @@ import { ComparisonTableComponent } from '../../components/comparison-table/comp
 import { ScaleVisualizationComponent } from '../../components/scale-visualization/scale-visualization.component';
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
+import { ChordProgressionNameDialogComponent } from '../../components/section-editor/dialogs/chord-progression-name-dialog.component';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp } from '../../animations';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent],
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ChordProgressionNameDialogComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -98,6 +99,7 @@ export class SessionEditorPage implements OnInit {
 
   tagQuery = signal('');
   tagDropdownOpen = signal(false);
+  chordProgressionDialogOpen = signal(false);
 
   tagSuggestions = computed(() => {
     const query = this.tagQuery().toLowerCase();
@@ -262,13 +264,8 @@ export class SessionEditorPage implements OnInit {
       };
       this.items.update(items => [...items, newChord]);
     } else if (type === 'chordprogression') {
-      const newChordProgression: ChordProgressionItem = {
-        id: newId,
-        type: 'chordprogression',
-        order: newOrder,
-        chords: []
-      };
-      this.items.update(items => [...items, newChordProgression]);
+      // Apri la modale per chiedere il nome
+      this.chordProgressionDialogOpen.set(true);
     } else if (type === 'timeline') {
       const defaultLayer: TimelineLayer = {
         id: `layer_${Date.now()}`,
@@ -295,6 +292,29 @@ export class SessionEditorPage implements OnInit {
         container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
   /*   }, 150); */
+  }
+
+  handleChordProgressionNameConfirm(title: string) {
+    const newOrder = this.items().length;
+    const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    
+    const newChordProgression: ChordProgressionItem = {
+      id: newId,
+      type: 'chordprogression',
+      order: newOrder,
+      title: title,
+      chords: []
+    };
+    this.items.update(items => [...items, newChordProgression]);
+    this.chordProgressionDialogOpen.set(false);
+    
+    // Scroll to the newly added item
+    setTimeout(() => {
+      const container = this.itemsContainer?.nativeElement;
+      if (container && container.lastElementChild) {
+        container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 150);
   }
 
   updateSection(itemId: string, data: { title: string; content: string }) {

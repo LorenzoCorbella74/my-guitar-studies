@@ -1,5 +1,5 @@
-    <div class="min-h-screen bg-base-200">
-      <div class="sticky top-0 z-50 bg-base-100 shadow-sm">
+    <div class="min-h-screen">
+      <div class="sticky top-0 z-50 bg-base-100/95 backdrop-blur-sm shadow-sm">
         <div class="max-w-5xl mx-auto px-4 py-3">
           <div class="flex justify-between items-center">
             <a routerLink="/sessions" class="btn btn-ghost btn-sm">
@@ -150,4 +150,11 @@
           </div>
         }
       </div>
+      
+      <!-- Chord Progression Name Dialog -->
+      <app-chord-progression-name-dialog
+        [isOpen]="chordProgressionDialogOpen()"
+        (confirm)="handleChordProgressionNameConfirm($event)"
+        (close)="chordProgressionDialogOpen.set(false)"
+      />
     </div>

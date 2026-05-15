@@ -2,17 +2,18 @@ import { Component, ChangeDetectionStrategy, input, output, signal, computed } f
 import { ChordProgressionItem, ChordDefinition } from '../../models/session.model';
 import { ChordDiagramComponent } from '../chord-diagram/chord-diagram.component';
 import { ChordBuilderModalComponent } from '../chord-builder-modal/chord-builder-modal.component';
-import { LucidePlus, LucideTrash2 } from '@lucide/angular';
+import { ChordProgressionNameDialogComponent } from '../section-editor/dialogs/chord-progression-name-dialog.component';
+import { LucidePlus, LucideTrash2, LucidePencil } from '@lucide/angular';
 
 @Component({
   selector: 'app-chord-progression',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ChordDiagramComponent, ChordBuilderModalComponent, LucidePlus, LucideTrash2],
+  imports: [ChordDiagramComponent, ChordBuilderModalComponent, ChordProgressionNameDialogComponent, LucidePlus, LucideTrash2, LucidePencil],
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
         <div class="flex justify-between items-center mb-2">
-          <h3 class="text-lg font-semibold">Progressione Accordi</h3>
+          <h3 class="text-lg font-semibold">{{ progression().title || 'Progressione Accordi' }}</h3>
           <div class="flex gap-2">
             <button
               type="button"
@@ -21,6 +22,14 @@ import { LucidePlus, LucideTrash2 } from '@lucide/angular';
             >
               <svg lucidePlus class="w-4 h-4"></svg>
               Aggiungi accordo
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="openTitleDialog()"
+              aria-label="Modifica titolo"
+            >
+              <svg lucidePencil class="w-4 h-4"></svg>
             </button>
             <button
               type="button"
@@ -35,7 +44,7 @@ import { LucidePlus, LucideTrash2 } from '@lucide/angular';
         
         <!-- Chord Diagrams Grid -->
         @if (progression().chords.length > 0) {
-          <div class="flex flex-wrap gap-4 mb-4">
+          <div class="flex flex-wrap gap-3 mb-4">
             @for (chord of progression().chords; track $index) {
               <app-chord-diagram
                 [chord]="chord"
@@ -60,6 +69,14 @@ import { LucidePlus, LucideTrash2 } from '@lucide/angular';
       (save)="addChord($event)"
       (close)="closeChordBuilder()"
     />
+    
+    <!-- Title Edit Dialog -->
+    <app-chord-progression-name-dialog
+      [isOpen]="titleDialogOpen()"
+      [initialTitle]="progression().title"
+      (confirm)="updateTitle($event)"
+      (close)="titleDialogOpen.set(false)"
+    />
   `,
   styles: `
     :host {
@@ -74,6 +91,7 @@ export class ChordProgressionComponent {
   
   editingChordIndex = signal<number | null>(null);
   builderModalOpen = signal(false);
+  titleDialogOpen = signal(false);
   
   editingChord = computed(() => {
     const index = this.editingChordIndex();
@@ -132,5 +150,18 @@ export class ChordProgressionComponent {
   closeChordBuilder() {
     this.builderModalOpen.set(false);
     this.editingChordIndex.set(null);
+  }
+  
+  openTitleDialog() {
+    this.titleDialogOpen.set(true);
+  }
+  
+  updateTitle(newTitle: string) {
+    const updated: ChordProgressionItem = {
+      ...this.progression(),
+      title: newTitle
+    };
+    this.update.emit(updated);
+    this.titleDialogOpen.set(false);
   }
 }
