@@ -25,6 +25,7 @@ export interface ScaleItem extends SessionItem {
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
   overlays?: OverlayItem[];
+  highlightedNotes?: HighlightedNote[];
 }
 
 export interface ArpeggioItem extends SessionItem {
@@ -32,6 +33,7 @@ export interface ArpeggioItem extends SessionItem {
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
   overlays?: OverlayItem[];
+  highlightedNotes?: HighlightedNote[];
 }
 
 export interface ChordItem extends SessionItem {
@@ -39,6 +41,14 @@ export interface ChordItem extends SessionItem {
   config: VisualizationConfig;
   noteVisibility: Record<string, boolean>;
   overlays?: OverlayItem[];
+  highlightedNotes?: HighlightedNote[];
+}
+
+export interface HighlightedNote {
+  string: number;
+  fret: number;
+  note: string;
+  level: 1 | 2; // Level 1: single position, Level 2: all instances
 }
 
 export interface OverlayItem {

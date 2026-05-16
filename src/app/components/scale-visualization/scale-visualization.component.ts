@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed, inject } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers, LucideCopy } from '@lucide/angular';
-import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem } from '../../models/session.model';
+import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem, HighlightedNote } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
 import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
@@ -64,6 +64,17 @@ export class ScaleVisualizationComponent implements OnInit {
     const item = this.scaleItem();
     if (item.overlays) {
       this.overlays.set([...item.overlays]);
+    }
+    
+    // Load highlighted notes from saved item
+    if (item.highlightedNotes && item.highlightedNotes.length > 0) {
+      const highlighted = item.highlightedNotes[0];
+      this.highlightState.set({
+        string: highlighted.string,
+        fret: highlighted.fret,
+        note: highlighted.note,
+        level: highlighted.level
+      });
     }
     
     // Auto-open modal if item has no configuration
@@ -698,27 +709,61 @@ export class ScaleVisualizationComponent implements OnInit {
     // Check if clicking the same position
     const isSamePosition = current.string === fretNote.string && current.fret === fretNote.fret;
     
+    let newState: { string: number; fret: number; note: string; level: 0 | 1 | 2 };
+    
     if (isSamePosition) {
       // Cycle through levels: 1 -> 2 -> 0
       if (current.level === 1) {
-        this.highlightState.set({ 
+        newState = { 
           string: fretNote.string, 
           fret: fretNote.fret, 
           note: fretNote.note, 
           level: 2 
-        });
+        };
       } else if (current.level === 2) {
-        this.highlightState.set({ string: -1, fret: -1, note: '', level: 0 });
+        newState = { string: -1, fret: -1, note: '', level: 0 };
+      } else {
+        newState = current;
       }
     } else {
       // Different position: reset and start with level 1
-      this.highlightState.set({ 
+      newState = { 
         string: fretNote.string, 
         fret: fretNote.fret, 
         note: fretNote.note, 
         level: 1 
-      });
+      };
     }
+    
+    // Update the signal
+    this.highlightState.set(newState);
+    
+    // Save to Firebase
+    this.saveHighlightState(newState);
+  }
+  
+  private saveHighlightState(state: { string: number; fret: number; note: string; level: 0 | 1 | 2 }): void {
+    const item = this.scaleItem();
+    
+    // Convert state to HighlightedNote array
+    let highlightedNotes: HighlightedNote[] = [];
+    
+    if (state.level === 1 || state.level === 2) {
+      highlightedNotes = [{
+        string: state.string,
+        fret: state.fret,
+        note: state.note,
+        level: state.level
+      }];
+    }
+    
+    // Update item
+    const updatedItem = {
+      ...item,
+      highlightedNotes
+    };
+    
+    this.update.emit(updatedItem);
   }
 
   toggleNoteInOverlay(fretNote: FretNote): void {
