@@ -134,6 +134,15 @@ export class SessionEditorPage implements OnInit {
   private async createNewSession() {
     const id = await this.sessionService.createSession(this.title());
     this.sessionId.set(id);
+    
+    // Salva anche i tag e gli items se presenti
+    if (this.sessionTags().length > 0 || this.items().length > 0) {
+      await this.sessionService.updateSession(id, {
+        tags: this.sessionTags(),
+        items: this.items()
+      });
+    }
+    
     this.router.navigate(['/sessions', id]);
   }
 

@@ -127,7 +127,11 @@
                   
                   <div class="flex flex-wrap gap-2 mt-2">
                     @for (tag of session.tags; track tag) {
-                      <div class="badge badge-primary badge-outline">{{ tag }}</div>
+                        <div class="badge badge-primary badge-outline badge-sm" 
+                          (click)="addFilterTag(tag)" 
+                          style="cursor: pointer;">
+                          {{ tag }}
+                        </div>
                     }
                   </div>
                 </div>
