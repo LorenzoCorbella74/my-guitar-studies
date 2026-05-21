@@ -4,6 +4,17 @@ export interface Session {
   tags: string[];
   isFavorite: boolean;
   items: SessionItem[];
+  groupId?: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface SessionGroup {
+  id: string;
+  name: string;
+  tags: string[];
+  isFavorite: boolean;
+  order: number;
   createdAt: Date | null;
   updatedAt: Date | null;
 }

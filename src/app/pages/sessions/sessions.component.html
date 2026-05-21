@@ -97,10 +97,34 @@
             </button>
           </div>
 
-          <a [routerLink]="[ '/' + routes.SessionNew]" class="btn btn-dash btn-primary btn-sm">
-            <svg lucidePlus class="w-5 h-5 mr-2"></svg>
-            Nuova sessione
-          </a>
+          <div class="relative">
+            <button
+              type="button"
+              class="btn btn-dash btn-primary btn-sm"
+              (click)="toggleAddDropdown()"
+              (blur)="onAddDropdownBlur()"
+              aria-label="Aggiungi"
+            >
+              <svg lucidePlus class="w-5 h-5"></svg>
+            </button>
+            
+            @if (addDropdownOpen()) {
+              <ul class="absolute right-0 menu bg-base-100 rounded-box z-10 shadow-lg mt-2 w-48">
+                <li>
+                  <button type="button" (mousedown)="createNewSession()">
+                    <svg lucideFileText class="w-4 h-4"></svg>
+                    Nuova sessione
+                  </button>
+                </li>
+                <li>
+                  <button type="button" (mousedown)="openNewGroupModal()">
+                    <svg lucideFolderOpen class="w-4 h-4"></svg>
+                    Nuovo gruppo
+                  </button>
+                </li>
+              </ul>
+            }
+          </div>
         </div>
         </div>
       </div>
@@ -108,36 +132,104 @@
       <div class="max-w-5xl mx-auto px-4 pb-4">
         @if (viewMode() === 'card') {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-            @for (session of filteredSessions(); track session.id) {
-              <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow" @fadeSlideUp>
-                <div class="card-body">
+            <!-- Gruppi -->
+            @for (group of filteredGroups(); track group.id) {
+              <div class="card bg-primary/10 border-2 transition-all"
+                   [class.border-primary]="dragOverGroupId() !== group.id"
+                   [class.border-secondary]="dragOverGroupId() === group.id"
+                   [class.shadow-lg]="dragOverGroupId() === group.id"
+                   [class.shadow-md]="dragOverGroupId() !== group.id"
+                   @fadeSlideUp
+                   cdkDropList
+                   [id]="'group-' + group.id"
+                   [cdkDropListConnectedTo]="allDropListIds()"
+                   [cdkDropListEnterPredicate]="canDropOnGroup"
+                   (cdkDropListEntered)="onSessionDragEnter($event, group.id)"
+                   (cdkDropListExited)="onSessionDragExit()"
+                   (cdkDropListDropped)="onSessionDrop($event)">
+                <div class="card-body cursor-pointer" (click)="openGroupModal(group)">
                   <div class="flex justify-between items-start gap-4">
-                    <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
-                      {{ session.title || 'Senza titolo' }}
-                    </a>
+                    <div class="flex items-center gap-2 flex-1">
+                      <svg lucideFolderOpen class="w-5 h-5 text-primary"></svg>
+                      <h3 class="card-title text-base">{{ group.name }}</h3>
+                      <span class="badge badge-sm badge-primary">{{ sessionService.getSessionsInGroup(group.id).length }}</span>
+                    </div>
                     <div class="flex items-center gap-1">
-                      <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
-                        <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
+                      <button class="btn btn-ghost btn-sm" 
+                              (click)="toggleGroupFavorite(group.id, $event)" 
+                              [attr.aria-label]="group.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
+                        <svg lucideHeart [class]="group.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
                       </button>
-                      <button class="btn btn-ghost btn-sm" (click)="confirmDelete(session, $event)" aria-label="Elimina sessione">
+                      <button class="btn btn-ghost btn-sm" 
+                              (click)="openGroupModal(group); $event.stopPropagation()" 
+                              aria-label="Modifica gruppo">
+                        <svg lucidePencil class="w-4 h-4"></svg>
+                      </button>
+                      <button class="btn btn-ghost btn-sm" 
+                              (click)="confirmDeleteGroup(group, $event)" 
+                              aria-label="Elimina gruppo">
                         <svg lucideTrash class="w-4 h-4"></svg>
                       </button>
                     </div>
                   </div>
                   
                   <div class="flex flex-wrap gap-2 mt-2">
-                    @for (tag of session.tags; track tag) {
-                        <div class="badge badge-primary badge-outline badge-sm" 
-                          (click)="addFilterTag(tag)" 
-                          style="cursor: pointer;">
-                          {{ tag }}
-                        </div>
+                    @for (tag of group.tags; track tag) {
+                      <div class="badge badge-primary badge-outline badge-sm" 
+                        (click)="addFilterTag(tag); $event.stopPropagation()" 
+                        style="cursor: pointer;">
+                        {{ tag }}
+                      </div>
                     }
                   </div>
                 </div>
               </div>
-            } @empty {
-              <div class="text-center py-12 text-base-content/60">
+            }
+            
+            <!-- Sessioni sciolte - Wrappate in un cdkDropList invisibile -->
+            <div class="contents"
+                 cdkDropList
+                 id="loose-sessions"
+                 [cdkDropListConnectedTo]="allDropListIds()"
+                 (cdkDropListDropped)="onSessionDrop($event)">
+              @for (session of filteredSessions(); track session.id) {
+                @if (!session.groupId) {
+                  <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow" 
+                       @fadeSlideUp
+                       cdkDrag
+                       [cdkDragData]="session.id">
+                    <div class="card-body">
+                      <div class="flex justify-between items-start gap-4">
+                        <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary">
+                          {{ session.title || 'Senza titolo' }}
+                        </a>
+                        <div class="flex items-center gap-1">
+                          <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
+                            <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
+                          </button>
+                          <button class="btn btn-ghost btn-sm" (click)="confirmDelete(session, $event)" aria-label="Elimina sessione">
+                            <svg lucideTrash class="w-4 h-4"></svg>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div class="flex flex-wrap gap-2 mt-2">
+                        @for (tag of session.tags; track tag) {
+                            <div class="badge badge-primary badge-outline badge-sm" 
+                              (click)="addFilterTag(tag)" 
+                              style="cursor: pointer;">
+                              {{ tag }}
+                            </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+            
+            @if (filteredSessions().length === 0 && filteredGroups().length === 0) {
+              <div class="col-span-2 text-center py-12 text-base-content/60">
                 <p class="text-lg">Nessuna sessione</p>
                 <p class="text-sm">Crea la tua prima sessione!</p>
               </div>
@@ -187,4 +279,14 @@
           </div>
         }
       </div>
+      
+      <!-- Group Modal -->
+      <app-session-group-modal
+        [isOpen]="groupModalOpen()"
+        [group]="selectedGroup()"
+        [sessions]="sessionService.sessions()"
+        (close)="closeGroupModal()"
+        (confirm)="confirmGroupModal($event)"
+        (unlinkSession)="unlinkSessionFromGroup($event)"
+      />
     </div>

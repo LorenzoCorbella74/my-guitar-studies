@@ -1,0 +1,135 @@
+import { Component, ChangeDetectionStrategy, input, output, signal, effect, computed, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { CdkDrag, CdkDropList, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { LucideX, LucideUnlink, LucideGripVertical } from '@lucide/angular';
+import { SessionGroup, Session } from '../../models/session.model';
+import { TagService } from '../../services/tag.service';
+import { AppRoutes } from '../../enums/routes.enum';
+
+@Component({
+  selector: 'app-session-group-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, LucideX, LucideUnlink, LucideGripVertical],
+  templateUrl: './session-group-modal.component.html',
+  styles: [`
+    :host {
+      display: contents;
+    }
+    
+    .cdk-drag-preview {
+      opacity: 0.8;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+    }
+
+    .cdk-drag-placeholder {
+      opacity: 0.3;
+    }
+  `]
+})
+export class SessionGroupModalComponent {
+  private tagService = inject(TagService);
+  
+  isOpen = input.required<boolean>();
+  group = input<SessionGroup | null>(null);
+  sessions = input<Session[]>([]);
+  
+  close = output<void>();
+  confirm = output<{ name: string; tags: string[] }>();
+  unlinkSession = output<string>();
+  reorderSessions = output<Session[]>();
+  
+  routes = AppRoutes;
+  
+  groupName = signal('');
+  groupTags = signal<string[]>([]);
+  tagQuery = signal('');
+  tagDropdownOpen = signal(false);
+  
+  groupSessions = computed(() => {
+    const grp = this.group();
+    if (!grp) return [];
+    return this.sessions().filter(s => s.groupId === grp.id);
+  });
+  
+  tagSuggestions = computed(() => {
+    const query = this.tagQuery().toLowerCase();
+    const used = this.groupTags();
+    return this.tagService.tags().filter(
+      t => !used.includes(t.name) && t.name.toLowerCase().includes(query)
+    );
+  });
+  
+  constructor() {
+    effect(() => {
+      const grp = this.group();
+      if (grp) {
+        this.groupName.set(grp.name);
+        this.groupTags.set([...grp.tags]);
+      } else {
+        this.groupName.set('');
+        this.groupTags.set([]);
+      }
+      this.tagQuery.set('');
+      this.tagDropdownOpen.set(false);
+    });
+  }
+  
+  onBackdropClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      this.close.emit();
+    }
+  }
+  
+  addTagFromInput(event: Event) {
+    event.preventDefault();
+    const tag = this.tagQuery().trim();
+    if (!tag) return;
+    this.selectTag(tag);
+  }
+  
+  selectTag(name: string) {
+    if (this.groupTags().includes(name)) {
+      this.tagQuery.set('');
+      return;
+    }
+    this.groupTags.update(tags => [...tags, name]);
+    
+    const existsGlobally = this.tagService.tags().some(t => t.name === name);
+    if (!existsGlobally) {
+      this.tagService.createTag(name).catch(e => console.error('createTag error:', e));
+    }
+    this.tagQuery.set('');
+    this.tagDropdownOpen.set(false);
+  }
+  
+  onTagBlur() {
+    setTimeout(() => this.tagDropdownOpen.set(false), 150);
+  }
+  
+  removeTag(tag: string) {
+    this.groupTags.update(tags => tags.filter(t => t !== tag));
+  }
+  
+  onSessionDrop(event: CdkDragDrop<Session[]>) {
+    const sessions = [...this.groupSessions()];
+    moveItemInArray(sessions, event.previousIndex, event.currentIndex);
+    this.reorderSessions.emit(sessions);
+  }
+  
+  onSessionClick() {
+    // Chiudi la modale con un delay per permettere al router di navigare
+    setTimeout(() => this.close.emit(), 50);
+  }
+  
+  save() {
+    const name = this.groupName().trim();
+    if (!name) return;
+    
+    this.confirm.emit({
+      name,
+      tags: this.groupTags()
+    });
+  }
+}
