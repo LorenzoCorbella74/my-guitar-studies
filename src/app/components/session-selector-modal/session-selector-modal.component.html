@@ -1,0 +1,98 @@
+@if (isOpen()) {
+  <div class="modal modal-open" (click)="onBackdropClick($event)">
+    <div class="modal-box max-w-2xl" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-lg mb-4">Aggiungi sessioni a "{{ milestone().name }}"</h3>
+      
+      <!-- Search Bar -->
+      <div class="form-control mb-4">
+        <div class="input input-bordered flex items-center gap-2">
+          <svg lucideSearch class="w-4 h-4 opacity-50"></svg>
+          <input
+            type="text"
+            class="flex-1 outline-none bg-transparent"
+            [(ngModel)]="searchQuery"
+            placeholder="Cerca per titolo o tag..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <!-- Selection Actions -->
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-sm opacity-70">
+          {{ selectedSessionIds().size }} / {{ filteredSessions().length }} selezionate
+        </span>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            (click)="selectAll()"
+            [disabled]="filteredSessions().length === 0"
+          >
+            Seleziona tutto
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            (click)="deselectAll()"
+            [disabled]="selectedSessionIds().size === 0"
+          >
+            Deseleziona tutto
+          </button>
+        </div>
+      </div>
+
+      <!-- Sessions List -->
+      <div class="max-h-96 overflow-y-auto space-y-2 mb-4">
+        @if (filteredSessions().length === 0) {
+          <div class="text-center py-8 text-base-content/60">
+            @if (availableSessions().length === 0) {
+              <p class="text-sm">Tutte le sessioni sono già state aggiunte a questa milestone</p>
+            } @else {
+              <p class="text-sm">Nessuna sessione trovata con "{{ searchQuery() }}"</p>
+            }
+          </div>
+        } @else {
+          @for (session of filteredSessions(); track session.id) {
+            <label class="flex items-center gap-3 p-3 bg-base-200/50 rounded hover:bg-base-200 cursor-pointer transition">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-primary"
+                [checked]="isSelected(session.id)"
+                (change)="toggleSession(session.id)"
+              />
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <svg lucideBook class="w-4 h-4 opacity-70"></svg>
+                  <span class="font-medium">{{ session.title || 'Senza titolo' }}</span>
+                </div>
+                @if (session.tags.length > 0) {
+                  <div class="flex flex-wrap gap-1 mt-1">
+                    @for (tag of session.tags; track tag) {
+                      <span class="badge badge-sm badge-outline">{{ tag }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </label>
+          }
+        }
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="onClose()">
+          Annulla
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="onConfirm()"
+          [disabled]="selectedSessionIds().size === 0"
+        >
+          Aggiungi {{ selectedSessionIds().size > 0 ? '(' + selectedSessionIds().size + ')' : '' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

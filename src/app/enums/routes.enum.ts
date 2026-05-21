@@ -3,5 +3,8 @@ export enum AppRoutes {
   Settings = 'settings',
   Sessions = 'sessions',
   SessionNew = 'sessions/new',
-  SessionEdit = 'sessions/:id'
+  SessionEdit = 'sessions/:id',
+  StudyPlans = 'study-plans',
+  StudyPlanNew = 'study-plans/new',
+  StudyPlanEdit = 'study-plans/:id'
 }
