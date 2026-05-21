@@ -68,13 +68,13 @@
     
     <!-- Comparison section -->
     @if (comparisonData(); as comparison) {
-      <div class="divider">Confronto</div>
+      <div class="divider">Confronto Note</div>
       
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <tbody>
             <!-- First mode degrees -->
-            <tr style="background-color: oklch(var(--p) / 0.05);">
+            <tr class="bg-primary/5">
               <td class="w-32"></td>
               <td>1P</td>
               <td>2M</td>
@@ -82,20 +82,23 @@
               <td>4P</td>
               <td>5P</td>
               <td>6M</td>
-              <td>7m</td>
+              <td>7M</td>
             </tr>
-            <!-- First mode chords -->
-            <tr style="background-color: oklch(var(--p) / 0.1);">
-              <td class="font-semibold">{{ localRoot() }} {{ comparison.mode1 }}</td>
-              @for (chord of comparison.chords1; track $index) {
-                <td class="comparison-cell">
-                  {{ chord }}
+            <!-- First mode notes -->
+            <tr class="bg-primary/10">
+              <td class="font-semibold"> {{ localRoot() }} {{ comparison.mode1 }}</td>
+              @for (note of comparison.notes1; track $index) {
+                <td class="font-semibold">
+                  {{ note }}
                 </td>
               }
             </tr>
             
+            <!-- Spacing row -->
+            <tr style="height: 1rem;"><td colspan="8"></td></tr>
+            
             <!-- Second mode degrees -->
-            <tr style="background-color: oklch(var(--s) / 0.05);">
+            <tr class="bg-secondary/5">
               <td class="w-32"></td>
               <td>1P</td>
               <td>2M</td>
@@ -103,14 +106,14 @@
               <td>4P</td>
               <td>5P</td>
               <td>6M</td>
-              <td>7m</td>
+              <td>7M</td>
             </tr>
-            <!-- Second mode chords -->
-            <tr style="background-color: oklch(var(--s) / 0.1);">
-              <td class="font-semibold">{{ localRoot() }} {{ comparison.mode2 }}</td>
-              @for (chord of comparison.chords2; track $index) {
-                <td class="comparison-cell" [ngClass]="{ 'highlight': isChordDifferent($index) }">
-                  {{ chord }}
+            <!-- Second mode notes -->
+            <tr class="bg-secondary/10">
+              <td class="font-semibold"> {{ localRoot() }} {{ comparison.mode2 }}</td>
+              @for (note of comparison.notes2; track $index) {
+                <td class="font-semibold" [ngClass]="{ 'text-error font-bold': isNoteNotInFirstMode($index) }">
+                  {{ note }}
                 </td>
               }
             </tr>

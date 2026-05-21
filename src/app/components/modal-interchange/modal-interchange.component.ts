@@ -8,6 +8,7 @@ import { LucideTrash } from '@lucide/angular';
 interface ModeRow {
     modeName: string;
     chords: string[];
+    notes: string[];
 }
 
 @Component({
@@ -35,10 +36,13 @@ export class ModalInterchangeComponent {
         return this.modeNames.map(modeName => {
             // Usa Mode.seventhChords per ottenere gli accordi del modo con la root specificata
             const chords = Mode.seventhChords(modeName, root);
+            // Usa Mode.notes per ottenere le note del modo
+            const notes = Mode.notes(modeName, root);
             
             return {
                 modeName,
-                chords
+                chords,
+                notes
             };
         });
     });
@@ -63,7 +67,9 @@ export class ModalInterchangeComponent {
             mode1: mode1.modeName,
             mode2: mode2.modeName,
             chords1: mode1.chords,
-            chords2: mode2.chords
+            chords2: mode2.chords,
+            notes1: mode1.notes,
+            notes2: mode2.notes
         };
     });
 
@@ -128,6 +134,14 @@ export class ModalInterchangeComponent {
         if (!comparison) return false;
 
         return comparison.chords1[index] !== comparison.chords2[index];
+    }
+
+    isNoteNotInFirstMode(noteIndex: number): boolean {
+        const comparison = this.comparisonData();
+        if (!comparison) return false;
+
+        const note2 = comparison.notes2[noteIndex];
+        return !comparison.notes1.includes(note2);
     }
 
     private emitUpdate() {
