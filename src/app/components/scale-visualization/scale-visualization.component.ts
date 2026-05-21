@@ -698,8 +698,8 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   handleNoteClick(event: MouseEvent, fretNote: FretNote): void {
-    // Check if CTRL key is pressed
-    if (event.ctrlKey) {
+    // Check if CTRL or CMD key is pressed
+    if (event.ctrlKey || event.metaKey) {
       this.toggleNoteInOverlay(fretNote);
       return;
     }

@@ -488,8 +488,8 @@ export class TimelineVisualizationComponent implements OnInit {
   handleNoteClick(fretNote: FretNote, event: MouseEvent) {
     if (this.isPlaying()) return;
     
-    if (event.ctrlKey) {
-      // Ctrl+click: toggle overlay
+    // Ctrl+click or Cmd+click: toggle overlay
+    if (event.ctrlKey || event.metaKey) {
       this.toggleOverlayNote(fretNote.string, fretNote.fret);
     } else {
       // Normal click: toggle active note
