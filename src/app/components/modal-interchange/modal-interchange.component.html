@@ -5,11 +5,11 @@
       <h3 class="card-title text-lg">Modal interchange</h3>
       <button
         type="button"
-        class="btn btn-ghost btn-sm btn-circle text-error"
+        class="btn btn-ghost btn-sm btn-circle"
         (click)="confirmDelete()"
         aria-label="Elimina"
       >
-        <svg lucideTrash class="w-4 h-4"></svg>
+        <svg lucideTrash2 class="w-4 h-4"></svg>
       </button>
     </div>
     
@@ -112,7 +112,7 @@
             <tr class="bg-secondary/10">
               <td class="font-semibold"> {{ localRoot() }} {{ comparison.mode2 }}</td>
               @for (note of comparison.notes2; track $index) {
-                <td class="font-semibold" [ngClass]="{ 'text-error font-bold': isNoteNotInFirstMode($index) }">
+                <td  [ngClass]="{ 'text-error font-semibold': isNoteNotInFirstMode($index) }">
                   {{ note }}
                 </td>
               }

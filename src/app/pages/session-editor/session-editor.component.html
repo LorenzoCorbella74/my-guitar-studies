@@ -127,7 +127,7 @@
                     <app-comparison-table
                       [comparison]="$any(item)"
                       (update)="updateComparison(item.id, $event)"
-                      (delete)="deleteItem(item.id)"
+                      (deleted)="deleteItem(item.id)"
                     />
                   }
                   @if (item.type === 'chordprogression') {
@@ -147,8 +147,8 @@
                   @if (item.type === 'modalinterchange') {
                     <app-modal-interchange
                       [item]="$any(item)"
-                      (updated)="updateModalInterchange(item.id, $event)"
-                      (deleted)="deleteItem($event)"
+                      (update)="updateModalInterchange(item.id, $event)"
+                      (deleted)="deleteItem(item.id)"
                     />
                   }
                 </div>

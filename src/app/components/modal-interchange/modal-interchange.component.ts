@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalInterchangeItem } from '../../models/session.model';
 import { Mode } from 'tonal';
-import { LucideTrash } from '@lucide/angular';
+import { LucideTrash2 } from '@lucide/angular';
 
 interface ModeRow {
     modeName: string;
@@ -14,14 +14,14 @@ interface ModeRow {
 @Component({
     selector: 'app-modal-interchange',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [CommonModule, FormsModule, LucideTrash],
+    imports: [CommonModule, FormsModule, LucideTrash2],
     templateUrl: './modal-interchange.component.html',
     styleUrls: ['./modal-interchange.component.css']
 })
 export class ModalInterchangeComponent {
     item = input.required<ModalInterchangeItem>();
-    updated = output<ModalInterchangeItem>();
-    deleted = output<string>();
+    update = output<ModalInterchangeItem>();
+    deleted = output<void>();
 
     availableRoots = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
     modeNames = ['major', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'aeolian', 'locrian'];
@@ -145,7 +145,7 @@ export class ModalInterchangeComponent {
     }
 
     private emitUpdate() {
-        this.updated.emit({
+        this.update.emit({
             ...this.item(),
             root: this.localRoot(),
             selectedMode1: this.localSelectedMode1(),
@@ -154,6 +154,6 @@ export class ModalInterchangeComponent {
     }
 
     confirmDelete() {
-        this.deleted.emit(this.item().id);
+        this.deleted.emit();
     }
 }
