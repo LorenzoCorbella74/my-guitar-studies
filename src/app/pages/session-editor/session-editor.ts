@@ -1,18 +1,19 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SessionService } from '../../services/session.service';
 import { AppRoutes } from '../../enums/routes.enum';
 import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
 import { ScaleVisualizationComponent } from '../../components/scale-visualization/scale-visualization.component';
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
+import { ModalInterchangeComponent } from '../../components/modal-interchange/modal-interchange.component';
 import { ChordProgressionNameDialogComponent } from '../../components/section-editor/dialogs/chord-progression-name-dialog.component';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp } from '../../animations';
@@ -20,7 +21,7 @@ import { fadeSlideUp } from '../../animations';
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ChordProgressionNameDialogComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, ChordProgressionNameDialogComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -90,6 +91,7 @@ export class SessionEditorPage implements OnInit {
   routes = AppRoutes;
 
   sessionId = signal<string>('');
+  groupId = signal<string | undefined>(undefined);
   title = signal<string>('');
   sessionTags = signal<string[]>([]);
   items = signal<SessionItem[]>([]);
@@ -127,6 +129,7 @@ export class SessionEditorPage implements OnInit {
       return;
     }
     this.title.set(session.title);
+    this.groupId.set(session.groupId);
     this.sessionTags.set(session.tags);
     this.items.set(session.items || []);
   }
@@ -161,6 +164,19 @@ export class SessionEditorPage implements OnInit {
       }
     } finally {
       this.saving.set(false);
+      this.navigateBack();
+    }
+  }
+
+  goBack() {
+    this.navigateBack();
+  }
+
+  private navigateBack() {
+    const groupId = this.groupId();
+    if (groupId) {
+      this.router.navigate(['/sessions'], { queryParams: { openGroup: groupId } });
+    } else {
       this.router.navigate(['/sessions']);
     }
   }
@@ -292,6 +308,16 @@ export class SessionEditorPage implements OnInit {
         layers: [defaultLayer]
       };
       this.items.update(items => [...items, newTimeline]);
+    } else if (type === 'modalinterchange') {
+      const newModalInterchange: ModalInterchangeItem = {
+        id: newId,
+        type: 'modalinterchange',
+        order: newOrder,
+        root: 'C',
+        selectedMode1: null,
+        selectedMode2: null
+      };
+      this.items.update(items => [...items, newModalInterchange]);
     }
     
     // Scroll to the newly added item
@@ -387,6 +413,17 @@ export class SessionEditorPage implements OnInit {
       items.map(item => {
         if (item.id === itemId && item.type === 'chordprogression') {
           return { ...updatedProgression, id: itemId };
+        }
+        return item;
+      })
+    );
+  }
+
+  updateModalInterchange(itemId: string, updatedModalInterchange: ModalInterchangeItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'modalinterchange') {
+          return { ...updatedModalInterchange, id: itemId };
         }
         return item;
       })

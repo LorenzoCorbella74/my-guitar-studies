@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CdkDrag, CdkDropList, CdkDragDrop, CdkDragEnter } from '@angular/cdk/drag-drop';
 import { SessionService } from '../../services/session.service';
 import { Session, SessionGroup, SessionSortBy } from '../../models/session.model';
@@ -41,6 +41,7 @@ export class SessionsListPage implements OnInit {
   tagService = inject(TagService);
   confirmService = inject(ConfirmService);
   router = inject(Router);
+  route = inject(ActivatedRoute);
 
   routes = AppRoutes;
 
@@ -78,6 +79,24 @@ export class SessionsListPage implements OnInit {
 
   ngOnInit() {
     this.loadData();
+    
+    // Controlla se c'è un groupId nei query params per aprire la modale
+    const openGroupId = this.route.snapshot.queryParamMap.get('openGroup');
+    if (openGroupId) {
+      // Aspetta che i dati siano caricati prima di aprire la modale
+      setTimeout(() => {
+        const group = this.sessionService.groups().find(g => g.id === openGroupId);
+        if (group) {
+          this.openGroupModal(group);
+        }
+        // Rimuovi il query param dalla URL senza ricaricare la pagina
+        this.router.navigate([], {
+          queryParams: {},
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }, 100);
+    }
   }
 
   async loadData() {
@@ -164,7 +183,17 @@ export class SessionsListPage implements OnInit {
 
     // Filtra gruppi
     if (tags.length > 0) {
-      groups = groups.filter(g => tags.every(t => g.tags.includes(t)));
+      groups = groups.filter(g => {
+        // Un gruppo matcha se:
+        // 1. Ha tutti i tag richiesti, OPPURE
+        // 2. Contiene almeno una sessione che ha tutti i tag richiesti
+        const groupHasTags = tags.every(t => g.tags.includes(t));
+        if (groupHasTags) return true;
+        
+        // Controlla se almeno una sessione nel gruppo ha i tag richiesti
+        const groupSessions = sessions.filter(s => s.groupId === g.id);
+        return groupSessions.some(s => tags.every(t => s.tags.includes(t)));
+      });
     }
     
     if (favorites) {
@@ -222,7 +251,7 @@ export class SessionsListPage implements OnInit {
   
   createNewSession() {
     this.addDropdownOpen.set(false);
-    this.router.navigate(['/', this.routes.SessionNew]);
+    this.router.navigate([this.routes.SessionNew]);
   }
   
   openNewGroupModal() {

@@ -21,7 +21,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange';
   order: number;
 }
 
@@ -108,6 +108,13 @@ export interface TimelineItem extends SessionItem {
   layers: TimelineLayer[];
   colorMode?: ColorMode;
   fretboardColor?: string;
+}
+
+export interface ModalInterchangeItem extends SessionItem {
+  type: 'modalinterchange';
+  root: string;
+  selectedMode1: number | null; // Index del modo selezionato (0-6)
+  selectedMode2: number | null; // Index del secondo modo selezionato (0-6)
 }
 
 export interface VisualizationConfig {

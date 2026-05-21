@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2 } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2],
   template: `
     <div class="relative">
       <button
@@ -62,6 +62,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             <button type="button" (mousedown)="selectItem('timeline')">
               <svg lucideClock class="w-4 h-4"></svg>
               Timeline
+            </button>
+          </li>
+          <li>
+            <button type="button" (mousedown)="selectItem('modalinterchange')">
+              <svg lucideTable2 class="w-4 h-4"></svg>
+              Modal interchange
             </button>
           </li>
         </ul>

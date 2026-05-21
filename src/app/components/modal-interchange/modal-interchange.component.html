@@ -1,0 +1,122 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="card-title text-lg">Modal interchange</h3>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-circle text-error"
+        (click)="confirmDelete()"
+        aria-label="Elimina"
+      >
+        <svg lucideTrash class="w-4 h-4"></svg>
+      </button>
+    </div>
+    
+    <!-- Root selector -->
+    <div class="flex items-center gap-4 mb-4">
+      <label class="font-semibold">Root:</label>
+      <select
+        class="select select-bordered select-sm w-24"
+        [(ngModel)]="localRoot"
+        (ngModelChange)="onRootChange()"
+      >
+        @for (root of availableRoots; track root) {
+          <option [value]="root">{{ root }}</option>
+        }
+      </select>
+    </div>
+    
+    <!-- Modes table -->
+    <div class="overflow-x-auto mb-4">
+      <table class="table table-sm table-zebra">
+        <thead>
+          <tr>
+            <th class="w-32"></th>
+            <th>1°</th>
+            <th>2°</th>
+            <th>3°</th>
+            <th>4°</th>
+            <th>5°</th>
+            <th>6°</th>
+            <th>7°</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (mode of modes(); track $index) {
+            <tr
+              [ngClass]="getRowClass($index)"
+              (click)="selectMode($index)"
+            >
+              <td class="font-semibold mode-name-cell">
+                @if (localSelectedMode1() === $index) {
+                  <span class="inline-block w-5 h-5 leading-5 text-center rounded-full text-xs font-bold mr-2 text-white bg-primary">1</span>
+                }
+                @if (localSelectedMode2() === $index) {
+                  <span class="inline-block w-5 h-5 leading-5 text-center rounded-full text-xs font-bold mr-2 text-white bg-secondary">2</span>
+                }
+                <span class="text-base-content">{{ mode.modeName }}</span>
+              </td>
+              @for (chord of mode.chords; track $index) {
+                <td class="text-base-content">{{ chord }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Comparison section -->
+    @if (comparisonData(); as comparison) {
+      <div class="divider">Confronto</div>
+      
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <tbody>
+            <!-- First mode degrees -->
+            <tr style="background-color: oklch(var(--p) / 0.05);">
+              <td class="w-32"></td>
+              <td>1P</td>
+              <td>2M</td>
+              <td>3M</td>
+              <td>4P</td>
+              <td>5P</td>
+              <td>6M</td>
+              <td>7m</td>
+            </tr>
+            <!-- First mode chords -->
+            <tr style="background-color: oklch(var(--p) / 0.1);">
+              <td class="font-semibold">{{ localRoot() }} {{ comparison.mode1 }}</td>
+              @for (chord of comparison.chords1; track $index) {
+                <td class="comparison-cell">
+                  {{ chord }}
+                </td>
+              }
+            </tr>
+            
+            <!-- Second mode degrees -->
+            <tr style="background-color: oklch(var(--s) / 0.05);">
+              <td class="w-32"></td>
+              <td>1P</td>
+              <td>2M</td>
+              <td>3M</td>
+              <td>4P</td>
+              <td>5P</td>
+              <td>6M</td>
+              <td>7m</td>
+            </tr>
+            <!-- Second mode chords -->
+            <tr style="background-color: oklch(var(--s) / 0.1);">
+              <td class="font-semibold">{{ localRoot() }} {{ comparison.mode2 }}</td>
+              @for (chord of comparison.chords2; track $index) {
+                <td class="comparison-cell" [ngClass]="{ 'highlight': isChordDifferent($index) }">
+                  {{ chord }}
+                </td>
+              }
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
