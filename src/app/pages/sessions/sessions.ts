@@ -4,7 +4,7 @@ import { CdkDrag, CdkDropList, CdkDragDrop, CdkDragEnter } from '@angular/cdk/dr
 import { SessionService } from '../../services/session.service';
 import { Session, SessionGroup, SessionSortBy } from '../../models/session.model';
 import { AppRoutes } from '../../enums/routes.enum';
-import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText } from "@lucide/angular";
+import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText, LucideBook } from "@lucide/angular";
 import { TagService } from '../../services/tag.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp, listStagger } from '../../animations';
@@ -13,7 +13,7 @@ import { SessionGroupModalComponent } from '../../components/session-group-modal
 @Component({
   selector: 'sessions-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CdkDrag, CdkDropList, SessionGroupModalComponent, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText],
+  imports: [RouterLink, CdkDrag, CdkDropList, SessionGroupModalComponent, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText, LucideBook],
   templateUrl: './sessions.component.html',
   animations: [fadeSlideUp, listStagger],
   styles: [`
