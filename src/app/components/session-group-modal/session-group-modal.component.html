@@ -1,7 +1,16 @@
     @if (isOpen()) {
       <div class="modal modal-open" (click)="onBackdropClick($event)">
         <div class="modal-box max-w-2xl" (click)="$event.stopPropagation()">
-          <h3 class="font-bold text-lg mb-4">{{ group() ? 'Modifica gruppo' : 'Nuovo gruppo' }}</h3>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">{{ group() ? 'Modifica gruppo' : 'Nuovo gruppo' }}</h3>
+            <button 
+              type="button" 
+              class="btn btn-sm btn-ghost btn-circle"
+              (click)="close.emit()"
+              aria-label="Chiudi">
+              <svg lucideX class="w-4 h-4"></svg>
+            </button>
+          </div>
           
           <!-- Nome Gruppo -->
           <div class="form-control mb-4">
@@ -90,7 +99,6 @@
           
           <!-- Actions -->
           <div class="modal-action">
-            <button type="button" class="btn btn-ghost" (click)="close.emit()">Annulla</button>
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!groupName().trim()">
               Salva
             </button>
