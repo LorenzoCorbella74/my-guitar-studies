@@ -295,8 +295,8 @@ export class SessionEditorPage implements OnInit {
       const defaultLayer: TimelineLayer = {
         id: `layer_${Date.now()}`,
         root: 'C',
-        chordType: 'major',
-        duration: 0.25,
+        chordType: 'major',        octave: 3,
+        inversion: 'root',        duration: 0.25,
         activeNotes: {}
       };
       const newTimeline: TimelineItem = {

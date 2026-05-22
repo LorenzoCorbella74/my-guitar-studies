@@ -1,10 +1,12 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, LucideSettings, LucideCopy } from '@lucide/angular';
-import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem } from '../../models/session.model';
+import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem, ChordInversion } from '../../models/session.model';
 import { Chord, ChordType, Interval, Note } from 'tonal';
 import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS, FRETBOARD_STYLES, OCTAVE_COLOURS } from '../scale-visualization/constants';
 import { MetronomeService } from '../../services/metronome.service';
+import { AudioService } from '../../services/audio.service';
+import { UserSettingsService } from '../../services/user-settings.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
 import { Dialog } from '@angular/cdk/dialog';
 import { DisplayTimelineConfigDialogComponent, DisplayTimelineConfigDialogData, DisplayTimelineConfigDialogResult } from './dialog/display-timeline-config-dialog.component';
@@ -35,12 +37,14 @@ interface FretNote {
     }
   `
 })
-export class TimelineVisualizationComponent implements OnInit {
+export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   timelineItem = input.required<TimelineItem>();
   update = output<TimelineItem>();
   delete = output<void>();
   
   private metronomeService = inject(MetronomeService);
+  private audioService = inject(AudioService);
+  private userSettingsService = inject(UserSettingsService);
   private dialog = inject(Dialog);
 
   ngOnInit() {
@@ -51,7 +55,15 @@ export class TimelineVisualizationComponent implements OnInit {
       this.layerRoot.set(layer.root);
       this.layerChordType.set(layer.chordType);
       this.layerDuration.set(layer.duration);
+      this.layerOctave.set(layer.octave ?? 3);
+      this.layerInversion.set(layer.inversion ?? 'root');
     }
+  }
+
+  ngOnDestroy() {
+    // Cleanup audio on destroy
+    this.audioService.cleanup();
+    this.stop();
   }
 
   // State signals
@@ -72,6 +84,8 @@ export class TimelineVisualizationComponent implements OnInit {
   layerRoot = signal<string>('C');
   layerChordType = signal<string>('major');
   layerDuration = signal<NoteDuration>(0.25);
+  layerOctave = signal<number>(3);
+  layerInversion = signal<ChordInversion>('root');
 
   // Computed values
   layers = computed(() => this.timelineItem().layers);
@@ -285,6 +299,23 @@ export class TimelineVisualizationComponent implements OnInit {
   };
 
   durations: NoteDuration[] = [1, 0.5, 0.25, 0.125];
+  
+  // Octave options
+  octaves = [2, 3, 4];
+  
+  // Inversion options
+  inversions: { value: ChordInversion; label: string }[] = [
+    { value: 'root', label: 'Fondamentale' },
+    { value: '1st', label: '1° rivolto' },
+    { value: '2nd', label: '2° rivolto' },
+    { value: '3rd', label: '3° rivolto' }
+  ];
+  
+  // Check if 3rd inversion is available (needs 4+ notes)
+  is3rdInversionAvailable = computed(() => {
+    const notes = this.chordNotes();
+    return notes.length >= 4;
+  });
 
   // Navigation methods
   prevLayer() {
@@ -312,6 +343,8 @@ export class TimelineVisualizationComponent implements OnInit {
       this.layerRoot.set(layer.root);
       this.layerChordType.set(layer.chordType);
       this.layerDuration.set(layer.duration);
+      this.layerOctave.set(layer.octave ?? 3);
+      this.layerInversion.set(layer.inversion ?? 'root');
       this.overlays.set(layer.overlays || []);
     }
   }
@@ -322,6 +355,8 @@ export class TimelineVisualizationComponent implements OnInit {
       id: `layer_${Date.now()}`,
       root: 'C',
       chordType: 'major',
+      octave: 3,
+      inversion: 'root',
       duration: 0.25,
       activeNotes: {},
       overlays: []
@@ -336,6 +371,8 @@ export class TimelineVisualizationComponent implements OnInit {
     this.layerRoot.set(newLayer.root);
     this.layerChordType.set(newLayer.chordType);
     this.layerDuration.set(newLayer.duration);
+    this.layerOctave.set(newLayer.octave);
+    this.layerInversion.set(newLayer.inversion);
     this.overlays.set(newLayer.overlays || []);
   }
 
@@ -382,6 +419,18 @@ export class TimelineVisualizationComponent implements OnInit {
     this.updateCurrentLayer({ duration });
   }
 
+  updateOctave(octave: number) {
+    if (this.isPlaying()) return;
+    this.layerOctave.set(octave);
+    this.updateCurrentLayer({ octave });
+  }
+
+  updateInversion(inversion: ChordInversion) {
+    if (this.isPlaying()) return;
+    this.layerInversion.set(inversion);
+    this.updateCurrentLayer({ inversion });
+  }
+
   updateBpm(bpm: number) {
     if (this.isPlaying()) return;
     const updated: TimelineItem = {
@@ -422,6 +471,13 @@ export class TimelineVisualizationComponent implements OnInit {
   async play() {
     if (this.isPlaying()) return;
     
+    // Pre-load audio instrument before starting playback
+    try {
+      await this.audioService.loadInstrument();
+    } catch (error) {
+      console.error('Failed to load audio instrument:', error);
+    }
+    
     // Resume AudioContext (required by some browsers)
     await this.metronomeService.resumeAudioContext();
     
@@ -436,6 +492,10 @@ export class TimelineVisualizationComponent implements OnInit {
   stop() {
     this.isPlaying.set(false);
     this.currentBeat.set(0);
+    
+    // Stop all audio immediately
+    this.audioService.stopAllNotes();
+    
     if (this.playbackInterval !== null) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
@@ -463,9 +523,17 @@ export class TimelineVisualizationComponent implements OnInit {
     let layerBeatCounter = 0; // Counter for beats within current layer
     let layerStartTime = Date.now(); // Track when current layer started
     
-    // Play first beat immediately
-    this.metronomeService.playClick(true); // Accent on first beat
+    const settings = this.userSettingsService.settings();
+    const playMetronome = settings?.playMetronome ?? true;
+    
+    // Play first beat and chord immediately
+    if (playMetronome) {
+      this.metronomeService.playClick(true); // Accent on first beat
+    }
     this.currentBeat.set(1);
+    
+    // Play chord for first layer
+    this.playChordForCurrentLayer();
     
     // High-frequency check for transitions (every 50ms for precise timing)
     this.transitionCheckInterval = window.setInterval(() => {
@@ -500,7 +568,9 @@ export class TimelineVisualizationComponent implements OnInit {
       this.currentBeat.set(currentBeatNumber);
       
       // Play click (accent on beat 1 of each measure)
-      this.metronomeService.playClick(currentBeatNumber === 1);
+      if (playMetronome) {
+        this.metronomeService.playClick(currentBeatNumber === 1);
+      }
       
       // Calculate how many beats the current layer should last
       const currentLayer = this.layers()[this.currentLayerIndex()];
@@ -522,6 +592,9 @@ export class TimelineVisualizationComponent implements OnInit {
           this.currentLayerIndex.set(nextIndex);
           this.syncLayerSignals();
         }
+        
+        // Play chord for new layer
+        this.playChordForCurrentLayer();
         
         // End transition after layer change is complete
         this.endTransition();
@@ -570,6 +643,27 @@ export class TimelineVisualizationComponent implements OnInit {
       cancelAnimationFrame(this.transitionAnimationFrame);
       this.transitionAnimationFrame = null;
     }
+  }
+
+  private playChordForCurrentLayer() {
+    const layer = this.currentLayer();
+    if (!layer) return;
+    
+    const bpm = this.bpm();
+    const beatDuration = 60 / bpm; // seconds per beat
+    const durationInSeconds = layer.duration * 4 * beatDuration; // layer duration in seconds
+    
+    // Call async without await to not block the playback loop
+    // Instrument is already pre-loaded in play() method
+    this.audioService.playChord(
+      layer.root,
+      layer.chordType,
+      layer.octave ?? 3,
+      layer.inversion ?? 'root',
+      durationInSeconds
+    ).catch(error => {
+      console.error('Error playing chord:', error);
+    });
   }
 
   // SVG helper methods (reused from scale-visualization)
@@ -758,6 +852,8 @@ export class TimelineVisualizationComponent implements OnInit {
     this.layerRoot.set(clonedLayer.root);
     this.layerChordType.set(clonedLayer.chordType);
     this.layerDuration.set(clonedLayer.duration);
+    this.layerOctave.set(clonedLayer.octave ?? 3);
+    this.layerInversion.set(clonedLayer.inversion ?? 'root');
     this.overlays.set(clonedLayer.overlays || []);
   }
 

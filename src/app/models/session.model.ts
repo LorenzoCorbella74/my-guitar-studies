@@ -92,10 +92,14 @@ export interface ComparisonItem extends SessionItem {
 
 export type NoteDuration = 1 | 0.5 | 0.25 | 0.125;
 
+export type ChordInversion = 'root' | '1st' | '2nd' | '3rd';
+
 export interface TimelineLayer {
   id: string;
   root: string;
   chordType: string;
+  octave: number; // 2, 3, or 4
+  inversion: ChordInversion; // Default: 'root'
   duration: NoteDuration;
   activeNotes: Record<string, boolean>;
   overlays?: OverlayItem[];

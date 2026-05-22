@@ -89,7 +89,7 @@
     <div class="bg-base-200 p-4 rounded-lg mb-4" @fade>
       <h4 class="font-semibold mb-2">Accordo di riferimento</h4>
       
-      <div class="flex gap-4 items-end">
+      <div class="flex gap-4 items-end flex-wrap">
         <!-- Root note selector -->
         <div class="form-control">
           <label class="label">
@@ -108,7 +108,7 @@
         </div>
 
         <!-- Chord type autocomplete -->
-        <div class="form-control flex-1">
+        <div class="form-control flex-1 min-w-[180px]">
           <label class="label">
             <span class="label-text">Tipo accordo</span>
           </label>
@@ -126,6 +126,45 @@
               <option [value]="type">{{ type }}</option>
             }
           </datalist>
+        </div>
+
+        <!-- Octave selector -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Ottava</span>
+          </label>
+          <select
+            class="select select-bordered select-sm"
+            [value]="layerOctave()"
+            (change)="updateOctave(+$any($event.target).value)"
+            [disabled]="isPlaying()"
+          >
+            @for (octave of octaves; track octave) {
+              <option [value]="octave">{{ octave }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Inversion selector -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Rivolto</span>
+          </label>
+          <select
+            class="select select-bordered select-sm"
+            [value]="layerInversion()"
+            (change)="updateInversion($any($event.target).value)"
+            [disabled]="isPlaying()"
+          >
+            @for (inv of inversions; track inv.value) {
+              <option 
+                [value]="inv.value"
+                [disabled]="inv.value === '3rd' && !is3rdInversionAvailable()"
+              >
+                {{ inv.label }}
+              </option>
+            }
+          </select>
         </div>
 
         <!-- Chord notes display -->
