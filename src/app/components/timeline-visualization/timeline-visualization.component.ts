@@ -19,6 +19,8 @@ interface FretNote {
   degree?: string;
   scaleIndex?: number;
   isOverlay?: boolean;
+  opacity?: number; // For transition animations
+  isFromNextLayer?: boolean; // To distinguish during transitions
 }
 
 @Component({
@@ -58,6 +60,13 @@ export class TimelineVisualizationComponent implements OnInit {
   currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
   overlays = signal<OverlayItem[]>([]);
+  
+  // Transition state
+  isTransitioning = signal(false);
+  transitionProgress = signal(0); // 0-1, where 0 = full current layer, 1 = full next layer
+  nextLayerIndex = signal<number | null>(null);
+  private transitionAnimationFrame: number | null = null;
+  private transitionCheckInterval: number | null = null;
   
   // Layer-specific signals for form binding
   layerRoot = signal<string>('C');
@@ -123,18 +132,15 @@ export class TimelineVisualizationComponent implements OnInit {
   strings = [0, 1, 2, 3, 4, 5];
   fretMarkers = [3, 5, 7, 9];
 
-  // Fret notes computation
-  fretNotes = computed(() => {
-    const tuning = this.tuning();
-    const layer = this.currentLayer();
-    const chordNotes = this.chordNotes();
-    const chordNotesWithDegrees = this.chordNotesWithDegrees();
-    const activeNotes = layer?.activeNotes || {};
+  // Helper to compute notes for a specific layer
+  private computeNotesForLayer(layer: TimelineLayer | undefined, tuning: string[]): FretNote[] {
     const notes: FretNote[] = [];
-
-    if (tuning.length === 0) return notes;
+    if (!layer || tuning.length === 0) return notes;
 
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const chord = Chord.get(`${layer.root}${layer.chordType}`);
+    const chordNotes = chord.notes || [];
+    const activeNotes = layer.activeNotes || {};
     
     // Create a map from chroma to the correct chord note name and its index
     const chromaToChordInfo = new Map<number, { noteName: string; index: number }>();
@@ -163,20 +169,16 @@ export class TimelineVisualizationComponent implements OnInit {
         
         // Get chord info (note name and index)
         const chordInfo = currentChroma !== undefined ? chromaToChordInfo.get(currentChroma) : undefined;
-        const isChordNote = chordInfo !== undefined;
 
         // Calculate interval degree for ALL notes relative to root
         let degree: string | undefined;
         let scaleIndex: number | undefined;
         
         if (layer.root && currentChroma !== undefined) {
-          // For chord notes, use the chord's enharmonic spelling
-          // For non-chord notes, use the fretboard note name
           const noteForInterval = chordInfo ? chordInfo.noteName : currentNote;
           const interval = Interval.distance(layer.root, noteForInterval);
           degree = interval;
           
-          // scaleIndex is only for chord notes (used for triads coloring)
           if (chordInfo) {
             scaleIndex = chordInfo.index;
           }
@@ -189,12 +191,89 @@ export class TimelineVisualizationComponent implements OnInit {
           octave: currentOctave,
           isActive,
           degree,
-          scaleIndex
+          scaleIndex,
+          opacity: 1
         });
       }
     });
 
     return notes;
+  }
+
+  // Fret notes computation with transition support
+  fretNotes = computed(() => {
+    const tuning = this.tuning();
+    const layer = this.currentLayer();
+    const isTransitioning = this.isTransitioning();
+    const transitionProgress = this.transitionProgress();
+    const nextLayerIdx = this.nextLayerIndex();
+
+    if (tuning.length === 0) return [];
+
+    // If not transitioning, return normal notes
+    if (!isTransitioning || nextLayerIdx === null) {
+      return this.computeNotesForLayer(layer, tuning);
+    }
+
+    // During transition: combine current and next layer notes
+    const currentNotes = this.computeNotesForLayer(layer, tuning);
+    const nextLayer = this.layers()[nextLayerIdx];
+    const nextNotes = this.computeNotesForLayer(nextLayer, tuning);
+
+    // Create a map for quick lookup
+    const currentActiveMap = new Map<string, FretNote>();
+    const nextActiveMap = new Map<string, FretNote>();
+
+    currentNotes.forEach(note => {
+      if (note.isActive) {
+        const key = `${note.string}-${note.fret}`;
+        currentActiveMap.set(key, note);
+      }
+    });
+
+    nextNotes.forEach(note => {
+      if (note.isActive) {
+        const key = `${note.string}-${note.fret}`;
+        nextActiveMap.set(key, note);
+      }
+    });
+
+    // Build combined notes with transition opacity
+    const combinedNotes: FretNote[] = [];
+    const processedKeys = new Set<string>();
+
+    // Process all fret positions
+    currentNotes.forEach(note => {
+      const key = `${note.string}-${note.fret}`;
+      processedKeys.add(key);
+
+      const isCurrentActive = currentActiveMap.has(key);
+      const isNextActive = nextActiveMap.has(key);
+
+      if (isCurrentActive && isNextActive) {
+        // Note is active in both layers - keep it solid (morph effect)
+        combinedNotes.push({ ...note, isActive: true, opacity: 1 });
+      } else if (isCurrentActive) {
+        // Note fading out
+        combinedNotes.push({ ...note, isActive: true, opacity: 1 - transitionProgress });
+      } else if (isNextActive) {
+        // Note fading in - use next layer's data for correct degree/color
+        const nextNote = nextActiveMap.get(key);
+        if (nextNote) {
+          combinedNotes.push({ 
+            ...nextNote, 
+            isActive: true, 
+            opacity: transitionProgress,
+            isFromNextLayer: true
+          });
+        }
+      } else {
+        // Note not active in either layer
+        combinedNotes.push({ ...note, isActive: false, opacity: 1 });
+      }
+    });
+
+    return combinedNotes;
   });
 
   // Duration labels
@@ -366,6 +445,17 @@ export class TimelineVisualizationComponent implements OnInit {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
     }
+    if (this.transitionCheckInterval !== null) {
+      clearInterval(this.transitionCheckInterval);
+      this.transitionCheckInterval = null;
+    }
+    if (this.transitionAnimationFrame !== null) {
+      cancelAnimationFrame(this.transitionAnimationFrame);
+      this.transitionAnimationFrame = null;
+    }
+    this.isTransitioning.set(false);
+    this.transitionProgress.set(0);
+    this.nextLayerIndex.set(null);
     this.currentLayerIndex.set(0);
     this.syncLayerSignals(); // Sync back to layer 0
   }
@@ -373,15 +463,39 @@ export class TimelineVisualizationComponent implements OnInit {
   private startPlayback() {
     const bpm = this.bpm();
     const beatDuration = 60000 / bpm; // milliseconds per quarter note beat
+    
     let globalBeatCounter = 0; // Counter for beats across all measures (for beat indicator 1-4)
     let layerBeatCounter = 0; // Counter for beats within current layer
+    let layerStartTime = Date.now(); // Track when current layer started
     
     console.log(`🎵 BPM: ${bpm}, Beat duration: ${beatDuration}ms`);
     
     // Play first beat immediately
     this.metronomeService.playClick(true); // Accent on first beat
     this.currentBeat.set(1);
-    // console.log('Beat 1 - Layer 0 - currentBeat:', this.currentBeat());
+    
+    // High-frequency check for transitions (every 50ms for precise timing)
+    this.transitionCheckInterval = window.setInterval(() => {
+      if (!this.isPlaying() || this.isTransitioning()) return;
+      
+      const currentLayer = this.layers()[this.currentLayerIndex()];
+      const beatsForLayer = currentLayer.duration * 4;
+      const layerDurationMs = beatsForLayer * beatDuration;
+      
+      // Calculate transition duration (proportional to layer duration, max 800ms, min 400ms)
+      const transitionDuration = Math.max(400, Math.min(800, layerDurationMs * 0.3));
+      
+      const elapsedInLayer = Date.now() - layerStartTime;
+      const timeUntilNextLayer = layerDurationMs - elapsedInLayer;
+      
+      // Start transition if we're within transition duration of the next layer
+      if (timeUntilNextLayer <= transitionDuration && timeUntilNextLayer > 0) {
+        const nextIndex = this.currentLayerIndex() + 1;
+        const nextLayerIdx = nextIndex >= this.layers().length ? 0 : nextIndex;
+        console.log(`🎬 Transition starting: ${timeUntilNextLayer.toFixed(0)}ms until layer change, transition duration: ${transitionDuration}ms`);
+        this.startTransition(nextLayerIdx, transitionDuration);
+      }
+    }, 50); // Check every 50ms for smooth timing
     
     const tick = () => {
       if (!this.isPlaying()) return;
@@ -400,11 +514,11 @@ export class TimelineVisualizationComponent implements OnInit {
       const currentLayer = this.layers()[this.currentLayerIndex()];
       const beatsForLayer = currentLayer.duration * 4; // Convert duration to beats
       
-      // console.log(`Beat ${currentBeatNumber} - Layer ${this.currentLayerIndex()} - layerBeat ${layerBeatCounter}/${beatsForLayer}`);
-      
       // Advance layer when we've played all beats for current layer
       if (layerBeatCounter >= beatsForLayer) {
         layerBeatCounter = 0; // Reset layer beat counter
+        layerStartTime = Date.now(); // Reset layer start time for next layer
+        
         const nextIndex = this.currentLayerIndex() + 1;
         if (nextIndex >= this.layers().length) {
           // Loop back to start
@@ -416,10 +530,67 @@ export class TimelineVisualizationComponent implements OnInit {
           this.currentLayerIndex.set(nextIndex);
           this.syncLayerSignals();
         }
+        
+        console.log(`✅ Layer changed to ${this.currentLayerIndex()}`);
+        
+        // End transition after layer change is complete
+        this.endTransition();
       }
     };
     
     this.playbackInterval = window.setInterval(tick, beatDuration);
+  }
+
+  private startTransition(nextLayerIndex: number, duration: number) {
+    console.log(`🔄 Starting transition to layer ${nextLayerIndex}, duration: ${duration}ms`);
+    this.isTransitioning.set(true);
+    this.nextLayerIndex.set(nextLayerIndex);
+    this.transitionProgress.set(0);
+    
+    const startTime = Date.now();
+    let frameCount = 0;
+    
+    const animate = () => {
+      if (!this.isTransitioning()) {
+        console.log('❌ Animation stopped - isTransitioning is false');
+        return;
+      }
+      
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease-in-out function for smoother animation
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      
+      this.transitionProgress.set(eased);
+      
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        console.log(`📊 Transition progress: ${(progress * 100).toFixed(1)}%, eased: ${(eased * 100).toFixed(1)}%`);
+      }
+      
+      if (progress < 1) {
+        this.transitionAnimationFrame = requestAnimationFrame(animate);
+      } else {
+        console.log('✅ Transition animation complete');
+      }
+    };
+    
+    this.transitionAnimationFrame = requestAnimationFrame(animate);
+  }
+
+  private endTransition() {
+    console.log('🏁 Ending transition');
+    this.isTransitioning.set(false);
+    this.transitionProgress.set(0);
+    this.nextLayerIndex.set(null);
+    
+    if (this.transitionAnimationFrame !== null) {
+      cancelAnimationFrame(this.transitionAnimationFrame);
+      this.transitionAnimationFrame = null;
+    }
   }
 
   // SVG helper methods (reused from scale-visualization)

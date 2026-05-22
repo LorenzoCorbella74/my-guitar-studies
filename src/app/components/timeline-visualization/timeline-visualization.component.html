@@ -334,7 +334,7 @@
                 [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
                 stroke="#000"
                 stroke-width="2"
-                opacity="1"
+                [attr.opacity]="fretNote.opacity ?? 1"
               />
               <text
                 [attr.x]="getNoteX(fretNote.fret)"
@@ -342,6 +342,7 @@
                 text-anchor="middle"
                 dominant-baseline="middle"
                 class="text-xs font-semibold fill-black"
+                [attr.opacity]="fretNote.opacity ?? 1"
               >
                 {{ fretNote.note }}
               </text>
@@ -352,6 +353,7 @@
                   text-anchor="middle"
                   dominant-baseline="middle"
                   class="text-[10px] font-medium fill-black"
+                  [attr.opacity]="fretNote.opacity ?? 1"
                 >
                   {{ fretNote.degree }}
                 </text>
