@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 
 @Component({
   selector: 'app-beat-indicator',
@@ -41,10 +41,4 @@ import { Component, ChangeDetectionStrategy, input, effect } from '@angular/core
 export class BeatIndicatorComponent {
   currentBeat = input<number>(0); // 0-4, dove 0 = nessun beat attivo
   beats = [1, 2, 3, 4];
-  
-  constructor() {
-    effect(() => {
-      console.log('🎵 BeatIndicator - currentBeat:', this.currentBeat());
-    });
-  }
 }

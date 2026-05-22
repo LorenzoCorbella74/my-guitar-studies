@@ -422,8 +422,6 @@ export class TimelineVisualizationComponent implements OnInit {
   async play() {
     if (this.isPlaying()) return;
     
-    console.log('▶️ Starting playback...');
-    
     // Resume AudioContext (required by some browsers)
     await this.metronomeService.resumeAudioContext();
     
@@ -432,13 +430,10 @@ export class TimelineVisualizationComponent implements OnInit {
     this.syncLayerSignals(); // Sync with layer 0 at start
     this.currentBeat.set(0);
     
-    console.log('isPlaying:', this.isPlaying(), 'currentBeat:', this.currentBeat());
-    
     this.startPlayback();
   }
 
   stop() {
-    console.log('⏹️ Stopping playback...');
     this.isPlaying.set(false);
     this.currentBeat.set(0);
     if (this.playbackInterval !== null) {
@@ -468,8 +463,6 @@ export class TimelineVisualizationComponent implements OnInit {
     let layerBeatCounter = 0; // Counter for beats within current layer
     let layerStartTime = Date.now(); // Track when current layer started
     
-    console.log(`🎵 BPM: ${bpm}, Beat duration: ${beatDuration}ms`);
-    
     // Play first beat immediately
     this.metronomeService.playClick(true); // Accent on first beat
     this.currentBeat.set(1);
@@ -492,7 +485,6 @@ export class TimelineVisualizationComponent implements OnInit {
       if (timeUntilNextLayer <= transitionDuration && timeUntilNextLayer > 0) {
         const nextIndex = this.currentLayerIndex() + 1;
         const nextLayerIdx = nextIndex >= this.layers().length ? 0 : nextIndex;
-        console.log(`🎬 Transition starting: ${timeUntilNextLayer.toFixed(0)}ms until layer change, transition duration: ${transitionDuration}ms`);
         this.startTransition(nextLayerIdx, transitionDuration);
       }
     }, 50); // Check every 50ms for smooth timing
@@ -531,8 +523,6 @@ export class TimelineVisualizationComponent implements OnInit {
           this.syncLayerSignals();
         }
         
-        console.log(`✅ Layer changed to ${this.currentLayerIndex()}`);
-        
         // End transition after layer change is complete
         this.endTransition();
       }
@@ -542,17 +532,14 @@ export class TimelineVisualizationComponent implements OnInit {
   }
 
   private startTransition(nextLayerIndex: number, duration: number) {
-    console.log(`🔄 Starting transition to layer ${nextLayerIndex}, duration: ${duration}ms`);
     this.isTransitioning.set(true);
     this.nextLayerIndex.set(nextLayerIndex);
     this.transitionProgress.set(0);
     
     const startTime = Date.now();
-    let frameCount = 0;
     
     const animate = () => {
       if (!this.isTransitioning()) {
-        console.log('❌ Animation stopped - isTransitioning is false');
         return;
       }
       
@@ -566,15 +553,8 @@ export class TimelineVisualizationComponent implements OnInit {
       
       this.transitionProgress.set(eased);
       
-      frameCount++;
-      if (frameCount % 10 === 0) {
-        console.log(`📊 Transition progress: ${(progress * 100).toFixed(1)}%, eased: ${(eased * 100).toFixed(1)}%`);
-      }
-      
       if (progress < 1) {
         this.transitionAnimationFrame = requestAnimationFrame(animate);
-      } else {
-        console.log('✅ Transition animation complete');
       }
     };
     
@@ -582,7 +562,6 @@ export class TimelineVisualizationComponent implements OnInit {
   }
 
   private endTransition() {
-    console.log('🏁 Ending transition');
     this.isTransitioning.set(false);
     this.transitionProgress.set(0);
     this.nextLayerIndex.set(null);
