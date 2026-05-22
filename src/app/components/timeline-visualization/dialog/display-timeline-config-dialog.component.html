@@ -49,9 +49,22 @@
         <!-- Audio Settings -->
         <div class="divider">Impostazioni Audio</div>
         
-        <p class="text-sm text-base-content/70 mb-4">
-          Strumento: String Ensemble
-        </p>
+        <!-- Instrument Selector -->
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text font-semibold">Strumento</span>
+          </label>
+          <select 
+            class="select select-bordered w-full"
+            [ngModel]="instrument()"
+            (ngModelChange)="instrument.set($event)"
+            [ngModelOptions]="{standalone: true}"
+          >
+            @for (inst of instruments; track inst.value) {
+              <option [value]="inst.value">{{ inst.label }}</option>
+            }
+          </select>
+        </div>
 
         <!-- Volume Slider -->
         <div class="form-control mb-4">

@@ -64,13 +64,35 @@ export class AudioService {
     return this.instrument;
   }
 
+  async reloadInstrument() {
+    // Force reload of instrument (e.g., when user changes instrument in settings)
+    // Stop any playing notes first
+    this.stopAllNotes();
+    
+    // Clear current instrument
+    this.instrument = null;
+    this.reverb = null;
+    this.isInstrumentReady = false;
+    
+    // Load new instrument
+    await this.loadInstrument();
+  }
+
   updateReverbMix(mix: number) {
     if (this.instrument && this.reverb) {
       // Mix value should be between 0 and 1
       const clampedMix = Math.max(0, Math.min(1, mix));
       this.instrument.output.setEffectMix("reverb", clampedMix);
     }
-    return this.instrument;
+  }
+
+  updateVolume(volume: number) {
+    // Volume value should be between 0 and 1
+    // Note: This affects future notes, not currently playing ones
+    if (this.instrument) {
+      const clampedVolume = Math.max(0, Math.min(1, volume));
+      this.instrument.output.setVolume(clampedVolume);
+    }
   }
 
   async playChord(
@@ -81,8 +103,12 @@ export class AudioService {
     duration: number, // in seconds
     scheduledTime?: number // optional scheduled time (in audio context time)
   ) {
-    // Stop any currently playing notes only if playing immediately (not scheduled)
-    if (!scheduledTime) {
+    // Stop currently playing notes only if sustain is ON (loadLoopData)
+    // When sustain is OFF, notes stop naturally after duration
+    const settings = this.userSettingsService.settings();
+    const isSustainOn = settings?.audioSustain ?? true;
+    
+    if (!scheduledTime && isSustainOn) {
       this.stopAllNotes();
     }
     
@@ -93,8 +119,6 @@ export class AudioService {
     
     const instrument = this.instrument;
     if (!instrument) return;
-    
-    const settings = this.userSettingsService.settings();
     
     // Get chord notes from Tonal
     const chord = Chord.get(`${root}${chordType}`);
@@ -141,6 +165,9 @@ export class AudioService {
     
     // Accumulate notes instead of replacing (for scheduling)
     this.currentNotes.push(...playedNotes);
+    
+    // Clean up finished notes periodically to prevent memory buildup
+    this.cleanupFinishedNotes();
   }
 
   private applyInversion(notes: string[], inversion: ChordInversion): string[] {
@@ -175,10 +202,31 @@ export class AudioService {
     return result;
   }
 
+  private cleanupFinishedNotes() {
+    // Remove notes that have already stopped playing
+    // This prevents memory buildup in long playback sessions
+    this.currentNotes = this.currentNotes.filter(note => {
+      if (!note || typeof note.stop !== 'function') {
+        return false; // Remove invalid notes
+      }
+      // Keep note in array (we can't easily detect if it's still playing)
+      return true;
+    });
+    
+    // Limit array size as safety measure (keep last 100 notes)
+    if (this.currentNotes.length > 100) {
+      this.currentNotes = this.currentNotes.slice(-100);
+    }
+  }
+
   stopAllNotes() {
     this.currentNotes.forEach(note => {
       if (note && typeof note.stop === 'function') {
-        note.stop();
+        try {
+          note.stop();
+        } catch (error) {
+          // Ignore errors from already stopped notes
+        }
       }
     });
     this.currentNotes = [];

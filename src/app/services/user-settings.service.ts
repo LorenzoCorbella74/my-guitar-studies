@@ -79,6 +79,12 @@ export class UserSettingsService {
     const settingsData = {
       theme: 'light',
       fretboardStyleIndex: 0,
+      audioInstrument: 'electric_piano_1',
+      audioVolume: 0.7,
+      audioReverb: 0.3,
+      audioDetune: 0,
+      audioSustain: true,
+      playMetronome: true,
       createdAt: now,
       updatedAt: now
     };
@@ -89,6 +95,12 @@ export class UserSettingsService {
       id: userId,
       theme: 'light',
       fretboardStyleIndex: 0,
+      audioInstrument: 'electric_piano_1',
+      audioVolume: 0.7,
+      audioReverb: 0.3,
+      audioDetune: 0,
+      audioSustain: true,
+      playMetronome: true,
       createdAt: now,
       updatedAt: now
     };
