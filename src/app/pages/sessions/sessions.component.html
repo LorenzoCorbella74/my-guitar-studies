@@ -147,7 +147,9 @@
                    (cdkDropListEntered)="onSessionDragEnter($event, group.id)"
                    (cdkDropListExited)="onSessionDragExit()"
                    (cdkDropListDropped)="onSessionDrop($event)">
-                <div class="card-body cursor-pointer" (click)="openGroupModal(group)">
+                <div class="card-body cursor-pointer" 
+                     (click)="openGroupModal(group)"
+                     [style.pointer-events]="isDragging() ? 'none' : 'auto'">
                   <div class="flex justify-between items-start gap-4">
                     <div class="flex items-center gap-2 flex-1">
                       <svg lucideFolderOpen class="w-5 h-5 text-primary"></svg>
@@ -197,7 +199,9 @@
                   <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow" 
                        @fadeSlideUp
                        cdkDrag
-                       [cdkDragData]="session.id">
+                       [cdkDragData]="session.id"
+                       (cdkDragStarted)="onDragStarted()"
+                       (cdkDragEnded)="onDragEnded()">
                     <div class="card-body">
                       <div class="flex justify-between items-start gap-4">
                         <a [routerLink]="[ '/' + routes.SessionEdit.replace(':id', session.id)]" class="card-title hover:text-primary flex items-center gap-2">

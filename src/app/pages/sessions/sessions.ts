@@ -56,6 +56,7 @@ export class SessionsListPage implements OnInit {
   groupModalOpen = signal(false);
   selectedGroup = signal<SessionGroup | null>(null);
   dragOverGroupId = signal<string | null>(null);
+  isDragging = signal(false);
   
   // IDs per collegare i drop lists
   allDropListIds = computed(() => {
@@ -318,6 +319,10 @@ export class SessionsListPage implements OnInit {
   
   // ====== DRAG & DROP ======
   
+  onDragStarted() {
+    this.isDragging.set(true);
+  }
+  
   onSessionDragEnter(event: CdkDragEnter, groupId: string) {
     this.dragOverGroupId.set(groupId);
   }
@@ -326,20 +331,33 @@ export class SessionsListPage implements OnInit {
     this.dragOverGroupId.set(null);
   }
   
-  onSessionDrop(event: CdkDragDrop<any>) {
+  onDragEnded() {
+    // Resetta sempre quando finisce il drag
+    this.isDragging.set(false);
     this.dragOverGroupId.set(null);
+  }
+  
+  onSessionDrop(event: CdkDragDrop<any>) {
+    const currentDragOverGroupId = this.dragOverGroupId();
+    this.dragOverGroupId.set(null);
+    this.isDragging.set(false);
     
     const sessionId = event.item.data as string;
     if (!sessionId) return;
     
-    // Se proviene dalla lista "loose-sessions" e viene droppato su un gruppo
+    // Aggiungi al gruppo SOLO se:
+    // 1. Il drop container è effettivamente un gruppo
+    // 2. Il dragOverGroupId corrisponde al gruppo (verifica che siamo ancora sopra il gruppo)
     if (event.previousContainer !== event.container) {
       const containerId = event.container.id;
       if (containerId.startsWith('group-')) {
         const groupId = containerId.replace('group-', '');
-        this.sessionService.addSessionToGroup(sessionId, groupId).then(() => {
-          this.loadData();
-        });
+        // Verifica che il gruppo corrisponda a quello su cui stiamo hovering
+        if (currentDragOverGroupId === groupId) {
+          this.sessionService.addSessionToGroup(sessionId, groupId).then(() => {
+            this.loadData();
+          });
+        }
       }
     }
   }
