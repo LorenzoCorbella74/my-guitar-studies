@@ -164,4 +164,14 @@
         (confirm)="handleChordProgressionNameConfirm($event)"
         (close)="chordProgressionDialogOpen.set(false)"
       />
+
+      <!-- Floating Group Links -->
+      @if (groupId() && groupName()) {
+        <app-session-group-links
+          [groupId]="groupId()!"
+          [groupName]="groupName()!"
+          [currentSessionId]="sessionId()"
+          [groupSessions]="groupSessions()"
+        />
+      }
     </div>

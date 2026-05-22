@@ -15,13 +15,14 @@ import { ChordProgressionComponent } from '../../components/chord-progression/ch
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
 import { ModalInterchangeComponent } from '../../components/modal-interchange/modal-interchange.component';
 import { ChordProgressionNameDialogComponent } from '../../components/section-editor/dialogs/chord-progression-name-dialog.component';
+import { SessionGroupLinksComponent } from '../../components/session-group-links/session-group-links.component';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp } from '../../animations';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, ChordProgressionNameDialogComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -92,6 +93,8 @@ export class SessionEditorPage implements OnInit {
 
   sessionId = signal<string>('');
   groupId = signal<string | undefined>(undefined);
+  groupName = signal<string | undefined>(undefined);
+  groupSessions = signal<{id: string; title: string}[]>([]);
   title = signal<string>('');
   sessionTags = signal<string[]>([]);
   items = signal<SessionItem[]>([]);
@@ -112,26 +115,48 @@ export class SessionEditorPage implements OnInit {
   });
 
   async ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-
     await this.tagService.loadTags();
 
-    if (!id || id === 'new') {
-       this.title.set('Nuova sessione');
-      return;
-    }
+    // Sottoscrivi ai cambiamenti dei parametri della route
+    // Questo permette di ricaricare la sessione quando si naviga tra sessioni diverse
+    this.route.paramMap.subscribe(async (params) => {
+      const id = params.get('id');
+      
+      if (!id || id === 'new') {
+        this.title.set('Nuova sessione');
+        this.sessionId.set('');
+        this.groupId.set(undefined);
+        this.groupName.set(undefined);
+        this.groupSessions.set([]);
+        this.sessionTags.set([]);
+        this.items.set([]);
+        this.notFound.set(false);
+        return;
+      }
 
-    this.sessionId.set(id);
-    const session = await this.sessionService.getSession(id);
+      this.sessionId.set(id);
+      const session = await this.sessionService.getSession(id);
 
-    if (!session) {
-      this.notFound.set(true);
-      return;
-    }
-    this.title.set(session.title);
-    this.groupId.set(session.groupId);
-    this.sessionTags.set(session.tags);
-    this.items.set(session.items || []);
+      if (!session) {
+        this.notFound.set(true);
+        return;
+      }
+      
+      this.notFound.set(false);
+      this.title.set(session.title);
+      this.groupId.set(session.groupId);
+      this.sessionTags.set(session.tags);
+      this.items.set(session.items || []);
+
+      // Carica info gruppo se presente
+      if (session.groupId) {
+        await this.loadGroupInfo(session.groupId);
+      } else {
+        // Resetta info gruppo se la sessione non appartiene a nessun gruppo
+        this.groupName.set(undefined);
+        this.groupSessions.set([]);
+      }
+    });
   }
 
   private async createNewSession() {
@@ -170,6 +195,23 @@ export class SessionEditorPage implements OnInit {
 
   goBack() {
     this.navigateBack();
+  }
+
+  async loadGroupInfo(groupId: string) {
+    // Carica il gruppo e le sue sessioni
+    await this.sessionService.loadGroups();
+    await this.sessionService.loadSessions();
+    
+    const group = this.sessionService.groups().find(g => g.id === groupId);
+    if (group) {
+      this.groupName.set(group.name);
+      
+      // Ottieni tutte le sessioni del gruppo
+      const sessionsInGroup = this.sessionService.getSessionsInGroup(groupId);
+      this.groupSessions.set(
+        sessionsInGroup.map(s => ({ id: s.id, title: s.title }))
+      );
+    }
   }
 
   private navigateBack() {

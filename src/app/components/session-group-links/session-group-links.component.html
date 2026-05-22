@@ -1,0 +1,45 @@
+@if (shouldShow()) {
+  <div 
+    class="fixed right-6 z-40"
+    style="top: 50%; transform: translateY(-50%);"
+    (mouseenter)="isHovered.set(true)"
+    (mouseleave)="isHovered.set(false)"
+  >
+    <!-- Circle Badge -->
+    <div 
+      class="w-12 h-12 rounded-full bg-primary shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+      [attr.aria-label]="'Gruppo: ' + groupName()"
+    >
+      <svg lucideFolderOpen class="w-6 h-6 text-primary-content"></svg>
+    </div>
+
+    <!-- Popup Links -->
+    @if (isHovered()) {
+      <!-- Bridge invisibile per colmare il gap -->
+      <div 
+        class="absolute right-12 top-1/2 -translate-y-1/2 w-16 h-full"
+        style="pointer-events: auto;"
+      ></div>
+      
+      <div 
+        class="absolute right-16 top-1/2 -translate-y-1/2 bg-base-100 rounded-lg shadow-xl p-2 min-w-[180px] max-w-[280px]"
+        style="border: 2px solid oklch(var(--p));"
+      >
+        <div class="text-[10px] font-semibold text-base-content/70 mb-1.5 uppercase tracking-wide px-2">
+          {{ groupName() }}
+        </div>
+        <div class="space-y-0.5">
+          @for (session of otherSessions(); track session.id) {
+            <button
+              type="button"
+              class="w-full text-left px-2 py-1.5 rounded-md hover:bg-base-200 transition-colors text-xs"
+              (click)="navigateToSession(session.id)"
+            >
+              {{ session.title }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}
