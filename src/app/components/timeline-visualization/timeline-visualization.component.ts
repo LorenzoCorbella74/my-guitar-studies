@@ -41,7 +41,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   timelineItem = input.required<TimelineItem>();
   update = output<TimelineItem>();
   delete = output<void>();
-  
+
   private metronomeService = inject(MetronomeService);
   private audioService = inject(AudioService);
   private userSettingsService = inject(UserSettingsService);
@@ -58,6 +58,12 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       this.layerOctave.set(layer.octave ?? 3);
       this.layerInversion.set(layer.inversion ?? 'root');
     }
+
+    // Pre-load instrument samples in background
+    // AudioContext will be suspended but samples will download
+    this.audioService.loadInstrument().catch(error => {
+      console.error('Failed to pre-load audio instrument:', error);
+    });
   }
 
   ngOnDestroy() {
@@ -72,14 +78,14 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
   overlays = signal<OverlayItem[]>([]);
-  
+
   // Transition state
   isTransitioning = signal(false);
   transitionProgress = signal(0); // 0-1, where 0 = full current layer, 1 = full next layer
   nextLayerIndex = signal<number | null>(null);
   private transitionAnimationFrame: number | null = null;
   private transitionCheckInterval: number | null = null;
-  
+
   // Layer-specific signals for form binding
   layerRoot = signal<string>('C');
   layerChordType = signal<string>('major');
@@ -94,7 +100,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   tuning = computed(() => this.timelineItem().tuning);
   colorMode = computed(() => this.timelineItem().colorMode || 'all');
   fretboardColor = computed(() => this.timelineItem().fretboardColor || '#fff');
-  
+
   // Fretboard colors based on current config
   fretboardColors = computed(() => {
     const color = this.fretboardColor();
@@ -121,7 +127,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     if (!layer) return [];
     const notes = this.chordNotes();
     const root = layer.root;
-    
+
     return notes.map(note => {
       const noteName = note.replace(/[0-9]/g, '');
       const degree = Interval.distance(root, noteName);
@@ -155,7 +161,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     const chord = Chord.get(`${layer.root}${layer.chordType}`);
     const chordNotes = chord.notes || [];
     const activeNotes = layer.activeNotes || {};
-    
+
     // Create a map from chroma to the correct chord note name and its index
     const chromaToChordInfo = new Map<number, { noteName: string; index: number }>();
     chordNotes.forEach((cn, idx) => {
@@ -180,19 +186,19 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
 
         // Get the chroma of the current fret note
         const currentChroma = Note.chroma(currentNote);
-        
+
         // Get chord info (note name and index)
         const chordInfo = currentChroma !== undefined ? chromaToChordInfo.get(currentChroma) : undefined;
 
         // Calculate interval degree for ALL notes relative to root
         let degree: string | undefined;
         let scaleIndex: number | undefined;
-        
+
         if (layer.root && currentChroma !== undefined) {
           const noteForInterval = chordInfo ? chordInfo.noteName : currentNote;
           const interval = Interval.distance(layer.root, noteForInterval);
           degree = interval;
-          
+
           if (chordInfo) {
             scaleIndex = chordInfo.index;
           }
@@ -274,9 +280,9 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
         // Note fading in - use next layer's data for correct degree/color
         const nextNote = nextActiveMap.get(key);
         if (nextNote) {
-          combinedNotes.push({ 
-            ...nextNote, 
-            isActive: true, 
+          combinedNotes.push({
+            ...nextNote,
+            isActive: true,
             opacity: transitionProgress,
             isFromNextLayer: true
           });
@@ -299,10 +305,10 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   };
 
   durations: NoteDuration[] = [1, 0.5, 0.25, 0.125];
-  
+
   // Octave options
   octaves = [2, 3, 4];
-  
+
   // Inversion options
   inversions: { value: ChordInversion; label: string }[] = [
     { value: 'root', label: 'Fondamentale' },
@@ -310,7 +316,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     { value: '2nd', label: '2° rivolto' },
     { value: '3rd', label: '3° rivolto' }
   ];
-  
+
   // Check if 3rd inversion is available (needs 4+ notes)
   is3rdInversionAvailable = computed(() => {
     const notes = this.chordNotes();
@@ -395,7 +401,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       newIndex = newLayers.length - 1;
       this.currentLayerIndex.set(newIndex);
     }
-    
+
     // Sync with the layer we're now on
     setTimeout(() => this.syncLayerSignals(), 0);
   }
@@ -470,32 +476,27 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   // Playback methods
   async play() {
     if (this.isPlaying()) return;
-    
-    // Pre-load audio instrument before starting playback
-    try {
-      await this.audioService.loadInstrument();
-    } catch (error) {
-      console.error('Failed to load audio instrument:', error);
-    }
-    
-    // Resume AudioContext (required by some browsers)
+
+    // Resume AudioContext (resolves browser autoplay policy)
+    // This must be called in response to user interaction
+    await this.audioService.resumeAudioContext();
     await this.metronomeService.resumeAudioContext();
-    
+
     this.isPlaying.set(true);
     this.currentLayerIndex.set(0);
     this.syncLayerSignals(); // Sync with layer 0 at start
     this.currentBeat.set(0);
-    
+
     this.startPlayback();
   }
 
   stop() {
     this.isPlaying.set(false);
     this.currentBeat.set(0);
-    
+
     // Stop all audio immediately
     this.audioService.stopAllNotes();
-    
+
     if (this.playbackInterval !== null) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
@@ -518,37 +519,37 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   private startPlayback() {
     const bpm = this.bpm();
     const beatDuration = 60000 / bpm; // milliseconds per quarter note beat
-    
+
     let globalBeatCounter = 0; // Counter for beats across all measures (for beat indicator 1-4)
     let layerBeatCounter = 0; // Counter for beats within current layer
     let layerStartTime = Date.now(); // Track when current layer started
-    
+
     const settings = this.userSettingsService.settings();
     const playMetronome = settings?.playMetronome ?? true;
-    
+
     // Play first beat and chord immediately
     if (playMetronome) {
       this.metronomeService.playClick(true); // Accent on first beat
     }
     this.currentBeat.set(1);
-    
+
     // Play chord for first layer
     this.playChordForCurrentLayer();
-    
+
     // High-frequency check for transitions (every 50ms for precise timing)
     this.transitionCheckInterval = window.setInterval(() => {
       if (!this.isPlaying() || this.isTransitioning()) return;
-      
+
       const currentLayer = this.layers()[this.currentLayerIndex()];
       const beatsForLayer = currentLayer.duration * 4;
       const layerDurationMs = beatsForLayer * beatDuration;
-      
+
       // Calculate transition duration (proportional to layer duration, max 800ms, min 400ms)
       const transitionDuration = Math.max(400, Math.min(800, layerDurationMs * 0.3));
-      
+
       const elapsedInLayer = Date.now() - layerStartTime;
       const timeUntilNextLayer = layerDurationMs - elapsedInLayer;
-      
+
       // Start transition if we're within transition duration of the next layer
       if (timeUntilNextLayer <= transitionDuration && timeUntilNextLayer > 0) {
         const nextIndex = this.currentLayerIndex() + 1;
@@ -556,31 +557,31 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
         this.startTransition(nextLayerIdx, transitionDuration);
       }
     }, 50); // Check every 50ms for smooth timing
-    
+
     const tick = () => {
       if (!this.isPlaying()) return;
-      
+
       globalBeatCounter++;
       layerBeatCounter++;
       const currentBeatNumber = (globalBeatCounter % 4) + 1; // 1-4 for visual indicator
-      
+
       // Update beat indicator
       this.currentBeat.set(currentBeatNumber);
-      
+
       // Play click (accent on beat 1 of each measure)
       if (playMetronome) {
         this.metronomeService.playClick(currentBeatNumber === 1);
       }
-      
+
       // Calculate how many beats the current layer should last
       const currentLayer = this.layers()[this.currentLayerIndex()];
       const beatsForLayer = currentLayer.duration * 4; // Convert duration to beats
-      
+
       // Advance layer when we've played all beats for current layer
       if (layerBeatCounter >= beatsForLayer) {
         layerBeatCounter = 0; // Reset layer beat counter
         layerStartTime = Date.now(); // Reset layer start time for next layer
-        
+
         const nextIndex = this.currentLayerIndex() + 1;
         if (nextIndex >= this.layers().length) {
           // Loop back to start
@@ -592,15 +593,15 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
           this.currentLayerIndex.set(nextIndex);
           this.syncLayerSignals();
         }
-        
+
         // Play chord for new layer
         this.playChordForCurrentLayer();
-        
+
         // End transition after layer change is complete
         this.endTransition();
       }
     };
-    
+
     this.playbackInterval = window.setInterval(tick, beatDuration);
   }
 
@@ -608,29 +609,29 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     this.isTransitioning.set(true);
     this.nextLayerIndex.set(nextLayerIndex);
     this.transitionProgress.set(0);
-    
+
     const startTime = Date.now();
-    
+
     const animate = () => {
       if (!this.isTransitioning()) {
         return;
       }
-      
+
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Ease-in-out function for smoother animation
       const eased = progress < 0.5
         ? 2 * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      
+
       this.transitionProgress.set(eased);
-      
+
       if (progress < 1) {
         this.transitionAnimationFrame = requestAnimationFrame(animate);
       }
     };
-    
+
     this.transitionAnimationFrame = requestAnimationFrame(animate);
   }
 
@@ -638,7 +639,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     this.isTransitioning.set(false);
     this.transitionProgress.set(0);
     this.nextLayerIndex.set(null);
-    
+
     if (this.transitionAnimationFrame !== null) {
       cancelAnimationFrame(this.transitionAnimationFrame);
       this.transitionAnimationFrame = null;
@@ -648,11 +649,11 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   private playChordForCurrentLayer() {
     const layer = this.currentLayer();
     if (!layer) return;
-    
+
     const bpm = this.bpm();
     const beatDuration = 60 / bpm; // seconds per beat
     const durationInSeconds = layer.duration * 4 * beatDuration; // layer duration in seconds
-    
+
     // Call async without await to not block the playback loop
     // Instrument is already pre-loaded in play() method
     this.audioService.playChord(
@@ -689,40 +690,40 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
 
   getNoteColor(degree?: string, noteName?: string, octave?: number, scaleIndex?: number): string {
     const colorMode = this.colorMode();
-    
+
     // If no degree calculated, use default yellow
     if (!degree) return DEGREE_COLOURS['1P'];
-    
+
     if (colorMode === 'monocolor') {
       return DEGREE_COLOURS['1P'];
     }
-    
+
     if (colorMode === 'octaves') {
       if (octave === undefined) return DEGREE_COLOURS['1P'];
       return OCTAVE_COLOURS[octave] || DEGREE_COLOURS['1P'];
     }
-    
+
     if (colorMode === 'triads') {
       // For triads: highlight root, third, and fifth with specific colors
       // All other notes (including other chord tones like 7th, 9th, etc.) get blue
-      
+
       // Root (1P) = yellow
       if (degree === '1P') return DEGREE_COLOURS['1P'];
-      
+
       // Third (3M or 3m) = orange  
       if (degree === '3M' || degree === '3m') {
         return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS];
       }
-      
+
       // Fifth (5P, 5d, or 5A) = red
       if (degree === '5P' || degree === '5d' || degree === '5A') {
         return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['5P'];
       }
-      
+
       // All other notes = blue
       return '#3b82f6';
     }
-    
+
     // 'all' mode - color by degree using DEGREE_COLOURS (same as scale-visualization)
     // Use the actual degree for proper color mapping
     const color = DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS];
@@ -731,7 +732,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
 
   handleNoteClick(fretNote: FretNote, event: MouseEvent) {
     if (this.isPlaying()) return;
-    
+
     // Ctrl+click or Cmd+click: toggle overlay
     if (event.ctrlKey || event.metaKey) {
       this.toggleOverlayNote(fretNote.string, fretNote.fret);
@@ -744,14 +745,14 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   toggleOverlayNote(stringIndex: number, fret: number) {
     const currentLayer = this.currentLayer();
     const overlays = currentLayer.overlays || [];
-    
+
     // Find or create overlay for timeline positions
     let overlay = overlays.find(o => o.type === 'notes');
     const positions = overlay?.notes || [];
-    
+
     // Create position key (e.g., "0-3" for string 0, fret 3)
     const positionKey = `${stringIndex}-${fret}`;
-    
+
     // Toggle position visibility
     const positionIndex = positions.indexOf(positionKey);
     let updatedPositions: string[];
@@ -760,17 +761,17 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     } else {
       updatedPositions = [...positions, positionKey];
     }
-    
+
     const updatedOverlay: OverlayItem = {
       type: 'notes',
       notes: updatedPositions,
       visible: true
     };
-    
+
     const updatedOverlays = overlay
       ? overlays.map(o => o.type === 'notes' ? updatedOverlay : o)
       : [...overlays, updatedOverlay];
-    
+
     // Update the current layer with new overlays
     const layerIndex = this.currentLayerIndex();
     const layers = this.layers();
@@ -779,13 +780,13 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       overlays: updatedOverlays
     };
     const newLayers = layers.map((layer, i) => i === layerIndex ? updatedLayer : layer);
-    
+
     const updated: TimelineItem = {
       ...this.timelineItem(),
       layers: newLayers
     };
     this.update.emit(updated);
-    
+
     // Sync local overlays signal
     this.overlays.set(updatedOverlays);
   }
@@ -793,7 +794,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   isOverlayNote(fretNote: FretNote): boolean {
     const overlays = this.overlays();
     const positionKey = `${fretNote.string}-${fretNote.fret}`;
-    
+
     return overlays.some(overlay => {
       if (!overlay.visible && overlay.visible !== undefined) return false;
       if (overlay.type === 'notes' && overlay.notes) {

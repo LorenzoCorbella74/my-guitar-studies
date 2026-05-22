@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { SplendidGrandPiano, Soundfont } from 'smplr';
+import { Soundfont, Reverb } from 'smplr';
 import { Chord } from 'tonal';
 import { ChordInversion } from '../models/session.model';
 import { UserSettingsService } from './user-settings.service';
@@ -10,21 +10,26 @@ import { UserSettingsService } from './user-settings.service';
 export class AudioService {
   private userSettingsService = inject(UserSettingsService);
   
-  private audioContext: AudioContext | null = null;
+  private audioContext: AudioContext;
   private instrument: Soundfont | null = null;
+  private reverb: any | null = null;
   private currentNotes: any[] = [];
   private isInstrumentReady = false;
 
-  async initAudioContext() {
-    if (!this.audioContext) {
-      this.audioContext = new AudioContext();
-    }
-    
-    // Resume context if suspended (browser autoplay policy)
+  constructor() {
+    // Create AudioContext immediately (will be suspended until user interaction)
+    // This allows us to pre-load instrument samples
+    this.audioContext = new AudioContext();
+  }
+
+  async resumeAudioContext() {
+    // Resume context when user interacts (e.g., clicks Play button)
     if (this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
     }
-    
+  }
+
+  getAudioContext(): AudioContext {
     return this.audioContext;
   }
 
@@ -35,15 +40,21 @@ export class AudioService {
     }
     
     const settings = this.userSettingsService.settings();
-    const instrumentName = settings?.audioInstrument || 'string_ensemble_1';
-    
-    const context = await this.initAudioContext();
+    const instrumentName = settings?.audioInstrument || 'electric_piano_1';
+    const loadLoopData = settings?.audioSustain ?? true;
     
     // Load instrument if not already loaded
+    // AudioContext can be suspended here - samples will still load
     if (!this.instrument) {
-      this.instrument = new Soundfont(context, {
-        instrument: instrumentName
+      this.instrument = new Soundfont(this.audioContext, {
+        instrument: instrumentName,
+        loadLoopData // Enable sustained notes via loop data
       });
+      
+      // Create and add reverb effect
+      this.reverb = Reverb(this.audioContext);
+      const reverbMix = settings?.audioReverb ?? 0.0;
+      this.instrument.output.addEffect("reverb", this.reverb, reverbMix);
       
       // Wait for instrument to be ready
       // smplr loads samples asynchronously in background
@@ -53,15 +64,27 @@ export class AudioService {
     return this.instrument;
   }
 
+  updateReverbMix(mix: number) {
+    if (this.instrument && this.reverb) {
+      // Mix value should be between 0 and 1
+      const clampedMix = Math.max(0, Math.min(1, mix));
+      this.instrument.output.setEffectMix("reverb", clampedMix);
+    }
+    return this.instrument;
+  }
+
   async playChord(
     root: string,
     chordType: string,
     octave: number,
     inversion: ChordInversion,
-    duration: number // in seconds
+    duration: number, // in seconds
+    scheduledTime?: number // optional scheduled time (in audio context time)
   ) {
-    // Stop any currently playing notes
-    this.stopAllNotes();
+    // Stop any currently playing notes only if playing immediately (not scheduled)
+    if (!scheduledTime) {
+      this.stopAllNotes();
+    }
     
     // Ensure instrument is loaded
     if (!this.instrument || !this.isInstrumentReady) {
@@ -95,16 +118,19 @@ export class AudioService {
     // Get audio settings
     const volume = settings?.audioVolume ?? 0.7;
     const detune = settings?.audioDetune ?? 0;
-    const sustain = settings?.audioSustain ?? true;
     
-    // Play each note synchronously
+    // Use scheduled time or current time for synchronized playback
+    const time = scheduledTime ?? this.audioContext.currentTime;
+    
+    // Play each note with the same scheduled time for perfect sync
     const playedNotes: any[] = [];
     notesWithOctave.forEach(note => {
       try {
         const playedNote = instrument.start({
           note,
+          time, // Schedule all notes at the same time for perfect sync
           velocity: volume * 100, // Convert 0-1 to 0-100
-          duration: sustain ? duration : duration * 0.7, // Shorter duration if no sustain
+          duration,
           detune
         });
         playedNotes.push(playedNote);
@@ -113,7 +139,8 @@ export class AudioService {
       }
     });
     
-    this.currentNotes = playedNotes;
+    // Accumulate notes instead of replacing (for scheduling)
+    this.currentNotes.push(...playedNotes);
   }
 
   private applyInversion(notes: string[], inversion: ChordInversion): string[] {
