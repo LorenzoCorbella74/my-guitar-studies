@@ -3,12 +3,13 @@ import { ChordProgressionItem, ChordDefinition } from '../../models/session.mode
 import { ChordDiagramComponent } from '../chord-diagram/chord-diagram.component';
 import { ChordBuilderModalComponent } from '../chord-builder-modal/chord-builder-modal.component';
 import { ChordProgressionNameDialogComponent } from '../section-editor/dialogs/chord-progression-name-dialog.component';
-import { LucidePlus, LucideTrash2, LucidePencil } from '@lucide/angular';
+import { LucidePlus, LucideTrash2, LucidePencil, LucideGripVertical } from '@lucide/angular';
+import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-chord-progression',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ChordDiagramComponent, ChordBuilderModalComponent, ChordProgressionNameDialogComponent, LucidePlus, LucideTrash2, LucidePencil],
+  imports: [ChordDiagramComponent, ChordBuilderModalComponent, ChordProgressionNameDialogComponent, LucidePlus, LucideTrash2, LucidePencil, LucideGripVertical, CdkDrag, CdkDropList, CdkDragHandle],
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
@@ -44,13 +45,18 @@ import { LucidePlus, LucideTrash2, LucidePencil } from '@lucide/angular';
         
         <!-- Chord Diagrams Grid -->
         @if (progression().chords.length > 0) {
-          <div class="flex flex-wrap gap-3 mb-4">
+          <div class="flex flex-wrap gap-3 mb-4" cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="onChordDrop($event)">
             @for (chord of progression().chords; track $index) {
-              <app-chord-diagram
-                [chord]="chord"
-                (edit)="editChord($index)"
-                (deleteChord)="removeChord($index)"
-              />
+              <div cdkDrag class="chord-drag-wrapper">
+                <div cdkDragHandle class="chord-drag-handle" [attr.aria-label]="'Trascina per riordinare'">
+                  <svg lucideGripVertical class="w-4 h-4"></svg>
+                </div>
+                <app-chord-diagram
+                  [chord]="chord"
+                  (edit)="editChord($index)"
+                  (deleteChord)="removeChord($index)"
+                />
+              </div>
             }
           </div>
         } @else {
@@ -81,6 +87,56 @@ import { LucidePlus, LucideTrash2, LucidePencil } from '@lucide/angular';
   styles: `
     :host {
       display: block;
+    }
+
+    .chord-drag-wrapper {
+      position: relative;
+    }
+
+    .chord-drag-handle {
+      position: absolute;
+      top: 0.25rem;
+      left: 0.25rem;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      color: oklch(var(--bc) / 0.4);
+      transition: all 0.2s;
+      border-radius: 0.25rem;
+      z-index: 10;
+      background: transparent;
+    }
+
+    .chord-drag-handle:hover {
+      color: oklch(var(--bc) / 0.9);
+      background: oklch(var(--bc) / 0.1);
+    }
+
+    .chord-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .cdk-drag-preview {
+      opacity: 0.8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+    }
+
+    .cdk-drag-placeholder {
+      opacity: 0.3;
+      border: 2px dashed oklch(var(--bc) / 0.3);
+      border-radius: 0.5rem;
+      background: oklch(var(--b1));
+    }
+
+    .cdk-drag-animating {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    .cdk-drop-list-dragging .chord-drag-wrapper:not(.cdk-drag-placeholder) {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
     }
   `
 })
@@ -163,5 +219,16 @@ export class ChordProgressionComponent {
     };
     this.update.emit(updated);
     this.titleDialogOpen.set(false);
+  }
+
+  onChordDrop(event: CdkDragDrop<ChordDefinition[]>) {
+    const chordsArray = [...this.progression().chords];
+    moveItemInArray(chordsArray, event.previousIndex, event.currentIndex);
+    
+    const updated: ChordProgressionItem = {
+      ...this.progression(),
+      chords: chordsArray
+    };
+    this.update.emit(updated);
   }
 }

@@ -74,6 +74,7 @@ export interface ChordDefinition {
   name: string;
   startFret: number;
   strings: (number | 'x' | 'o')[];
+  barres?: Record<number, number[]>; // { fret: [stringIndices] }
 }
 
 export interface ChordProgressionItem extends SessionItem {

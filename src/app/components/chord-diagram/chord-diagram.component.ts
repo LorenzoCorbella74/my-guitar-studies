@@ -92,6 +92,22 @@ import { LucidePencil, LucideTrash2 } from '@lucide/angular';
           />
         }
         
+        <!-- Barres -->
+        @if (chord().barres) {
+          @for (fret of [1, 2, 3, 4, 5]; track fret) {
+            @for (barreGroup of getBarreGroupsForFret(fret); track $index) {
+              <rect
+                [attr.x]="getStringX(barreGroup.fromString) - 4"
+                [attr.y]="fretStartY + (fret - 0.5) * fretSpacing - 4"
+                [attr.width]="getStringX(barreGroup.toString) - getStringX(barreGroup.fromString) + 8"
+                [attr.height]="8"
+                class="fill-primary"
+                rx="4"
+              />
+            }
+          }
+        }
+        
         <!-- Finger positions -->
         @for (stringValue of chord().strings; track $index; let i = $index) {
           @if (typeof stringValue === 'number' && stringValue > 0) {
@@ -150,5 +166,38 @@ export class ChordDiagramComponent {
   
   getStringX(stringIndex: number): number {
     return this.stringStartX + stringIndex * this.stringSpacing;
+  }
+  
+  hasBarreAt(stringIndex: number, fret: number): boolean {
+    const barres = this.chord().barres;
+    if (!barres) return false;
+    return barres[fret]?.includes(stringIndex) || false;
+  }
+  
+  getBarreGroupsForFret(fret: number): Array<{ fromString: number; toString: number }> {
+    const barres = this.chord().barres;
+    if (!barres) return [];
+    
+    const stringsOnFret = barres[fret];
+    if (!stringsOnFret || stringsOnFret.length === 0) return [];
+    
+    // Group consecutive strings
+    const sorted = [...stringsOnFret].sort((a, b) => a - b);
+    const groups: Array<{ fromString: number; toString: number }> = [];
+    let start = sorted[0];
+    let end = sorted[0];
+    
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === end + 1) {
+        end = sorted[i];
+      } else {
+        groups.push({ fromString: start, toString: end });
+        start = sorted[i];
+        end = sorted[i];
+      }
+    }
+    groups.push({ fromString: start, toString: end });
+    
+    return groups;
   }
 }
