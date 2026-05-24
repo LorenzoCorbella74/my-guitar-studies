@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regole per i dati utente
+    match /users/{userId} {
+      // Permetti accesso solo all'utente autenticato
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Sessions
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Tags
+      match /tags/{tagId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Settings
+      match /settings/{settingId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Study Plans
+      match /studyPlans/{planId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Session Groups
+      match /sessionGroups/{groupId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

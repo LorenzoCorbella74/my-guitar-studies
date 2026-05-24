@@ -338,26 +338,22 @@ export class SessionsListPage implements OnInit {
   }
   
   onSessionDrop(event: CdkDragDrop<any>) {
-    const currentDragOverGroupId = this.dragOverGroupId();
     this.dragOverGroupId.set(null);
     this.isDragging.set(false);
     
     const sessionId = event.item.data as string;
     if (!sessionId) return;
     
-    // Aggiungi al gruppo SOLO se:
-    // 1. Il drop container è effettivamente un gruppo
-    // 2. Il dragOverGroupId corrisponde al gruppo (verifica che siamo ancora sopra il gruppo)
+    // Aggiungi al gruppo solo se il drop finale è davvero sopra un container gruppo.
+    // Questo evita sia i drop "appiccicati" al gruppo precedente sia i falsi negativi
+    // dovuti a eventi entered/exited emessi appena prima del drop.
     if (event.previousContainer !== event.container) {
       const containerId = event.container.id;
-      if (containerId.startsWith('group-')) {
+      if (containerId.startsWith('group-') && event.isPointerOverContainer) {
         const groupId = containerId.replace('group-', '');
-        // Verifica che il gruppo corrisponda a quello su cui stiamo hovering
-        if (currentDragOverGroupId === groupId) {
-          this.sessionService.addSessionToGroup(sessionId, groupId).then(() => {
-            this.loadData();
-          });
-        }
+        this.sessionService.addSessionToGroup(sessionId, groupId).then(() => {
+          this.loadData();
+        });
       }
     }
   }
