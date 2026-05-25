@@ -5,6 +5,7 @@ export interface Session {
   isFavorite: boolean;
   items: SessionItem[];
   groupId?: string;
+  groupOrder?: number;
   createdAt: Date | null;
   updatedAt: Date | null;
 }

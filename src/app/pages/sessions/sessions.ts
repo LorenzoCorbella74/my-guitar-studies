@@ -273,11 +273,16 @@ export class SessionsListPage implements OnInit {
     this.selectedGroup.set(null);
   }
   
-  async confirmGroupModal(data: { name: string; tags: string[] }) {
+  async confirmGroupModal(data: { name: string; tags: string[]; sessions?: Session[] }) {
     const group = this.selectedGroup();
     
     if (group) {
       await this.sessionService.updateGroup(group.id, { name: data.name, tags: data.tags });
+      
+      // Se ci sono sessioni riordinate, salva il nuovo ordine
+      if (data.sessions) {
+        await this.sessionService.reorderGroupSessions(data.sessions);
+      }
     } else {
       await this.sessionService.createGroup(data.name, data.tags);
     }

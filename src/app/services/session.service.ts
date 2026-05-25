@@ -88,6 +88,7 @@ export class SessionService {
           isFavorite: (docData['isFavorite'] as boolean) || false,
           items: (docData['items'] as unknown[]) || [],
           groupId: docData['groupId'] as string | undefined,
+          groupOrder: docData['groupOrder'] as number | undefined,
           createdAt: this.toDate(docData['createdAt']),
           updatedAt: this.toDate(docData['updatedAt'])
         } as Session);
@@ -115,6 +116,7 @@ export class SessionService {
         isFavorite: (docData['isFavorite'] as boolean) || false,
         items: (docData['items'] as unknown[]) || [],
         groupId: docData['groupId'] as string | undefined,
+        groupOrder: docData['groupOrder'] as number | undefined,
         createdAt: this.toDate(docData['createdAt']),
         updatedAt: this.toDate(docData['updatedAt'])
       } as Session;
@@ -330,6 +332,24 @@ export class SessionService {
 
   getSessionsInGroup(groupId: string): Session[] {
     return this._sessions().filter(s => s.groupId === groupId);
+  }
+
+  async reorderGroupSessions(sessions: Session[]): Promise<void> {
+    if (!this.userId) throw new Error('Not authenticated');
+    try {
+      const batch = writeBatch(this.firestore);
+      sessions.forEach((session, index) => {
+        const docRef = doc(this.firestore, `users/${this.userId}/sessions`, session.id);
+        batch.update(docRef, { 
+          groupOrder: index,
+          updatedAt: serverTimestamp()
+        });
+      });
+      await this.loadingService.track(batch.commit());
+      await this.loadSessions();
+    } catch (e) {
+      console.error('reorderGroupSessions error:', e);
+    }
   }
 }
 

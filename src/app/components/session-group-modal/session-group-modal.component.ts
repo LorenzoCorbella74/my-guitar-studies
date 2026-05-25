@@ -36,9 +36,8 @@ export class SessionGroupModalComponent {
   sessions = input<Session[]>([]);
   
   close = output<void>();
-  confirm = output<{ name: string; tags: string[] }>();
+  confirm = output<{ name: string; tags: string[]; sessions?: Session[] }>();
   unlinkSession = output<string>();
-  reorderSessions = output<Session[]>();
   
   routes = AppRoutes;
   
@@ -46,11 +45,18 @@ export class SessionGroupModalComponent {
   groupTags = signal<string[]>([]);
   tagQuery = signal('');
   tagDropdownOpen = signal(false);
+  localSessions = signal<Session[]>([]);
+  hasReordered = signal(false);
   
   groupSessions = computed(() => {
+    const local = this.localSessions();
+    if (local.length > 0) return local;
+    
     const grp = this.group();
     if (!grp) return [];
-    return this.sessions().filter(s => s.groupId === grp.id);
+    return this.sessions()
+      .filter(s => s.groupId === grp.id)
+      .sort((a, b) => (a.groupOrder ?? 0) - (b.groupOrder ?? 0));
   });
   
   tagSuggestions = computed(() => {
@@ -73,6 +79,8 @@ export class SessionGroupModalComponent {
       }
       this.tagQuery.set('');
       this.tagDropdownOpen.set(false);
+      this.localSessions.set([]);
+      this.hasReordered.set(false);
     });
   }
   
@@ -115,7 +123,8 @@ export class SessionGroupModalComponent {
   onSessionDrop(event: CdkDragDrop<Session[]>) {
     const sessions = [...this.groupSessions()];
     moveItemInArray(sessions, event.previousIndex, event.currentIndex);
-    this.reorderSessions.emit(sessions);
+    this.localSessions.set(sessions);
+    this.hasReordered.set(true);
   }
   
   onSessionClick() {
@@ -129,7 +138,8 @@ export class SessionGroupModalComponent {
     
     this.confirm.emit({
       name,
-      tags: this.groupTags()
+      tags: this.groupTags(),
+      sessions: this.hasReordered() ? this.localSessions() : undefined
     });
   }
 }

@@ -11,61 +11,64 @@
               <svg lucideX class="w-4 h-4"></svg>
             </button>
           </div>
-          
-          <!-- Nome Gruppo -->
-          <div class="form-control mb-4">
-            <label class="label me-2">
-              <span class="label-text">Nome gruppo</span>
-            </label>
-            <input
-              type="text"
-              class="input input-bordered"
-              [(ngModel)]="groupName"
-              placeholder="Nome del gruppo"
-              (keydown.enter)="save()"
-            />
-          </div>
-          
-          <!-- Tag Gruppo -->
-          <div class="flex items-center gap-4 mb-4">
-            <h3 class="shrink-0"><strong>Tag</strong></h3>
-            <div class="flex-1 relative">
-              <div class="input input-bordered flex flex-wrap items-center gap-1 min-h-[2.5rem] h-auto py-1 cursor-text w-full"
-                   (click)="tagInput.focus()">
-                @for (tag of groupTags(); track tag) {
-                  <span class="badge badge-primary gap-1">
-                    {{ tag }}
-                    <button type="button" (click)="removeTag(tag)" [attr.aria-label]="'Rimuovi tag ' + tag">
-                      <svg lucideX class="w-3 h-3"></svg>
-                    </button>
-                  </span>
-                }
-                <input
-                  #tagInput
-                  type="text"
-                  class="outline-none bg-transparent flex-1 min-w-[80px] text-sm"
-                  [placeholder]="groupTags().length === 0 ? 'Aggiungi tag...' : ''"
-                  [value]="tagQuery()"
-                  (input)="tagQuery.set($any($event.target).value)"
-                  (focus)="tagDropdownOpen.set(true)"
-                  (blur)="onTagBlur()"
-                  (keydown.enter)="addTagFromInput($event)"
-                  (keydown.escape)="tagDropdownOpen.set(false)"
-                  aria-label="Aggiungi tag"
-                  autocomplete="off"
-                />
-              </div>
-              @if (tagDropdownOpen() && tagSuggestions().length > 0) {
-                <ul class="menu bg-base-100 rounded-box z-10 w-full shadow mt-1 max-h-48 overflow-y-auto flex-nowrap absolute">
-                  @for (tag of tagSuggestions(); track tag.id) {
-                    <li>
-                      <button type="button" (mousedown)="selectTag(tag.name)">{{ tag.name }}</button>
-                    </li>
+
+          <div class="flex justify-between items-center mb-4">
+
+            <!-- Nome Gruppo -->
+            <div class="form-control mb-4 flex items-center gap-2">
+              <span class="shrink-0"><strong>Nome</strong></span>
+            
+              <input
+                type="text"
+                class="input input-bordered"
+                [(ngModel)]="groupName"
+                placeholder="Nome del gruppo"
+                (keydown.enter)="save()"
+              />
+            </div>
+            <!-- Tag Gruppo -->
+            <div class="flex items-center gap-4 mb-4">
+              <h3 class="shrink-0 ms-2"><strong>Tag</strong></h3>
+              <div class="flex-1 relative">
+                <div class="input input-bordered flex flex-wrap items-center gap-1 min-h-[2.5rem] h-auto py-1 cursor-text w-full"
+                     (click)="tagInput.focus()">
+                  @for (tag of groupTags(); track tag) {
+                    <span class="badge badge-primary gap-1">
+                      {{ tag }}
+                      <button type="button" (click)="removeTag(tag)" [attr.aria-label]="'Rimuovi tag ' + tag">
+                        <svg lucideX class="w-3 h-3"></svg>
+                      </button>
+                    </span>
                   }
-                </ul>
-              }
+                  <input
+                    #tagInput
+                    type="text"
+                    class="outline-none bg-transparent flex-1 min-w-[80px] text-sm"
+                    [placeholder]="groupTags().length === 0 ? 'Aggiungi tag...' : ''"
+                    [value]="tagQuery()"
+                    (input)="tagQuery.set($any($event.target).value)"
+                    (focus)="tagDropdownOpen.set(true)"
+                    (blur)="onTagBlur()"
+                    (keydown.enter)="addTagFromInput($event)"
+                    (keydown.escape)="tagDropdownOpen.set(false)"
+                    aria-label="Aggiungi tag"
+                    autocomplete="off"
+                  />
+                </div>
+                @if (tagDropdownOpen() && tagSuggestions().length > 0) {
+                  <ul class="menu bg-base-100 rounded-box z-10 w-full shadow mt-1 max-h-48 overflow-y-auto flex-nowrap absolute">
+                    @for (tag of tagSuggestions(); track tag.id) {
+                      <li>
+                        <button type="button" (mousedown)="selectTag(tag.name)">{{ tag.name }}</button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
             </div>
           </div>
+          
+          
           
           <!-- Sessioni nel Gruppo -->
           @if (group() && groupSessions().length > 0) {
