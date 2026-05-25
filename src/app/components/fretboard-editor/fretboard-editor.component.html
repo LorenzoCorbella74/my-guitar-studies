@@ -1,0 +1,215 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body">
+    <!-- Header with buttons -->
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="openConfigModal()"
+          aria-label="Configura tastiera"
+          title="Configura tastiera"
+        >
+          <svg lucideSettings class="w-4 h-4"></svg>
+        </button>
+      </div>
+
+    <div class="text-base-content/60 text-center" style="font-size: 10px;">
+        <p><strong>Click</strong> per nota • <strong>CTRL + Click</strong> per overlay</p>
+    </div>
+
+        <!-- Color Palette -->
+        <div class="flex gap-2 flex-wrap items-center justify-between border border-base-300 rounded-md">
+        
+            <div class="flex gap-2 items-center">
+                @for (color of colors; track color.key) {
+                <button type="button" class="btn btn-sm gap-2" 
+                [class.btn-primary]="selectedColor() === color.key"
+                    [class.btn-ghost]="selectedColor() !== color.key" 
+                    (click)="selectedColor.set(color.key)">
+                    <div class="w-4 h-4 rounded-full border-2 border-black" 
+                    [style.background-color]="color.value"></div>
+                </button>
+                }
+            </div>
+        </div>
+
+      <div class="flex gap-2">
+        <button
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="handleClone()"
+          aria-label="Clona tastiera"
+          title="Clona tastiera"
+        >
+          <svg lucideCopy class="w-4 h-4"></svg>
+        </button>
+        <button
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="handleDelete()"
+          aria-label="Elimina"
+          title="Elimina tastiera"
+        >
+          <svg lucideTrash2 class="w-4 h-4"></svg>
+        </button>
+      </div>
+    </div>
+
+
+
+    <!-- SVG Fretboard -->
+    <div class="overflow-x-auto">
+      <svg
+        [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
+        class="w-full"
+      >
+        <!-- Fretboard background (rendered first, behind everything) -->
+        <rect
+          [attr.x]="leftMargin"
+          [attr.y]="getStringY(0)"
+          [attr.width]="fretboardWidth() - leftMargin - rightMargin"
+          [attr.height]="getStringY(5) - getStringY(0)"
+          [attr.fill]="fretboardItem().fretboardConfig.fretboardColor || '#fff'"
+          opacity="0.95"
+          style="pointer-events: none;"
+        />
+
+        <!-- Frets (vertical lines) -->
+        @for (fret of frets(); track fret) {
+          <line
+            [attr.x1]="getFretX(fret)"
+            [attr.y1]="getStringY(0)"
+            [attr.x2]="getFretX(fret)"
+            [attr.y2]="getStringY(5)"
+            [attr.stroke]="fret === (fretboardItem().fretboardConfig.fretShift || 0) ? fretboardColors().nut : fretboardColors().frets"
+            [attr.stroke-width]="fret === (fretboardItem().fretboardConfig.fretShift || 0) ? 6 : 3"
+          />
+        }
+
+        <!-- Strings (horizontal lines) -->
+        @for (stringNum of strings; track stringNum) {
+          <line
+            [attr.x1]="leftMargin"
+            [attr.y1]="getStringY(stringNum)"
+            [attr.x2]="fretboardWidth() - rightMargin"
+            [attr.y2]="getStringY(stringNum)"
+            [attr.stroke]="fretboardColors().strings"
+            stroke-width="1"
+          />
+        }
+
+        <!-- Fret markers -->
+        @for (marker of fretMarkers(); track marker) {
+          @if (marker % 12 !== 0) {
+            <circle
+              [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
+              [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
+              r="7"
+              [attr.fill]="fretboardColors().inlays"
+              opacity="0.8"
+            />
+          }
+        }
+
+        <!-- Double marker for 12th fret (and multiples) -->
+        @for (marker of fretMarkers(); track marker) {
+          @if (marker % 12 === 0 && marker > 0) {
+            <circle
+              [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
+              [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
+              r="7"
+              [attr.fill]="fretboardColors().inlays"
+              opacity="0.8"
+            />
+            <circle
+              [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
+              [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
+              r="7"
+              [attr.fill]="fretboardColors().inlays"
+              opacity="0.8"
+            />
+          }
+        }
+
+        <!-- Render overlays first (behind notes) -->
+        @for (position of allFretPositions(); track position.string + '-' + position.fret) {
+          @if (hasOverlay(position.string, position.fret) && isInFretRange(position.fret)) {
+            <g style="cursor: help;">
+              <title>Overlay</title>
+              <!-- Visible dotted border -->
+              <rect
+                [attr.x]="getNoteX(position.fret) - 19"
+                [attr.y]="getStringY(position.string) - 19"
+                width="38"
+                height="38"
+                rx="12"
+                ry="12"
+                fill="none"
+                stroke="#666"
+                stroke-width="1"
+                opacity="0.5"
+                style="pointer-events: none;"
+              />
+              <rect
+                [attr.x]="getNoteX(position.fret) - 19"
+                [attr.y]="getStringY(position.string) - 19"
+                width="38"
+                height="38"
+                rx="12"
+                ry="12"
+                fill="#000"
+                stroke="#000"
+                opacity="0.2"
+                style="pointer-events: none;"
+              />
+            </g>
+          }
+        }
+
+        <!-- Render clickable areas and notes -->
+        @for (position of allFretPositions(); track position.string + '-' + position.fret) {
+          @if (isInFretRange(position.fret)) {
+            <g 
+              class="cursor-pointer"
+              (click)="handleFretClick($event, position)"
+            >
+              @if (hasNote(position.string, position.fret); as note) {
+                <!-- Note circle -->
+                <circle
+                  [attr.cx]="getNoteX(position.fret)"
+                  [attr.cy]="getStringY(position.string)"
+                  r="15"
+                  [attr.fill]="getColorValue(note.color)"
+                  stroke="#000"
+                  stroke-width="2"
+                />
+              } @else {
+                <!-- Invisible clickable area -->
+                <circle
+                  [attr.cx]="getNoteX(position.fret)"
+                  [attr.cy]="getStringY(position.string)"
+                  r="18"
+                  fill="transparent"
+                  stroke="none"
+                />
+              }
+            </g>
+          }
+        }
+        <!-- Fret Numbers -->
+        @for (fretNum of fretNumbers(); track fretNum) {
+          <text
+            [attr.x]="getFretX(fretNum - 1) + fretWidth / 2"
+            [attr.y]="getStringY(0) + 220"
+            text-anchor="middle"
+            class="text-sm"
+            fill="#999"
+          >
+            {{ fretNum }}
+          </text>
+        }      
+    </svg>
+    </div>
+
+
+  </div>
+</div>

@@ -21,7 +21,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
   order: number;
 }
 
@@ -120,6 +120,28 @@ export interface ModalInterchangeItem extends SessionItem {
   root: string;
   selectedMode1: number | null; // Index del modo selezionato (0-6)
   selectedMode2: number | null; // Index del secondo modo selezionato (0-6)
+}
+
+export interface FretboardNote {
+  string: number;
+  fret: number;
+  color: string; // uno dei 5 colori della palette: 'yellow', 'orange', 'red', 'green', 'cyan'
+}
+
+export interface FretboardOverlay {
+  string: number;
+  fret: number;
+}
+
+export interface FretboardItem extends SessionItem {
+  type: 'fretboard';
+  fretboardConfig: {
+    fretShift?: number;
+    fretboardColor?: string;
+    tuning: string[];
+  };
+  notes: FretboardNote[];
+  overlays: FretboardOverlay[];
 }
 
 export interface VisualizationConfig {

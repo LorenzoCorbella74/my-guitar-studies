@@ -151,6 +151,14 @@
                       (deleted)="deleteItem(item.id)"
                     />
                   }
+                  @if (item.type === 'fretboard') {
+                    <app-fretboard-editor
+                      [fretboardItem]="$any(item)"
+                      (update)="updateFretboardItem(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                      (clone)="cloneFretboard($event)"
+                    />
+                  }
                 </div>
               </div>
             }

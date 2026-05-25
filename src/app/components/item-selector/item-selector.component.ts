@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2 } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic],
   template: `
     <div class="relative">
       <button
@@ -35,6 +35,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             </button>
           </li>
           <li>
+            <button type="button" (mousedown)="selectItem('fretboard')">
+              <svg lucideGuitar class="w-4 h-4"></svg>
+              Tastiera libera
+            </button>
+          </li>
+          <li>
             <button type="button" (mousedown)="selectItem('scale')">
               <svg lucideMusic class="w-4 h-4"></svg>
               Scala
@@ -54,7 +60,7 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
           </li> 
           <li>
             <button type="button" (mousedown)="selectItem('chordprogression')">
-              <svg lucideGuitar class="w-4 h-4"></svg>
+              <svg lucideListMusic class="w-4 h-4"></svg>
               Progressione accordi
             </button>
           </li>
@@ -70,6 +76,7 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
               Modal interchange
             </button>
           </li>
+          
         </ul>
       }
     </div>

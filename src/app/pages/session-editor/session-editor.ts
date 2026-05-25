@@ -6,7 +6,7 @@ import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
@@ -14,6 +14,7 @@ import { ScaleVisualizationComponent } from '../../components/scale-visualizatio
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
 import { ModalInterchangeComponent } from '../../components/modal-interchange/modal-interchange.component';
+import { FretboardEditorComponent } from '../../components/fretboard-editor/fretboard-editor.component';
 import { ChordProgressionNameDialogComponent } from '../../components/section-editor/dialogs/chord-progression-name-dialog.component';
 import { SessionGroupLinksComponent } from '../../components/session-group-links/session-group-links.component';
 import { ConfirmService } from '../../services/confirm.service';
@@ -22,7 +23,7 @@ import { fadeSlideUp } from '../../animations';
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -77,6 +78,10 @@ import { fadeSlideUp } from '../../animations';
 
     .cdk-drop-list-dragging .drag-item-wrapper:not(.cdk-drag-placeholder) {
       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    :host ::ng-deep .card-body {
+      padding: 1rem var(--card-p, 1.5rem) 0.5rem var(--card-p, 1.5rem);
     }
   `]
 })
@@ -360,6 +365,20 @@ export class SessionEditorPage implements OnInit {
         selectedMode2: null
       };
       this.items.update(items => [...items, newModalInterchange]);
+    } else if (type === 'fretboard') {
+      const newFretboard: FretboardItem = {
+        id: newId,
+        type: 'fretboard',
+        order: newOrder,
+        fretboardConfig: {
+          fretShift: 0,
+          fretboardColor: '#fff',
+          tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']
+        },
+        notes: [],
+        overlays: []
+      };
+      this.items.update(items => [...items, newFretboard]);
     }
     
     // Scroll to the newly added item
@@ -470,6 +489,30 @@ export class SessionEditorPage implements OnInit {
         return item;
       })
     );
+  }
+
+  updateFretboardItem(itemId: string, updatedFretboard: FretboardItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'fretboard') {
+          return { ...updatedFretboard, id: itemId };
+        }
+        return item;
+      })
+    );
+  }
+
+  cloneFretboard(clonedItem: FretboardItem) {
+    const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const newOrder = this.items().length;
+    
+    const newItem = {
+      ...clonedItem,
+      id: newId,
+      order: newOrder
+    };
+    
+    this.items.update(items => [...items, newItem]);
   }
 
   deleteItem(itemId: string) {
