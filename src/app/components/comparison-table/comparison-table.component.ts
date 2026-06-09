@@ -6,6 +6,9 @@ import { FormsModule } from '@angular/forms';
 import { ConfirmService } from '../../services/confirm.service';
 import { NOTES_WITH_FLATS } from '../scale-visualization/constants';
 
+import { Note } from "tonal";
+
+
 interface ComparisonElement {
   type: 'scale' | 'arpeggio' | 'chord';
   root: string;
@@ -32,19 +35,19 @@ interface TransposedRow {
 })
 export class ComparisonTableComponent {
   private confirmService = inject(ConfirmService);
-  
+
   comparison = input.required<ComparisonItem>();
-  
+
   deleted = output<void>();
   update = output<ComparisonItem>();
-  
+
   showAddForm = signal(false);
   newElementType = signal<'scale' | 'chord'>('scale');
   newElementRoot = signal('C');
   newElementName = signal('major');
-  
+
   chromaticNotes = NOTES_WITH_FLATS;
-  
+
   availableNames = computed(() => {
     if (this.newElementType() === 'scale') {
       return ScaleType.names();
@@ -52,75 +55,99 @@ export class ComparisonTableComponent {
       return ChordType.names();
     }
   });
-  
+
   elements = computed<ComparisonElement[]>(() => {
     const items = this.comparison().items || [];
     return items.map(item => this.getElementNotes(item));
   });
-  
+
   degreeHeaders = computed(() => {
     const els = this.elements();
     if (els.length === 0) return [];
-    
+
+    const firstElementNotes = els.length > 0 ? els[0].notes : [];
+    const tonica = firstElementNotes.length > 0 ? firstElementNotes[0] : null;
+
     const allDegrees = new Set<string>();
-    els.forEach(el => {
+    els.forEach((el,index) => {
+      if(index == 0){
       el.degrees.forEach(d => allDegrees.add(d.degree));
+      } else {
+        el.degrees.forEach(d => {
+          const degree = Interval.distance(tonica!, d.note);
+          allDegrees.add(degree);
+        });
+      }
     });
-    
-    const degreeOrder = ['1P', '2m', '2M', '3m', '3M', '4P', '5d', '5P', '6m', '6M', '7m', '7M'];
-    return Array.from(allDegrees).sort((a, b) => {
+
+    const degreeOrder = ['1P', '2m', '2M', '3m', '3M', '4P', '4A','5d', '5P', '5A','6m', '6M', '7m', '7M'];
+    let p = Array.from(allDegrees).sort((a, b) => {
       const indexA = degreeOrder.indexOf(a);
       const indexB = degreeOrder.indexOf(b);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
       return indexA - indexB;
     });
+    return p;
   });
-  
+
   transposedRows = computed<TransposedRow[]>(() => {
     const els = this.elements();
     const headers = this.degreeHeaders();
-    
+
     const firstElementNotes = els.length > 0 ? els[0].notes : [];
-    
-    return els.map((el, index) => {
+    const tonica = firstElementNotes.length > 0 ? firstElementNotes[0] : null;
+
+    return els.map((el, indexLoop) => {
       const notesForDegree = headers.map(degree => {
-        const found = el.degrees.find(d => d.degree === degree);
-        return found ? found.note : null;
+
+        if (indexLoop === 0) {
+          const foundDegree = el.degrees.find(d => d.degree === degree);
+          return foundDegree ? foundDegree.note : null;
+        } else {
+          el.degrees = el.degrees.map(d => {
+            return {
+              note: d.note,
+              degree: Interval.distance(tonica!, d.note)
+            }
+          });
+          const foundDegree = el.degrees.find(d => d.degree === degree);
+          return foundDegree ? foundDegree.note : null;
+        }
       });
-      
+
       const notePresentInFirst = notesForDegree.map(note => {
         if (!note) return true;
         return firstElementNotes.includes(note);
       });
-      
+
       return {
         elementName: el.name,
         root: el.root,
         degreeValues: headers,
         notesForDegree,
-        isFirstElement: index === 0,
+        isFirstElement: indexLoop === 0,
         notePresentInFirst
       };
     });
   });
-  
+
   firstElementName = computed(() => {
     const els = this.elements();
     return els.length > 0 ? els[0].name : '';
   });
-  
+
   isNoteInFirst(note: string): boolean {
     const els = this.elements();
     if (els.length === 0) return false;
     return els[0].notes.includes(note);
   }
-  
+
   private getElementNotes(item: { type: 'scale' | 'arpeggio' | 'chord'; config: any }): ComparisonElement {
     const root = item.config.root || 'C';
     let notes: string[] = [];
     let name = '';
-    
+
     if (item.type === 'scale' || item.type === 'arpeggio') {
       const scaleName = item.config.scaleName || 'major';
       const scaleString = root + ' ' + scaleName;
@@ -134,12 +161,12 @@ export class ComparisonTableComponent {
       notes = chord.notes || [];
       name = root + chordType;
     }
-    
+
     const degrees = notes.map(note => ({
       note,
       degree: this.getDegree(root, note)
     }));
-    
+
     return {
       type: item.type,
       root,
@@ -148,10 +175,10 @@ export class ComparisonTableComponent {
       degrees
     };
   }
-  
+
   private getDegree(root: string, note: string): string {
     const interval = Interval.distance(root, note);
-    
+
     const intervalMap: Record<string, string> = {
       '1P': '1P',
       '2m': '2m',
@@ -166,23 +193,23 @@ export class ComparisonTableComponent {
       '7m': '7m',
       '7M': '7M'
     };
-    
+
     return intervalMap[interval] || interval;
   }
-  
+
   addElement() {
     this.showAddForm.update(v => !v);
   }
-  
+
   confirmAddElement() {
     const root = this.newElementRoot().trim();
     const name = this.newElementName().trim();
-    
+
     if (!root || !name) {
       alert('Inserisci tonica e nome');
       return;
     }
-    
+
     const currentItems = this.comparison().items || [];
     const config: any = {
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
@@ -191,34 +218,34 @@ export class ComparisonTableComponent {
       colorMode: 'monocolor' as const,
       showChordDegrees: false
     };
-    
+
     if (this.newElementType() === 'scale') {
       config.scaleName = name;
     } else {
       config.chordType = name;
     }
-    
+
     const newItem = {
       type: this.newElementType() as 'scale' | 'chord',
       config
     };
-    
+
     this.update.emit({
       ...this.comparison(),
       items: [...currentItems, newItem]
     });
-    
+
     this.showAddForm.set(false);
     this.newElementRoot.set('C');
     this.newElementName.set('major');
   }
-  
+
   cancelAddElement() {
     this.showAddForm.set(false);
     this.newElementRoot.set('C');
     this.newElementName.set('major');
   }
-  
+
   removeElement(index: number) {
     this.confirmService.show(
       'Elimina elemento?',
@@ -226,7 +253,7 @@ export class ComparisonTableComponent {
       () => {
         const currentItems = this.comparison().items || [];
         const newItems = currentItems.filter((_, i) => i !== index);
-        
+
         this.update.emit({
           ...this.comparison(),
           items: newItems
@@ -234,14 +261,14 @@ export class ComparisonTableComponent {
       }
     );
   }
-  
+
   deleteComparison() {
-   /*  this.confirmService.show(
-      'Elimina tabella di confronto?',
-      'Sei sicuro di voler eliminare questa tabella di confronto?',
-      () => { */
-        this.deleted.emit();
-  /*     } */
-  /*   ); */
+    /*  this.confirmService.show(
+       'Elimina tabella di confronto?',
+       'Sei sicuro di voler eliminare questa tabella di confronto?',
+       () => { */
+    this.deleted.emit();
+    /*     } */
+    /*   ); */
   }
 }
