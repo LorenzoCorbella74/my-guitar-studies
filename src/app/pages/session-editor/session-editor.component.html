@@ -159,6 +159,13 @@
                       (clone)="cloneFretboard($event)"
                     />
                   }
+                  @if (item.type === 'keyprogression') {
+                    <app-key-progression
+                      [keyProgressionItem]="$any(item)"
+                      (update)="updateKeyProgression(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
                 </div>
               </div>
             }

@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines],
   template: `
     <div class="relative">
       <button
@@ -61,7 +61,13 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
           <li>
             <button type="button" (mousedown)="selectItem('chordprogression')">
               <svg lucideListMusic class="w-4 h-4"></svg>
-              Progressione accordi
+              Progressione Accordi
+            </button>
+          </li>
+          <li>
+            <button type="button" (mousedown)="selectItem('keyprogression')">
+              <svg lucideAudioLines class="w-4 h-4"></svg> 
+              Tonalità
             </button>
           </li>
           <li>

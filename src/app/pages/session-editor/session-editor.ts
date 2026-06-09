@@ -6,7 +6,7 @@ import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
@@ -19,11 +19,12 @@ import { ChordProgressionNameDialogComponent } from '../../components/section-ed
 import { SessionGroupLinksComponent } from '../../components/session-group-links/session-group-links.component';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp } from '../../animations';
+import { KeyProgressionComponent } from '../../components/key-progression/key-progression';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -379,6 +380,15 @@ export class SessionEditorPage implements OnInit {
         overlays: []
       };
       this.items.update(items => [...items, newFretboard]);
+    } else if (type === 'keyprogression') {
+      const newKeyProgression: KeyProgressionItem = {
+        id: newId,
+        type: 'keyprogression',
+        order: newOrder,
+/*         tonic: 'C',
+        keyType: 'major' */
+      };
+      this.items.update(items => [...items, newKeyProgression]);
     }
     
     // Scroll to the newly added item
@@ -496,6 +506,17 @@ export class SessionEditorPage implements OnInit {
       items.map(item => {
         if (item.id === itemId && item.type === 'fretboard') {
           return { ...updatedFretboard, id: itemId };
+        }
+        return item;
+      })
+    );
+  }
+
+  updateKeyProgression(itemId: string, updatedKeyProgression: KeyProgressionItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'keyprogression') {
+          return { ...item, ...updatedKeyProgression, id: itemId };
         }
         return item;
       })

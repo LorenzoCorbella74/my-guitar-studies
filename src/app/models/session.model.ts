@@ -22,7 +22,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
   order: number;
 }
 
@@ -143,6 +143,12 @@ export interface FretboardItem extends SessionItem {
   };
   notes: FretboardNote[];
   overlays: FretboardOverlay[];
+}
+
+export interface KeyProgressionItem extends SessionItem {
+  type: 'keyprogression';
+  tonic?: string;
+  keyType?: string; // 'major', 'natural', 'harmonic', 'melodic'
 }
 
 export interface VisualizationConfig {

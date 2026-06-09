@@ -1,0 +1,95 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body mb-4">
+    <div class="flex justify-between items-start gap-4 mb-4">
+      <h3 class="card-title">Tonalità</h3>
+
+      <div class="flex gap-2 justify-end" style="width:65%">
+        @if (showAddForm()) {
+
+        <div class="flex me-4">
+          <label class="label">
+            <span class="label-text me-2">Tonica</span>
+          </label>
+          <select class="select select-bordered select-sm" [(ngModel)]="newRoot">
+            @for (note of chromaticNotes; track note) {
+            <option [value]="note">{{ note }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex me-4">
+          <label class="label">
+            <span class="label-text me-2">Modo</span>
+          </label>
+          <select class="select select-bordered select-sm" [(ngModel)]="newType">
+            @for (type of typeOptions; track type) {
+            <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+        </div>
+        <button class="btn btn-sm btn-primary" (click)="addKey()" [disabled]="!newRoot() || !newType()"
+          aria-label="Aggiungi elemento">
+          <svg lucidePlus class="w-4 h-4"></svg>
+        </button>
+        }
+        @if(!showAddForm()) {
+        <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="editKey()" aria-label="Modifica chiave">
+          <svg lucidePencil class="w-4 h-4"></svg>
+        </button>
+        }
+        <button class="btn btn-sm btn-ghost" (click)="deleteKey()" aria-label="Elimina elemento">
+          <svg lucideTrash2 class="w-4 h-4"></svg>
+        </button>
+      </div>
+    </div>
+
+
+
+    @if (!data()) {
+    <div class="text-center py-4 text-base-content/60">
+      <p class="text-sm mt-2">Aggiungi una chiave ed il modo.</p>
+    </div>
+    } @else {
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            @for (degreeHeader of data()?.grades; track degreeHeader) {
+              <th class="text-center">{{ degreeHeader }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            @for (chord of data()?.chords; track $index; let rowIndex = $index) {
+            <td class="text-center">
+              <span class="font-bold">{{ chord }}</span>
+            </td>
+            }
+          </tr>
+          <tr>
+            @for (function of data()?.chordsHarmonicFunction; track $index; let noteIndex = $index) {
+            <td class="text-center">
+              <span class="font-bold" [style.color]="functionColor(function)">{{ function }}</span>
+            </td>
+            }
+          </tr>
+          <tr>
+            @for (dominants of data()?.secondaryDominants; track $index; let noteIndex = $index) {
+            <td class="text-center">
+              <span>{{ dominants || '-' }}</span>
+            </td>
+            }
+          </tr>
+          <tr>
+            @for (scale of data()?.chordScales; track $index; let noteIndex = $index) {
+            <td class="text-center">
+              <span class="text-xs">{{ scale || '-' }}</span>
+            </td>
+            }
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    }
+  </div>
+</div>
