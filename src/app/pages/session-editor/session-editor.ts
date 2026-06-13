@@ -20,11 +20,12 @@ import { SessionGroupLinksComponent } from '../../components/session-group-links
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp } from '../../animations';
 import { KeyProgressionComponent } from '../../components/key-progression/key-progression';
+import { FretboardEditorNameDialogComponent } from "../../components/section-editor/dialogs/fretboard-editor-name-dialog.component";
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -100,7 +101,7 @@ export class SessionEditorPage implements OnInit {
   sessionId = signal<string>('');
   groupId = signal<string | undefined>(undefined);
   groupName = signal<string | undefined>(undefined);
-  groupSessions = signal<{id: string; title: string}[]>([]);
+  groupSessions = signal<{ id: string; title: string }[]>([]);
   title = signal<string>('');
   sessionTags = signal<string[]>([]);
   items = signal<SessionItem[]>([]);
@@ -111,6 +112,9 @@ export class SessionEditorPage implements OnInit {
   tagQuery = signal('');
   tagDropdownOpen = signal(false);
   chordProgressionDialogOpen = signal(false);
+
+  fretboardNameDialogOpen = signal(false);
+  fretboardNameDialogTitle = signal('');
 
   tagSuggestions = computed(() => {
     const query = this.tagQuery().toLowerCase();
@@ -127,7 +131,7 @@ export class SessionEditorPage implements OnInit {
     // Questo permette di ricaricare la sessione quando si naviga tra sessioni diverse
     this.route.paramMap.subscribe(async (params) => {
       const id = params.get('id');
-      
+
       if (!id || id === 'new') {
         this.title.set('Nuova sessione');
         this.sessionId.set('');
@@ -147,7 +151,7 @@ export class SessionEditorPage implements OnInit {
         this.notFound.set(true);
         return;
       }
-      
+
       this.notFound.set(false);
       this.title.set(session.title);
       this.groupId.set(session.groupId);
@@ -168,7 +172,7 @@ export class SessionEditorPage implements OnInit {
   private async createNewSession() {
     const id = await this.sessionService.createSession(this.title());
     this.sessionId.set(id);
-    
+
     // Salva anche i tag e gli items se presenti
     if (this.sessionTags().length > 0 || this.items().length > 0) {
       await this.sessionService.updateSession(id, {
@@ -176,7 +180,7 @@ export class SessionEditorPage implements OnInit {
         items: this.items()
       });
     }
-    
+
     this.router.navigate(['/sessions', id]);
   }
 
@@ -184,7 +188,7 @@ export class SessionEditorPage implements OnInit {
     const id = this.sessionId();
     this.saving.set(true);
     try {
-      if (!id){
+      if (!id) {
         await this.createNewSession();
       } else {
         await this.sessionService.updateSession(id, {
@@ -207,11 +211,11 @@ export class SessionEditorPage implements OnInit {
     // Carica il gruppo e le sue sessioni
     await this.sessionService.loadGroups();
     await this.sessionService.loadSessions();
-    
+
     const group = this.sessionService.groups().find(g => g.id === groupId);
     if (group) {
       this.groupName.set(group.name);
-      
+
       // Ottieni tutte le sessioni del gruppo
       const sessionsInGroup = this.sessionService.getSessionsInGroup(groupId);
       this.groupSessions.set(
@@ -263,7 +267,7 @@ export class SessionEditorPage implements OnInit {
   addItem(type: ItemType) {
     const newOrder = this.items().length;
     const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    
+
     if (type === 'section') {
       const newSection: SectionItem = {
         id: newId,
@@ -343,8 +347,8 @@ export class SessionEditorPage implements OnInit {
       const defaultLayer: TimelineLayer = {
         id: `layer_${Date.now()}`,
         root: 'C',
-        chordType: 'major',        octave: 3,
-        inversion: 'root',        duration: 0.25,
+        chordType: 'major', octave: 3,
+        inversion: 'root', duration: 0.25,
         activeNotes: {}
       };
       const newTimeline: TimelineItem = {
@@ -367,9 +371,12 @@ export class SessionEditorPage implements OnInit {
       };
       this.items.update(items => [...items, newModalInterchange]);
     } else if (type === 'fretboard') {
-      const newFretboard: FretboardItem = {
+      // this.fretboardNameDialogTitle.set('Nuova tastiera');
+      this.fretboardNameDialogOpen.set(true);
+     /*  const newFretboard: FretboardItem = {
         id: newId,
         type: 'fretboard',
+        title: '',
         order: newOrder,
         fretboardConfig: {
           fretShift: 0,
@@ -379,31 +386,31 @@ export class SessionEditorPage implements OnInit {
         notes: [],
         overlays: []
       };
-      this.items.update(items => [...items, newFretboard]);
+      this.items.update(items => [...items, newFretboard]); */
     } else if (type === 'keyprogression') {
       const newKeyProgression: KeyProgressionItem = {
         id: newId,
         type: 'keyprogression',
         order: newOrder,
-/*         tonic: 'C',
-        keyType: 'major' */
+        /*         tonic: 'C',
+                keyType: 'major' */
       };
       this.items.update(items => [...items, newKeyProgression]);
     }
-    
+
     // Scroll to the newly added item
     /* setTimeout(() => { */
-      const container = this.itemsContainer?.nativeElement;
-      if (container && container.lastElementChild) {
-        container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-  /*   }, 150); */
+    const container = this.itemsContainer?.nativeElement;
+    if (container && container.lastElementChild) {
+      container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    /*   }, 150); */
   }
 
   handleChordProgressionNameConfirm(title: string) {
     const newOrder = this.items().length;
     const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    
+
     const newChordProgression: ChordProgressionItem = {
       id: newId,
       type: 'chordprogression',
@@ -413,7 +420,7 @@ export class SessionEditorPage implements OnInit {
     };
     this.items.update(items => [...items, newChordProgression]);
     this.chordProgressionDialogOpen.set(false);
-    
+
     // Scroll to the newly added item
     setTimeout(() => {
       const container = this.itemsContainer?.nativeElement;
@@ -421,6 +428,26 @@ export class SessionEditorPage implements OnInit {
         container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }, 150);
+  }
+
+  handleFretboardNameConfirm(title: string) {
+    const newOrder = this.items().length;
+    const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const newFretboardItem: FretboardItem = {
+      id: newId,
+      type: 'fretboard',
+      order: newOrder,
+      title: title,
+      fretboardConfig: {
+        fretShift: 0,
+        fretboardColor: '#fff',
+        tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']
+      },
+      notes: [],
+      overlays: []
+    };
+    this.items.update(items => [...items, newFretboardItem]);
+    this.fretboardNameDialogOpen.set(false);
   }
 
   updateSection(itemId: string, data: { title: string; content: string }) {
@@ -469,13 +496,13 @@ export class SessionEditorPage implements OnInit {
   cloneScale(clonedItem: ScaleItem | ArpeggioItem | ChordItem) {
     const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const newOrder = this.items().length;
-    
+
     const newItem = {
       ...clonedItem,
       id: newId,
       order: newOrder
     };
-    
+
     this.items.update(items => [...items, newItem]);
   }
 
@@ -526,13 +553,13 @@ export class SessionEditorPage implements OnInit {
   cloneFretboard(clonedItem: FretboardItem) {
     const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const newOrder = this.items().length;
-    
+
     const newItem = {
       ...clonedItem,
       id: newId,
       order: newOrder
     };
-    
+
     this.items.update(items => [...items, newItem]);
   }
 
@@ -545,7 +572,7 @@ export class SessionEditorPage implements OnInit {
           const filtered = items.filter(item => item.id !== itemId);
           return filtered.map((item, index) => ({ ...item, order: index }));
         });
-        
+
         if (this.editingItemId() === itemId) {
           this.editingItemId.set(null);
         }
@@ -558,7 +585,7 @@ export class SessionEditorPage implements OnInit {
       const filtered = items.filter(item => item.id !== itemId);
       return filtered.map((item, index) => ({ ...item, order: index }));
     });
-    
+
     if (this.editingItemId() === itemId) {
       this.editingItemId.set(null);
     }
@@ -567,13 +594,13 @@ export class SessionEditorPage implements OnInit {
   onItemDrop(event: CdkDragDrop<SessionItem[]>) {
     const itemsArray = [...this.items()];
     moveItemInArray(itemsArray, event.previousIndex, event.currentIndex);
-    
+
     // Recalculate order field for all items
     const reorderedItems = itemsArray.map((item, index) => ({
       ...item,
       order: index * 10
     }));
-    
+
     this.items.set(reorderedItems);
   }
 }

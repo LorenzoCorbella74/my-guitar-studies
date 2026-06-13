@@ -6,6 +6,7 @@ import { Note } from 'tonal';
 import { FretboardConfigDialogComponent, FretboardConfigDialogData, FretboardConfigDialogResult } from './fretboard-config-dialog.component';
 import { FRETBOARD_STYLES, NUM_FRETS } from '../scale-visualization/constants';
 import { UserSettingsService } from '../../services/user-settings.service';
+import { FretboardEditorNameDialogComponent } from '../section-editor/dialogs/fretboard-editor-name-dialog.component';
 
 interface FretPosition {
   string: number;
@@ -16,7 +17,7 @@ interface FretPosition {
 @Component({
   selector: 'app-fretboard-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePencil, LucideTrash2, LucideSettings, LucideCopy],
+  imports: [LucidePencil, LucideTrash2, LucideSettings, LucideCopy, FretboardEditorNameDialogComponent],
   templateUrl: './fretboard-editor.component.html',
   styles: `
     :host {
@@ -32,36 +33,55 @@ interface FretPosition {
 export class FretboardEditorComponent implements OnInit {
   dialog = inject(Dialog);
   userSettingsService = inject(UserSettingsService);
-  
+
   fretboardItem = input.required<FretboardItem>();
   update = output<FretboardItem>();
   delete = output<void>();
   clone = output<FretboardItem>();
-  
+
+  titleDialogOpen = signal(false);
+
   // Color palette
   colors = [
-    {  value: '#ffee58', key: 'yellow' },
-    {  value: '#ffa726', key: 'orange' },
-    {  value: '#FF4136', key: 'red' },
-    {  value: '#9e9e9e', key: 'grey' },
-    {  value: '#ffffff', key: 'white' }
+    { value: '#ffee58', key: 'yellow' },
+    { value: '#ffa726', key: 'orange' },
+    { value: '#FF4136', key: 'red' },
+    { value: '#9e9e9e', key: 'grey' },
+    { value: '#AACDDC', key: 'palette1' }, // 81A6C6
+    { value: '#84B179', key: 'palette2' },
+    { value: '#FFB399', key: 'palette3' },
+    { value: '#ffffff', key: 'white' },
+
   ];
-  
+
   selectedColor = signal<string>('yellow'); // default giallo
-  
+
   // Fretboard styles for visualization
   fretboardStyles = FRETBOARD_STYLES;
-  
+
   // SVG dimensions
   leftMargin = 40;
   rightMargin = 15;
   stringSpacing = 38;
   fretWidth = 80;
-  
+
   strings = [0, 1, 2, 3, 4, 5];
 
   ngOnInit() {
     // Nothing to auto-initialize
+  }
+
+  openTitleDialog() {
+    this.titleDialogOpen.set(true);
+  }
+
+  updateTitle(newTitle: string) {
+    const updated: FretboardItem = {
+      ...this.fretboardItem(),
+      title: newTitle
+    };
+    this.update.emit(updated);
+    this.titleDialogOpen.set(false);
   }
 
   // Computed frets based on fretShift
@@ -69,7 +89,7 @@ export class FretboardEditorComponent implements OnInit {
     const shift = this.fretboardItem().fretboardConfig.fretShift || 0;
     return Array.from({ length: NUM_FRETS + 1 }, (_, i) => i + shift);
   });
-  
+
   // Computed fret markers based on fretShift
   fretMarkers = computed(() => {
     const shift = this.fretboardItem().fretboardConfig.fretShift || 0;
@@ -77,7 +97,7 @@ export class FretboardEditorComponent implements OnInit {
     // Show only markers that fall within the visible fret range
     return allMarkers.filter(m => m >= shift && m <= shift + NUM_FRETS);
   });
-  
+
   // Computed fret numbers to display
   fretNumbers = computed(() => {
     const shift = this.fretboardItem().fretboardConfig.fretShift || 0;
@@ -106,7 +126,7 @@ export class FretboardEditorComponent implements OnInit {
     const tuning = this.fretboardItem().fretboardConfig.tuning;
     const shift = this.fretboardItem().fretboardConfig.fretShift || 0;
     const positions: FretPosition[] = [];
-    
+
     this.strings.forEach(stringNum => {
       this.frets().forEach(fret => {
         const openNote = tuning[5 - stringNum]; // Reverse order (string 0 is highest)
@@ -118,7 +138,7 @@ export class FretboardEditorComponent implements OnInit {
         }
       });
     });
-    
+
     return positions;
   });
 
@@ -143,7 +163,7 @@ export class FretboardEditorComponent implements OnInit {
 
   handleFretClick(event: MouseEvent, position: FretPosition): void {
     const isCtrlPressed = event.ctrlKey || event.metaKey;
-    
+
     if (isCtrlPressed) {
       // Add or remove overlay
       this.toggleOverlay(position.string, position.fret);
@@ -156,7 +176,7 @@ export class FretboardEditorComponent implements OnInit {
   toggleNote(string: number, fret: number): void {
     const item = this.fretboardItem();
     const existingIndex = item.notes.findIndex(n => n.string === string && n.fret === fret);
-    
+
     if (existingIndex !== -1) {
       // Remove note
       const updatedNotes = item.notes.filter((_, i) => i !== existingIndex);
@@ -175,7 +195,7 @@ export class FretboardEditorComponent implements OnInit {
   toggleOverlay(string: number, fret: number): void {
     const item = this.fretboardItem();
     const existingIndex = item.overlays.findIndex(o => o.string === string && o.fret === fret);
-    
+
     if (existingIndex !== -1) {
       // Remove overlay
       const updatedOverlays = item.overlays.filter((_, i) => i !== existingIndex);

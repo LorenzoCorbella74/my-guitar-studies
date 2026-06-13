@@ -1,0 +1,72 @@
+<div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-semibold">{{ progression().title || 'Progressione Accordi' }}</h3>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn btn-dash btn-primary btn-sm"
+              (click)="openChordBuilder()"
+            >
+              <svg lucidePlus class="w-4 h-4"></svg>
+              Aggiungi accordo
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="openTitleDialog()"
+              aria-label="Modifica titolo"
+            >
+              <svg lucidePencil class="w-4 h-4"></svg>
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="deleteProgression.emit()"
+              aria-label="Elimina progressione"
+            >
+              <svg lucideTrash2 class="w-4 h-4"></svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Chord Diagrams Grid -->
+        @if (progression().chords.length > 0) {
+          <div class="flex flex-wrap gap-3 mb-4" cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="onChordDrop($event)">
+            @for (chord of progression().chords; track $index) {
+              <div cdkDrag class="chord-drag-wrapper">
+                <div cdkDragHandle class="chord-drag-handle" [attr.aria-label]="'Trascina per riordinare'">
+                  <svg lucideGripVertical class="w-4 h-4"></svg>
+                </div>
+                <app-chord-diagram
+                  [chord]="chord"
+                  (edit)="editChord($index)"
+                  (deleteChord)="removeChord($index)"
+                />
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-8 text-base-content/60">
+            <p>Nessun accordo aggiunto</p>
+            <p class="text-sm">Clicca "+ Aggiungi accordo" per iniziare</p>
+          </div>
+        }
+      </div>
+    </div>
+    
+    <!-- Chord Builder Modal -->
+    <app-chord-builder-modal
+      [isOpen]="builderModalOpen()"
+      [editingChord]="editingChord()"
+      (save)="addChord($event)"
+      (close)="closeChordBuilder()"
+    />
+    
+    <!-- Title Edit Dialog -->
+    <app-chord-progression-name-dialog
+      [isOpen]="titleDialogOpen()"
+      [initialTitle]="progression().title"
+      (confirm)="updateTitle($event)"
+      (close)="titleDialogOpen.set(false)"
+    />

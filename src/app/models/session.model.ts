@@ -126,7 +126,7 @@ export interface ModalInterchangeItem extends SessionItem {
 export interface FretboardNote {
   string: number;
   fret: number;
-  color: string; // uno dei 5 colori della palette: 'yellow', 'orange', 'red', 'green', 'cyan'
+  color: string; // uno dei 6 colori della palette: yellow, orange, red, grey, white, black
 }
 
 export interface FretboardOverlay {
@@ -136,6 +136,7 @@ export interface FretboardOverlay {
 
 export interface FretboardItem extends SessionItem {
   type: 'fretboard';
+  title:string;
   fretboardConfig: {
     fretShift?: number;
     fretboardColor?: string;

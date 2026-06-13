@@ -12,11 +12,12 @@
         >
           <svg lucideSettings class="w-4 h-4"></svg>
         </button>
+        <div class="text-base-content/60 text-left">
+            <!-- <p><strong>Click</strong> per nota • <strong>CTRL + Click</strong> per overlay</p> -->
+            <p>{{fretboardItem().title}}</p>
+        </div>
       </div>
 
-    <div class="text-base-content/60 text-center" style="font-size: 10px;">
-        <p><strong>Click</strong> per nota • <strong>CTRL + Click</strong> per overlay</p>
-    </div>
 
         <!-- Color Palette -->
         <div class="flex gap-2 flex-wrap items-center justify-between border border-base-300 rounded-md">
@@ -44,6 +45,14 @@
           <svg lucideCopy class="w-4 h-4"></svg>
         </button>
         <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="openTitleDialog()"
+              aria-label="Modifica titolo"
+            >
+              <svg lucidePencil class="w-4 h-4"></svg>
+            </button>
+        <button
           class="btn btn-ghost btn-sm btn-square"
           (click)="handleDelete()"
           aria-label="Elimina"
@@ -58,6 +67,9 @@
 
     <!-- SVG Fretboard -->
     <div class="overflow-x-auto">
+      <div class="absolute bottom-6 left-5" style="font-size: 8px;">
+            <p><strong>Click</strong> per nota • <strong>CTRL + Click</strong> per overlay</p>
+      </div>
       <svg
         [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
         class="w-full"
@@ -213,3 +225,10 @@
 
   </div>
 </div>
+
+    <app-fretboard-editor-name-dialog
+      [isOpen]="titleDialogOpen()"
+      [initialTitle]="fretboardItem().title"
+      (confirm)="updateTitle($event)"
+      (close)="titleDialogOpen.set(false)"
+    />

@@ -180,6 +180,13 @@
         (close)="chordProgressionDialogOpen.set(false)"
       />
 
+      <app-fretboard-editor-name-dialog
+        [isOpen]="fretboardNameDialogOpen()"
+        [initialTitle]="fretboardNameDialogTitle()"
+        (confirm)="handleFretboardNameConfirm($event)"
+        (close)="fretboardNameDialogOpen.set(false)"
+      />
+
       <!-- Floating Group Links -->
       @if (groupId() && groupName()) {
         <app-session-group-links
