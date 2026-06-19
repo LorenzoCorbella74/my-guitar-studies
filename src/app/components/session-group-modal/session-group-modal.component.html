@@ -87,13 +87,18 @@
                        (click)="onSessionClick()">
                       {{ session.title || 'Senza titolo' }}
                     </a>
-                    <button 
-                      type="button"
-                      class="btn btn-ghost btn-sm"
-                      (click)="unlinkSession.emit(session.id)"
-                      aria-label="Rimuovi dal gruppo">
-                      <svg lucideUnlink class="w-4 h-4"></svg>
-                    </button>
+                    <div class="flex items-center gap-1">
+                          <button class="btn btn-ghost btn-sm" (click)="toggleFavorite(session.id, $event)" [attr.aria-label]="session.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'">
+                            <svg lucideHeart [class]="session.isFavorite ? 'w-5 h-5 fill-red-500 text-red-500' : 'w-5 h-5'"></svg>
+                          </button>
+                          <button 
+                            type="button"
+                            class="btn btn-ghost btn-sm"
+                            (click)="unlinkSession.emit(session.id)"
+                            aria-label="Rimuovi dal gruppo">
+                            <svg lucideUnlink class="w-4 h-4"></svg>
+                          </button>
+                    </div>
                   </div>
                 }
               </div>

@@ -2,15 +2,16 @@ import { Component, ChangeDetectionStrategy, input, output, signal, effect, comp
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CdkDrag, CdkDropList, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { LucideX, LucideUnlink, LucideGripVertical } from '@lucide/angular';
+import { LucideX, LucideUnlink, LucideGripVertical, LucideHeart } from '@lucide/angular';
 import { SessionGroup, Session } from '../../models/session.model';
 import { TagService } from '../../services/tag.service';
 import { AppRoutes } from '../../enums/routes.enum';
+import { SessionService } from '../../services/session.service';
 
 @Component({
   selector: 'app-session-group-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, LucideX, LucideUnlink, LucideGripVertical],
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, LucideX, LucideUnlink, LucideGripVertical, LucideHeart],
   templateUrl: './session-group-modal.component.html',
   styles: [`
     :host {
@@ -29,7 +30,9 @@ import { AppRoutes } from '../../enums/routes.enum';
   `]
 })
 export class SessionGroupModalComponent {
+
   private tagService = inject(TagService);
+  private sessionService = inject(SessionService);
   
   isOpen = input.required<boolean>();
   group = input<SessionGroup | null>(null);
@@ -130,6 +133,12 @@ export class SessionGroupModalComponent {
   onSessionClick() {
     // Chiudi la modale con un delay per permettere al router di navigare
     setTimeout(() => this.close.emit(), 50);
+  }
+
+    async toggleFavorite(id: string, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    await this.sessionService.toggleFavorite(id);
   }
   
   save() {
