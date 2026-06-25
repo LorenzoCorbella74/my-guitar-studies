@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3 } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3],
   template: `
     <div class="relative">
       <button
@@ -70,6 +70,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
               Tonalità
             </button>
           </li>
+           <li>
+            <button type="button" (mousedown)="selectItem('tab')">
+              <svg lucideMusic3 class="w-4 h-4"></svg>
+              Tablatura
+            </button>
+          </li>
           <li>
             <button type="button" (mousedown)="selectItem('timeline')">
               <svg lucideClock class="w-4 h-4"></svg>
@@ -82,6 +88,7 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
               Modal interchange
             </button>
           </li>
+         
           
         </ul>
       }

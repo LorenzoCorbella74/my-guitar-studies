@@ -44,12 +44,15 @@
     "tailwindcss": "^4.2.4",
     "tonal": "^6.4.3",
     "tslib": "^2.3.0",
+    "vexflow": "^5.0.0",
+    "vextab": "^4.0.5",
     "zone.js": "~0.16.0"
   },
   "devDependencies": {
     "@angular/build": "^21.0.2",
     "@angular/cli": "^21.0.2",
     "@angular/compiler-cli": "^21.0.0",
+    "@types/vextab": "^3.0.4",
     "dotenv": "^17.4.2",
     "jsdom": "^27.1.0",
     "tsx": "^4.21.0",

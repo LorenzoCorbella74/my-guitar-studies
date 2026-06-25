@@ -1,0 +1,93 @@
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex-1">
+            @if (tabItem().title) {
+              <h3 class="card-title text-lg">{{ tabItem().title }}</h3>
+            }
+          </div>
+          <div class="flex gap-2">
+            <button 
+              type="button" 
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="toggleEditMode()"
+              [attr.aria-label]="editMode() ? 'Annulla modifica' : 'Modifica tab'"
+            >
+              <svg lucidePencil class="w-4 h-4"></svg>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+              (click)="onDelete()"
+              aria-label="Elimina tab"
+            >
+              <svg lucideTrash2 class="w-4 h-4"></svg>
+            </button>
+          </div>
+        </div>
+
+        @if (editMode()) {
+          <!-- Edit Mode -->
+          <div class="space-y-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Titolo (opzionale)</span>
+              </label>
+              <input 
+                type="text" 
+                class="input input-bordered w-full"
+                [(ngModel)]="editTitle"
+                placeholder="Inserisci un titolo..."
+              />
+            </div>
+            <div class="form-control w-full">
+              <label class="label me-2 flex justify-between items-center">
+                <span class="label-text">Notazione VexTab</span>
+                <span class="text-sm text-base-content/60 mt-1">
+                  <a href="https://vexflow.com/vextab/" target="_blank">Documentazione VexTab</a>
+                </span>
+              </label>
+              <textarea
+                class="textarea textarea-bordered font-mono text-sm h-32 w-full"
+                [(ngModel)]="editNotation"
+                placeholder="tabstave notation=true key=C time=4/4&#10;notes :q =|: (5/2.5/3.7/4) :8 7-5/3 5h6-7/5 ^3^ :q 7V/4"
+              ></textarea>
+              @if (errorMessage()) {
+                <label class="label">
+                  <span class="label-text-alt text-error">{{ errorMessage() }}</span>
+                </label>
+              }
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button 
+                type="button" 
+                class="btn btn-ghost btn-sm"
+                (click)="cancelEdit()"
+              >
+                Annulla
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm"
+                (click)="applyChanges()"
+              >
+                <svg lucideCheck class="w-4 h-4"></svg>
+                Applica
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- Display Mode -->
+          <div 
+            #tabContainer 
+            class="w-full overflow-x-auto"
+            [class.min-h-[200px]]="!hasRendered()"
+          ></div>
+          @if (!hasRendered()) {
+            <p class="text-base-content/60 text-center py-8">
+              Premi il pulsante di modifica per inserire la notazione
+            </p>
+          }
+        }
+      </div>
+    </div>

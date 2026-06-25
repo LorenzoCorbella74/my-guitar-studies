@@ -166,6 +166,13 @@
                       (delete)="deleteItem(item.id)"
                     />
                   }
+                  @if (item.type === 'tab') {
+                    <app-tab-editor
+                      [tabItem]="$any(item)"
+                      (update)="updateTab(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
                 </div>
               </div>
             }

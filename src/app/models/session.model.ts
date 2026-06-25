@@ -22,7 +22,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab';
   order: number;
 }
 
@@ -150,6 +150,14 @@ export interface KeyProgressionItem extends SessionItem {
   type: 'keyprogression';
   tonic?: string;
   keyType?: string; // 'major', 'natural', 'harmonic', 'melodic'
+}
+
+export interface TabItem extends SessionItem {
+  type: 'tab';
+  notation: string;
+  title?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface VisualizationConfig {
