@@ -77,7 +77,7 @@ export class CircleOfFifthsComponent {
     ];
   });
 
-  zoomScale = computed(() => 118 / 100);
+  zoomScale = computed(() => 128 / 100);
 
   isDetailsOpen = computed(() => this.localItem()?.detailsPanelOpen ?? true);
 
