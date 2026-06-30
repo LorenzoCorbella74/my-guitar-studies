@@ -39,13 +39,14 @@ export class SessionGroupModalComponent {
   sessions = input<Session[]>([]);
   
   close = output<void>();
-  confirm = output<{ name: string; tags: string[]; sessions?: Session[] }>();
+  confirm = output<{ name: string; tags: string[]; isGlobal: boolean; sessions?: Session[] }>();
   unlinkSession = output<string>();
   
   routes = AppRoutes;
   
   groupName = signal('');
   groupTags = signal<string[]>([]);
+  isGlobal = signal(false);
   tagQuery = signal('');
   tagDropdownOpen = signal(false);
   localSessions = signal<Session[]>([]);
@@ -76,9 +77,11 @@ export class SessionGroupModalComponent {
       if (grp) {
         this.groupName.set(grp.name);
         this.groupTags.set([...grp.tags]);
+        this.isGlobal.set(grp.isGlobal);
       } else {
         this.groupName.set('');
         this.groupTags.set([]);
+        this.isGlobal.set(false);
       }
       this.tagQuery.set('');
       this.tagDropdownOpen.set(false);
@@ -148,6 +151,7 @@ export class SessionGroupModalComponent {
     this.confirm.emit({
       name,
       tags: this.groupTags(),
+      isGlobal: this.isGlobal(),
       sessions: this.hasReordered() ? this.localSessions() : undefined
     });
   }

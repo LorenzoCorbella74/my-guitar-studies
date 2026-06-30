@@ -227,6 +227,7 @@ export class SessionService {
           id: doc.id,
           name: (docData['name'] as string) || '',
           tags: (docData['tags'] as string[]) || [],
+          isGlobal: (docData['isGlobal'] as boolean) || false,
           isFavorite: (docData['isFavorite'] as boolean) || false,
           order: (docData['order'] as number) || 0,
           createdAt: this.toDate(docData['createdAt']),
@@ -239,7 +240,7 @@ export class SessionService {
     }
   }
 
-  async createGroup(name: string, tags: string[]): Promise<string> {
+  async createGroup(name: string, tags: string[], isGlobal = false): Promise<string> {
     if (!this.userId) throw new Error('Not authenticated');
     try {
       const now = serverTimestamp();
@@ -247,6 +248,7 @@ export class SessionService {
       const docRef = await this.loadingService.track(addDoc(this.groupsRef, {
         name,
         tags,
+        isGlobal,
         isFavorite: false,
         order: maxOrder + 1,
         createdAt: now,

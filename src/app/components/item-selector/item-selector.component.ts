@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
 import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3 } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
 
 @Component({
   selector: 'app-item-selector',
@@ -68,6 +68,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             <button type="button" (mousedown)="selectItem('keyprogression')">
               <svg lucideAudioLines class="w-4 h-4"></svg> 
               Tonalità
+            </button>
+          </li>
+          <li>
+            <button type="button" (mousedown)="selectItem('circleoffifths')">
+              <svg lucideAudioLines class="w-4 h-4"></svg>
+              Circolo delle quinte
             </button>
           </li>
            <li>

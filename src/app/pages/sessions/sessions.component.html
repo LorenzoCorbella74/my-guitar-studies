@@ -135,7 +135,8 @@
             <!-- Gruppi -->
             @for (group of filteredGroups(); track group.id) {
               <div class="card bg-primary/10 border-2 transition-all"
-                   [class.border-primary]="dragOverGroupId() !== group.id"
+                   [class.border-primary]="dragOverGroupId() !== group.id && !group.isGlobal"
+                    [class.border-orange-500]="dragOverGroupId() !== group.id && group.isGlobal"
                    [class.border-secondary]="dragOverGroupId() === group.id"
                    [class.shadow-lg]="dragOverGroupId() === group.id"
                    [class.shadow-md]="dragOverGroupId() !== group.id"
@@ -154,6 +155,9 @@
                     <div class="flex items-center gap-2 flex-1">
                       <svg lucideFolderOpen class="w-5 h-5 text-primary"></svg>
                       <h3 class="card-title text-base">{{ group.name }}</h3>
+                      @if (group.isGlobal) {
+                        <span class="badge badge-sm bg-orange-500 border-orange-500 text-white">Globale</span>
+                      }
                       <span class="badge badge-sm badge-primary">{{ sessionService.getSessionsInGroup(group.id).length }}</span>
                     </div>
                     <div class="flex items-center gap-1">

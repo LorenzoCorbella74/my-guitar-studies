@@ -173,6 +173,13 @@
                       (delete)="deleteItem(item.id)"
                     />
                   }
+                  @if (item.type === 'circleoffifths') {
+                    <app-circle-of-fifths
+                      [item]="$any(item)"
+                      (update)="updateCircleOfFifths(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
                 </div>
               </div>
             }
@@ -195,12 +202,13 @@
       />
 
       <!-- Floating Group Links -->
-      @if (groupId() && groupName()) {
+      @if (sessionId()) {
         <app-session-group-links
-          [groupId]="groupId()!"
-          [groupName]="groupName()!"
+          [groupId]="groupId()"
+          [groupName]="groupName()"
           [currentSessionId]="sessionId()"
-          [groupSessions]="groupSessions()"
+          [allGroups]="allGroups()"
+          [allSessions]="allSessions()"
         />
       }
     </div>

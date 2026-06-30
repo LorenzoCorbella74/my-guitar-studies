@@ -6,7 +6,7 @@ import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem, CircleOfFifthsItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
@@ -22,11 +22,12 @@ import { fadeSlideUp } from '../../animations';
 import { KeyProgressionComponent } from '../../components/key-progression/key-progression';
 import { FretboardEditorNameDialogComponent } from "../../components/section-editor/dialogs/fretboard-editor-name-dialog.component";
 import { TabEditorComponent } from '../../components/tab-editor/tab-editor.component';
+import { CircleOfFifthsComponent } from '../../components/circle-of-fifths/circle-of-fifths.component';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -125,6 +126,9 @@ export class SessionEditorPage implements OnInit {
     );
   });
 
+  allGroups = computed(() => this.sessionService.groups());
+  allSessions = computed(() => this.sessionService.sessions());
+
   async ngOnInit() {
     await this.tagService.loadTags();
 
@@ -158,6 +162,11 @@ export class SessionEditorPage implements OnInit {
       this.groupId.set(session.groupId);
       this.sessionTags.set(session.tags);
       this.items.set(session.items || []);
+
+      await Promise.all([
+        this.sessionService.loadGroups(),
+        this.sessionService.loadSessions()
+      ]);
 
       // Carica info gruppo se presente
       if (session.groupId) {
@@ -209,10 +218,6 @@ export class SessionEditorPage implements OnInit {
   }
 
   async loadGroupInfo(groupId: string) {
-    // Carica il gruppo e le sue sessioni
-    await this.sessionService.loadGroups();
-    await this.sessionService.loadSessions();
-
     const group = this.sessionService.groups().find(g => g.id === groupId);
     if (group) {
       this.groupName.set(group.name);
@@ -405,6 +410,18 @@ export class SessionEditorPage implements OnInit {
         notation: ''
       };
       this.items.update(items => [...items, newTab]);
+    } else if (type === 'circleoffifths') {
+      const newCircleOfFifths: CircleOfFifthsItem = {
+        id: newId,
+        type: 'circleoffifths',
+        order: newOrder,
+        selectedKey: 'C',
+        showRelativeMinor: true,
+        highlightDistance: 2,
+        zoomLevel: 130,
+        detailsPanelOpen: true
+      };
+      this.items.update(items => [...items, newCircleOfFifths]);
     }
 
     // Scroll to the newly added item
@@ -564,6 +581,17 @@ export class SessionEditorPage implements OnInit {
       items.map(item => {
         if (item.id === itemId && item.type === 'tab') {
           return { ...item, ...updatedTab, id: itemId };
+        }
+        return item;
+      })
+    );
+  }
+
+  updateCircleOfFifths(itemId: string, updatedItem: CircleOfFifthsItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'circleoffifths') {
+          return { ...item, ...updatedItem, id: itemId };
         }
         return item;
       })

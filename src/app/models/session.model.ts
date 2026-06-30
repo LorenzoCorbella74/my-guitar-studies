@@ -14,6 +14,7 @@ export interface SessionGroup {
   id: string;
   name: string;
   tags: string[];
+  isGlobal: boolean;
   isFavorite: boolean;
   order: number;
   createdAt: Date | null;
@@ -22,7 +23,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
   order: number;
 }
 
@@ -158,6 +159,15 @@ export interface TabItem extends SessionItem {
   title?: string;
   width?: number;
   height?: number;
+}
+
+export interface CircleOfFifthsItem extends SessionItem {
+  type: 'circleoffifths';
+  selectedKey: string;
+  showRelativeMinor: boolean;
+  highlightDistance: 1 | 2;
+  zoomLevel: number;
+  detailsPanelOpen: boolean;
 }
 
 export interface VisualizationConfig {

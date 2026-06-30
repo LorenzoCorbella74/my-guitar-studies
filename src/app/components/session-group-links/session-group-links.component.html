@@ -2,41 +2,77 @@
   <div 
     class="fixed right-6 z-40"
     style="top: 50%; transform: translateY(-50%);"
-    (mouseenter)="isHovered.set(true)"
-    (mouseleave)="isHovered.set(false)"
   >
-    <!-- Circle Badge -->
-    <div 
+    <button
+      type="button"
       class="w-12 h-12 rounded-full bg-primary shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
-      [attr.aria-label]="'Gruppo: ' + groupName()"
+      [attr.aria-label]="panelLabel()"
+      (click)="togglePanel()"
     >
       <svg lucideFolderOpen class="w-6 h-6 text-primary-content"></svg>
-    </div>
+    </button>
 
-    <!-- Popup Links -->
-    @if (isHovered()) {
-      <!-- Bridge invisibile per colmare il gap -->
-      <div 
-        class="absolute right-12 top-1/2 -translate-y-1/2 w-16 h-full"
-        style="pointer-events: auto;"
-      ></div>
-      
+    @if (isOpen()) {
       <div 
         class="absolute right-16 top-1/2 -translate-y-1/2 bg-base-100 rounded-lg shadow-xl p-2 min-w-[180px] max-w-[280px]"
         style="border: 2px solid oklch(var(--p));"
       >
-        <div class="text-[10px] font-semibold text-base-content/70 mb-1.5 uppercase tracking-wide px-2">
-          {{ groupName() }}
+        <div class="px-2 pb-2 border-b border-base-300 mb-2">
+          <div class="text-[10px] font-semibold text-base-content/70 mb-1 uppercase tracking-wide">
+            Navigazione gruppi
+          </div>
+          <input
+            type="text"
+            class="input input-bordered input-xs w-full"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            placeholder="Cerca sessione..."
+            aria-label="Cerca sessione"
+          />
         </div>
-        <div class="space-y-0.5">
-          @for (session of otherSessions(); track session.id) {
-            <button
-              type="button"
-              class="w-full text-left px-2 py-1.5 rounded-md hover:bg-base-200 transition-colors text-xs"
-              (click)="navigateToSession(session.id)"
-            >
-              {{ session.title }}
-            </button>
+
+        <div class="max-h-[60vh] overflow-y-auto space-y-1">
+          @for (section of filteredSections(); track section.id) {
+            <div class="border border-base-300 rounded-md overflow-hidden">
+              <button
+                type="button"
+                class="w-full flex items-center justify-between px-2 py-1.5 bg-base-200 hover:bg-base-300 transition-colors text-xs"
+                (click)="toggleGroup(section.id)"
+              >
+                <span class="font-semibold truncate">
+                  {{ section.name }}
+                  @if (section.isCurrent) {
+                    <span class="badge badge-primary badge-xs ms-1">Corrente</span>
+                  } @else {
+                    <span class="badge badge-xs ms-1 bg-orange-500 border-orange-500 text-white">Globale</span>
+                  }
+                </span>
+                <span class="opacity-70">{{ isGroupExpanded(section.id) ? '−' : '+' }}</span>
+              </button>
+
+              @if (isGroupExpanded(section.id)) {
+                <div class="p-1 bg-base-100">
+                  @for (session of section.sessions; track session.id) {
+                    <button
+                      type="button"
+                      class="w-full text-left px-2 py-1.5 rounded-md hover:bg-base-200 transition-colors text-xs flex items-center gap-1"
+                      (click)="navigateToSession(session.id)"
+                    >
+                      @if (session.isFavorite) {
+                        <span class="text-error">★</span>
+                      }
+                      <span class="truncate">{{ session.title || 'Senza titolo' }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @if (filteredSections().length === 0) {
+            <div class="text-xs text-base-content/60 px-2 py-2">
+              Nessun risultato per la ricerca corrente.
+            </div>
           }
         </div>
       </div>

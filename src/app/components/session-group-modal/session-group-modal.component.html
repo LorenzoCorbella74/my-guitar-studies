@@ -26,6 +26,17 @@
                 (keydown.enter)="save()"
               />
             </div>
+
+            <label class="label cursor-pointer gap-2 ms-2">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-sm border-orange-500 checked:border-orange-500 checked:bg-orange-500"
+                [checked]="isGlobal()"
+                (change)="isGlobal.set($any($event.target).checked)"
+                aria-label="Rendi gruppo globale"
+              />
+              <span class="label-text"><strong>Globale</strong></span>
+            </label>
             <!-- Tag Gruppo -->
             <div class="flex items-center gap-4 mb-4">
               <h3 class="shrink-0 ms-2"><strong>Tag</strong></h3>
