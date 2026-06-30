@@ -21,6 +21,21 @@ VITE_FIREBASE_APP_ID=your-app-id
 - **Publish directory**: `dist/my-guitar-studies/browser`
 - **Node version**: 18 or higher
 
+## SPA Routing (Refresh su URL profonde)
+
+Per evitare errore 404 quando l'utente ricarica una route client-side (ad esempio `/sessions/:id`), serve un fallback verso `index.html`.
+
+Il progetto include `netlify.toml` con:
+
+```toml
+[[redirects]]
+	from = "/*"
+	to = "/index.html"
+	status = 200
+```
+
+In questo modo Netlify serve l'app Angular anche su URL non fisicamente presenti su disco e il router gestisce la navigazione lato client.
+
 ## Deployment Process
 
 1. Push your code to GitHub/GitLab/Bitbucket
