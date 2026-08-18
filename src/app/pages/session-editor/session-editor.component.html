@@ -1,12 +1,24 @@
     <div class="min-h-screen">
       <div class="sticky top-0 z-50 bg-base-100/95 backdrop-blur-sm shadow-sm">
         <div class="max-w-5xl mx-auto px-4 py-3">
-          <div class="flex justify-between items-center">
-            <button (click)="goBack()" class="btn btn-ghost btn-sm">
+          <div class="flex flex-wrap justify-between items-center gap-2">
+            <button (click)="goBack()" class="btn btn-ghost btn-sm whitespace-nowrap">
               <svg lucideArrowLeft class="w-4 h-4"></svg> Torna alle sessioni
             </button>
             @if (!notFound()) {
-              <div class="flex gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                @if (clipboard.hasItems()) {
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-primary btn-sm whitespace-nowrap"
+                    (click)="pasteItems()"
+                    [attr.aria-label]="'Incolla ' + clipboard.count() + ' elementi'
+                    "
+                    [title]="'Incolla ' + clipboard.count() + ' elementi'"
+                  >
+                    Incolla {{ clipboard.count() }} elementi
+                  </button>
+                }
                 <app-item-selector (itemSelected)="addItem($event)" />
                 <button class="btn btn-dash btn-primary btn-sm" (click)="save()" [disabled]="saving()">
                   <svg lucideSave class="w-4 h-4"></svg> Salva
@@ -100,8 +112,19 @@
             
             @for (item of items(); track item.id) {
               <div cdkDrag class="drag-item-wrapper" @fadeSlideUp>
-                <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
-                  <svg lucideGripVertical class="w-5 h-5"></svg>
+                <div class="flex shrink-0 flex-col items-center gap-1">
+                  <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
+                    <svg lucideGripVertical class="w-5 h-5"></svg>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-square btn-xs"
+                    (click)="copyItem(item)"
+                    [attr.aria-label]="'Copia elemento ' + (item.order + 1)"
+                    title="Copia elemento"
+                  >
+                    <svg lucideCopy class="h-3.5 w-3.5"></svg>
+                  </button>
                 </div>
                 
                 <div class="item-content">
@@ -135,6 +158,13 @@
                       [progression]="$any(item)"
                       (update)="updateChordProgression(item.id, $event)"
                       (deleteProgression)="deleteItem(item.id)"
+                    />
+                  }
+                  @if (item.type === 'harmonicgrid') {
+                    <app-harmonic-grid
+                      [grid]="$any(item)"
+                      (update)="updateHarmonicGrid(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
                     />
                   }
                   @if (item.type === 'timeline') {

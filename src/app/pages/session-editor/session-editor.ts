@@ -5,13 +5,14 @@ import { AppRoutes } from '../../enums/routes.enum';
 import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem, CircleOfFifthsItem } from '../../models/session.model';
+import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy } from '@lucide/angular';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, HarmonicGridItem, HarmonicSection, HarmonicBar, HarmonicBeat, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem, CircleOfFifthsItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
 import { ScaleVisualizationComponent } from '../../components/scale-visualization/scale-visualization.component';
 import { ChordProgressionComponent } from '../../components/chord-progression/chord-progression.component';
+import { HarmonicGridComponent } from '../../components/harmonic-grid/harmonic-grid.component';
 import { TimelineVisualizationComponent } from '../../components/timeline-visualization/timeline-visualization.component';
 import { ModalInterchangeComponent } from '../../components/modal-interchange/modal-interchange.component';
 import { FretboardEditorComponent } from '../../components/fretboard-editor/fretboard-editor.component';
@@ -23,11 +24,12 @@ import { KeyProgressionComponent } from '../../components/key-progression/key-pr
 import { FretboardEditorNameDialogComponent } from "../../components/section-editor/dialogs/fretboard-editor-name-dialog.component";
 import { TabEditorComponent } from '../../components/tab-editor/tab-editor.component';
 import { CircleOfFifthsComponent } from '../../components/circle-of-fifths/circle-of-fifths.component';
+import { SessionItemClipboardService } from '../../services/session-item-clipboard.service';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -95,6 +97,7 @@ export class SessionEditorPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private confirmService = inject(ConfirmService);
+  clipboard = inject(SessionItemClipboardService);
 
   @ViewChild('itemsContainer') itemsContainer?: ElementRef<HTMLDivElement>;
 
@@ -128,6 +131,15 @@ export class SessionEditorPage implements OnInit {
 
   allGroups = computed(() => this.sessionService.groups());
   allSessions = computed(() => this.sessionService.sessions());
+
+  copyItem(item: SessionItem): void {
+    this.clipboard.copy([item]);
+  }
+
+  pasteItems(): void {
+    if (!this.clipboard.hasItems()) return;
+    this.items.set(this.clipboard.pasteInto(this.items()));
+  }
 
   async ngOnInit() {
     await this.tagService.loadTags();
@@ -349,6 +361,27 @@ export class SessionEditorPage implements OnInit {
     } else if (type === 'chordprogression') {
       // Apri la modale per chiedere il nome
       this.chordProgressionDialogOpen.set(true);
+    } else if (type === 'harmonicgrid') {
+      const emptyBeat = (): HarmonicBeat => ({ chord: null, holdPrevious: false });
+      const newBar = (): HarmonicBar => ({
+        id: `bar_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        beats: [emptyBeat(), emptyBeat(), emptyBeat(), emptyBeat()]
+      });
+      const newSection: HarmonicSection = {
+        id: `section_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        label: 'A',
+        name: 'Strofa',
+        bars: [newBar()]
+      };
+      const newHarmonicGrid: HarmonicGridItem = {
+        id: newId,
+        type: 'harmonicgrid',
+        order: newOrder,
+        title: 'Titolo',
+        bpm: 80,
+        sections: [newSection]
+      };
+      this.items.update(items => [...items, newHarmonicGrid]);
     } else if (type === 'timeline') {
       const defaultLayer: TimelineLayer = {
         id: `layer_${Date.now()}`,
@@ -540,6 +573,14 @@ export class SessionEditorPage implements OnInit {
         }
         return item;
       })
+    );
+  }
+
+  updateHarmonicGrid(itemId: string, updatedGrid: HarmonicGridItem) {
+    this.items.update(items =>
+      items.map(item => item.id === itemId && item.type === 'harmonicgrid'
+        ? { ...updatedGrid, id: itemId }
+        : item)
     );
   }
 

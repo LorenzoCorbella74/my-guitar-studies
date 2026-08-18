@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3 } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid],
   template: `
     <div class="relative">
       <button
@@ -61,7 +61,13 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
           <li>
             <button type="button" (mousedown)="selectItem('chordprogression')">
               <svg lucideListMusic class="w-4 h-4"></svg>
-              Progressione Accordi
+               Diteggiature Accordi
+            </button>
+          </li>
+          <li>
+            <button type="button" (mousedown)="selectItem('harmonicgrid')">
+              <svg lucideLayoutGrid class="w-4 h-4"></svg>
+              Griglia Accordi
             </button>
           </li>
           <li>

@@ -1,8 +1,8 @@
 <div class="card bg-base-100 shadow-md">
   <div class="card-body">
     <!-- Header with layer navigation -->
-    <div class="flex justify-between items-center mb-2">
-      <div class="flex items-center gap-2">
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+      <div class="flex flex-wrap items-center gap-2">
         <h3 class="text-lg font-semibold">Timeline</h3>
         <button
           type="button"
@@ -15,7 +15,7 @@
         </button>
       </div>
       
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <!-- Layer navigation -->
         <button
           type="button"
@@ -258,189 +258,189 @@
 
     <!-- SVG Fretboard -->
     <div class="overflow-x-auto">
-      <svg
-        [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
-        class="w-full"
-      >
-        <!-- Fretboard background -->
-        <rect
-          [attr.x]="leftMargin"
-          [attr.y]="getStringY(5)"
-          [attr.width]="fretboardWidth() - leftMargin - rightMargin"
-          [attr.height]="getStringY(0) - getStringY(5)"
-          [attr.fill]="fretboardColor()"
-          opacity="0.95"
-        />
-
-        <!-- Frets (vertical lines) -->
-        @for (fret of frets; track fret) {
-          <line
-            [attr.x1]="getFretX(fret)"
-            [attr.y1]="getStringY(5)"
-            [attr.x2]="getFretX(fret)"
-            [attr.y2]="getStringY(0)"
-            [attr.stroke]="fret === 0 ? fretboardColors().nut : fretboardColors().frets"
-            [attr.stroke-width]="fret === 0 ? 6 : 3"
+        <svg
+          [attr.viewBox]="'0 0 ' + fretboardWidth() + ' ' + fretboardHeight()"
+          class="w-full"
+        >
+          <!-- Fretboard background -->
+          <rect
+            [attr.x]="leftMargin"
+            [attr.y]="getStringY(5)"
+            [attr.width]="fretboardWidth() - leftMargin - rightMargin"
+            [attr.height]="getStringY(0) - getStringY(5)"
+            [attr.fill]="fretboardColor()"
+            opacity="0.95"
           />
-        }
 
-        <!-- Strings (horizontal lines) -->
-        @for (stringNum of strings; track stringNum) {
-          <line
-            [attr.x1]="leftMargin"
-            [attr.y1]="getStringY(stringNum)"
-            [attr.x2]="fretboardWidth() - rightMargin"
-            [attr.y2]="getStringY(stringNum)"
-            [attr.stroke]="fretboardColors().strings"
-            stroke-width="1"
-          />
-        }
+          <!-- Frets (vertical lines) -->
+          @for (fret of frets; track fret) {
+            <line
+              [attr.x1]="getFretX(fret)"
+              [attr.y1]="getStringY(5)"
+              [attr.x2]="getFretX(fret)"
+              [attr.y2]="getStringY(0)"
+              [attr.stroke]="fret === 0 ? fretboardColors().nut : fretboardColors().frets"
+              [attr.stroke-width]="fret === 0 ? 6 : 3"
+            />
+          }
 
-        <!-- Fret markers -->
-        @for (marker of fretMarkers; track marker) {
+          <!-- Strings (horizontal lines) -->
+          @for (stringNum of strings; track stringNum) {
+            <line
+              [attr.x1]="leftMargin"
+              [attr.y1]="getStringY(stringNum)"
+              [attr.x2]="fretboardWidth() - rightMargin"
+              [attr.y2]="getStringY(stringNum)"
+              [attr.stroke]="fretboardColors().strings"
+              stroke-width="1"
+            />
+          }
+
+          <!-- Fret markers -->
+          @for (marker of fretMarkers; track marker) {
+            <circle
+              [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
+              [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
+              r="7"
+              [attr.fill]="fretboardColors().inlays"
+              opacity="0.8"
+            />
+          }
+
+          <!-- Double marker at 12th fret -->
           <circle
-            [attr.cx]="getFretX(marker - 1) + fretWidth / 2"
-            [attr.cy]="(getStringY(0) + getStringY(5)) / 2"
+            [attr.cx]="getFretX(11) + fretWidth / 2"
+            [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
             r="7"
             [attr.fill]="fretboardColors().inlays"
             opacity="0.8"
           />
-        }
+          <circle
+            [attr.cx]="getFretX(11) + fretWidth / 2"
+            [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
+            r="7"
+            [attr.fill]="fretboardColors().inlays"
+            opacity="0.8"
+          />
 
-        <!-- Double marker at 12th fret -->
-        <circle
-          [attr.cx]="getFretX(11) + fretWidth / 2"
-          [attr.cy]="(getStringY(0) + getStringY(5)) / 2 - 40"
-          r="7"
-          [attr.fill]="fretboardColors().inlays"
-          opacity="0.8"
-        />
-        <circle
-          [attr.cx]="getFretX(11) + fretWidth / 2"
-          [attr.cy]="(getStringY(0) + getStringY(5)) / 2 + 40"
-          r="7"
-          [attr.fill]="fretboardColors().inlays"
-          opacity="0.8"
-        />
-
-        <!-- Notes (clickable) -->
-        @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
-          <g
-            [class.cursor-pointer]="!isPlaying()"
-            (click)="handleNoteClick(fretNote, $event)"
-          >
-            @if (isOverlayNote(fretNote)) {
-              <!-- Overlay note (same style as scale-visualization) -->
-              <g style="cursor: help;">
-                <title>Overlay</title>
-                <!-- Visible dotted border -->
-                <rect
-                  [attr.x]="getNoteX(fretNote.fret) - 19"
-                  [attr.y]="getStringY(fretNote.string) - 19"
-                  width="38"
-                  height="38"
-                  rx="5"
-                  ry="5"
-                  fill="none"
-                  stroke="#666"
-                  stroke-width="1"
-                  opacity="0.5"
-                  style="pointer-events: none;"
-                />
-                <rect
-                  [attr.x]="getNoteX(fretNote.fret) - 19"
-                  [attr.y]="getStringY(fretNote.string) - 19"
-                  width="38"
-                  height="38"
-                  rx="5"
-                  ry="5"
-                  fill="#000"
+          <!-- Notes (clickable) -->
+          @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
+            <g
+              [class.cursor-pointer]="!isPlaying()"
+              (click)="handleNoteClick(fretNote, $event)"
+            >
+              @if (isOverlayNote(fretNote)) {
+                <!-- Overlay note (same style as scale-visualization) -->
+                <g style="cursor: help;">
+                  <title>Overlay</title>
+                  <!-- Visible dotted border -->
+                  <rect
+                    [attr.x]="getNoteX(fretNote.fret) - 19"
+                    [attr.y]="getStringY(fretNote.string) - 19"
+                    width="38"
+                    height="38"
+                    rx="5"
+                    ry="5"
+                    fill="none"
+                    stroke="#666"
+                    stroke-width="1"
+                    opacity="0.5"
+                    style="pointer-events: none;"
+                  />
+                  <rect
+                    [attr.x]="getNoteX(fretNote.fret) - 19"
+                    [attr.y]="getStringY(fretNote.string) - 19"
+                    width="38"
+                    height="38"
+                    rx="5"
+                    ry="5"
+                    fill="#000"
+                    stroke="#000"
+                    opacity="0.2"
+                    style="pointer-events: none;"
+                  />
+                </g>
+              }
+              @if (fretNote.isActive) {
+                <!-- Active note -->
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="15"
+                  [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
                   stroke="#000"
-                  opacity="0.2"
-                  style="pointer-events: none;"
+                  stroke-width="2"
+                  [attr.opacity]="fretNote.opacity ?? 1"
                 />
-              </g>
-            }
-            @if (fretNote.isActive) {
-              <!-- Active note -->
-              <circle
-                [attr.cx]="getNoteX(fretNote.fret)"
-                [attr.cy]="getStringY(fretNote.string)"
-                r="15"
-                [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
-                stroke="#000"
-                stroke-width="2"
-                [attr.opacity]="fretNote.opacity ?? 1"
-              />
-              <text
-                [attr.x]="getNoteX(fretNote.fret)"
-                [attr.y]="getStringY(fretNote.string) - 2"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                class="text-xs font-semibold fill-black"
-                [attr.opacity]="fretNote.opacity ?? 1"
-              >
-                {{ fretNote.note }}
-              </text>
-              @if (fretNote.degree) {
                 <text
                   [attr.x]="getNoteX(fretNote.fret)"
-                  [attr.y]="getStringY(fretNote.string) + 8"
+                  [attr.y]="getStringY(fretNote.string) - 2"
                   text-anchor="middle"
                   dominant-baseline="middle"
-                  class="text-[10px] font-medium fill-black"
+                  class="text-xs font-semibold fill-black"
                   [attr.opacity]="fretNote.opacity ?? 1"
                 >
-                  {{ fretNote.degree }}
+                  {{ fretNote.note }}
                 </text>
+                @if (fretNote.degree) {
+                  <text
+                    [attr.x]="getNoteX(fretNote.fret)"
+                    [attr.y]="getStringY(fretNote.string) + 8"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    class="text-[10px] font-medium fill-black"
+                    [attr.opacity]="fretNote.opacity ?? 1"
+                  >
+                    {{ fretNote.degree }}
+                  </text>
+                }
+              } @else if (!isPlaying()) {
+                <!-- Inactive note (all notes clickable) -->
+                <circle
+                  [attr.cx]="getNoteX(fretNote.fret)"
+                  [attr.cy]="getStringY(fretNote.string)"
+                  r="10"
+                  [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
+                  opacity="0.2"
+                  stroke="#666"
+                  stroke-width="1"
+                />
               }
-            } @else if (!isPlaying()) {
-              <!-- Inactive note (all notes clickable) -->
-              <circle
-                [attr.cx]="getNoteX(fretNote.fret)"
-                [attr.cy]="getStringY(fretNote.string)"
-                r="10"
-                [attr.fill]="getNoteColor(fretNote.degree, fretNote.note, fretNote.octave, fretNote.scaleIndex)"
-                opacity="0.2"
-                stroke="#666"
-                stroke-width="1"
-              />
-            }
-          </g>
-        }
+            </g>
+          }
 
-        <!-- Fret numbers -->
-        @for (fretNum of [3, 5, 7, 9, 12]; track fretNum) {
-          <text
-            [attr.x]="getFretX(fretNum - 1) + fretWidth / 2"
-            [attr.y]="getStringY(0) + 35"
-            text-anchor="middle"
-            class="text-xs"
-            fill="#999"
-          >
-            {{ fretNum }}
-          </text>
-        }
+          <!-- Fret numbers -->
+          @for (fretNum of [3, 5, 7, 9, 12]; track fretNum) {
+            <text
+              [attr.x]="getFretX(fretNum - 1) + fretWidth / 2"
+              [attr.y]="getStringY(0) + 35"
+              text-anchor="middle"
+              class="text-xs"
+              fill="#999"
+            >
+              {{ fretNum }}
+            </text>
+          }
 
-        <!-- String labels -->
-        @for (openNote of tuning(); track $index; let i = $index) {
-          <text
-            x="20"
-            [attr.y]="getStringY(i)"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            class="text-xs font-medium"
-            fill="#666"
-          >
-            {{ openNote.replace(/\d+/, '') }}
-          </text>
-        }
-      </svg>
-    </div>
+          <!-- String labels -->
+          @for (openNote of tuning(); track $index; let i = $index) {
+            <text
+              x="20"
+              [attr.y]="getStringY(i)"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              class="text-xs font-medium"
+              fill="#666"
+            >
+              {{ openNote.replace(/\d+/, '') }}
+            </text>
+          }
+        </svg>
+      </div>
 
     <!-- Instructions -->
     <div class="text-base-content/60 mt-2 text-center" style="font-size: 10px;">
-      <strong>Clicca</strong> su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo. Tieni premuto <strong>Ctrl e clicca</strong> per aggiungere/rimuovere note in overlay.
+        <strong>Clicca</strong> su qualsiasi nota per attivarla/disattivarla. Le note mostrano l'intervallo rispetto alla root dell'accordo. Tieni premuto <strong>Ctrl e clicca</strong> per aggiungere/rimuovere note in overlay.
     </div>
   </div>
 </div>

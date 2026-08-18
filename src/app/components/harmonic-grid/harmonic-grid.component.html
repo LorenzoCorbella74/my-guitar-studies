@@ -1,0 +1,172 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body gap-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
+        <input type="text" class="input input-bordered input-sm w-1/2 min-w-0 flex-none" [ngModel]="grid().title"
+          (ngModelChange)="updateGrid({ title: $event })" aria-label="Titolo della griglia armonica"
+          placeholder="Titolo" />
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm text-error" (click)="delete.emit()">
+        <svg lucideTrash2 class="h-4 w-4"></svg>
+        Elimina
+      </button>
+      @if (displayMode() === 'notation') {
+      <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="toggleDisplayMode()"
+        aria-label="Modifica griglia armonica" title="Modifica griglia armonica">
+        <svg lucidePencil class="h-4 w-4"></svg>
+      </button>
+      }
+      <div class="flex items-center gap-2">
+        <label class="flex items-center gap-2 text-sm font-semibold" for="harmonic-grid-bpm">
+          BPM
+          <input id="harmonic-grid-bpm" type="number" class="input input-bordered input-sm w-20"
+            [value]="bpm" (change)="updateBpm(+$any($event.target).value)" min="40" max="240"
+            [disabled]="isPlaying()" />
+        </label>
+        @if (isPlaying()) {
+        <app-beat-indicator [currentBeat]="currentBeat()" />
+        <button type="button" class="btn btn-sm btn-error" (click)="stop()" aria-label="Ferma playback">
+          <svg lucideSquare class="h-4 w-4"></svg>
+          Stop
+        </button>
+        } @else {
+        <button type="button" class="btn btn-sm btn-success" (click)="play()" aria-label="Avvia playback">
+          <svg lucidePlay class="h-4 w-4"></svg>
+          Play
+        </button>
+        }
+      </div>
+    </div>
+
+    @if (displayMode() === 'edit') {
+    <div class="alert py-2 text-sm">
+      Metro fisso: <strong>4/4</strong>. Ogni battuta contiene quattro quarti.
+    </div>
+
+    <div cdkDropList class="space-y-3" (cdkDropListDropped)="onSectionDrop($event)">
+    @for (section of grid().sections; track section.id; let sectionIndex = $index) {
+    <section cdkDrag class="rounded-lg border border-base-300 bg-base-200/40 p-3">
+      <div class="mb-3 flex flex-wrap items-end gap-2">
+        <div cdkDragHandle class="drag-handle flex shrink-0 cursor-grab items-center self-end px-1 text-base-content/50"
+          [attr.aria-label]="'Trascina per riordinare la sezione ' + section.label" title="Trascina per riordinare">
+          <svg lucideGripVertical class="h-5 w-5"></svg>
+        </div>
+        <label class="form-control w-20">
+          <span class="label-text text-xs">Sezione</span>
+          <input type="text" class="input input-bordered input-sm uppercase" [ngModel]="section.label"
+            (ngModelChange)="updateSection(sectionIndex, { label: $event })" maxlength="4"
+            [attr.aria-label]="'Etichetta sezione ' + (sectionIndex + 1)" />
+        </label>
+        <label class="form-control min-w-48 flex-1">
+          <span class="label-text text-xs">Nome facoltativo</span>
+          <input type="text" class="input input-bordered input-sm" [ngModel]="section.name || ''"
+            (ngModelChange)="updateSection(sectionIndex, { name: $event || undefined })"
+            placeholder="Strofa, Ritornello, Bridge..." [attr.aria-label]="'Nome sezione ' + section.label" />
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="duplicateSection(sectionIndex)"
+          [attr.aria-label]="'Duplica sezione ' + section.label" title="Duplica sezione">
+          <svg lucideCopy class="h-4 w-4"></svg>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm text-error" (click)="removeSection(sectionIndex)"
+          [disabled]="grid().sections.length === 1" [attr.aria-label]="'Elimina sezione ' + section.label"
+          title="Elimina sezione">
+          <svg lucideTrash2 class="h-4 w-4"></svg>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        @for (bar of section.bars; track bar.id; let barIndex = $index) {
+        <div class="rounded-md border border-base-300 bg-base-100 p-2">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold">Battuta {{ barIndex + 1 }}</span>
+            <div class="flex gap-1">
+              <button type="button" class="btn btn-ghost btn-xs" (click)="duplicateBar(sectionIndex, barIndex)"
+                [attr.aria-label]="'Duplica battuta ' + (barIndex + 1)" title="Duplica battuta">
+                <svg lucideCopy class="h-3.5 w-3.5"></svg>
+              </button>
+              <button type="button" class="btn btn-ghost btn-xs text-error" (click)="removeBar(sectionIndex, barIndex)"
+                [disabled]="section.bars.length === 1" [attr.aria-label]="'Elimina battuta ' + (barIndex + 1)"
+                title="Elimina battuta">
+                <svg lucideTrash2 class="h-3.5 w-3.5"></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+            @for (beat of bar.beats; track $index; let beatIndex = $index) {
+            <div class="rounded border border-base-300 p-2">
+              <label class="label px-0 py-0">
+                <span class="label-text text-xs">Quarto {{ beatIndex + 1 }}</span>
+              </label>
+              @if (beat.holdPrevious) {
+              <button type="button" class="btn btn-outline btn-sm w-full"
+                (click)="setBeat(sectionIndex, barIndex, beatIndex, { holdPrevious: false })" [attr.aria-label]="'Accordo mantenuto, quarto ' + (beatIndex + 1) + '. Clicca per modificare'
+                            ">
+                Mantieni
+              </button>
+              } @else {
+              <input type="text" class="input input-bordered input-sm w-full" [ngModel]="beat.chord || ''"
+                (ngModelChange)="setBeat(sectionIndex, barIndex, beatIndex, { chord: $event || null })"
+                [attr.aria-label]="'Accordo quarto ' + (beatIndex + 1)" placeholder="Em7" />
+              }
+              <button type="button" class="mt-1 w-full text-left text-xs text-base-content/60 hover:text-base-content"
+                (click)="toggleHold(sectionIndex, barIndex, beatIndex)">
+                {{ beat.holdPrevious ? 'Inserisci accordo' : 'Mantieni precedente' }}
+              </button>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+
+      <button type="button" class="btn btn-outline btn-sm mt-3" (click)="addBar(sectionIndex)">
+        <svg lucidePlus class="h-4 w-4"></svg>
+        Aggiungi battuta
+      </button>
+    </section>
+    }
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between">
+      <button type="button" class="btn btn-primary btn-sm" (click)="addSection()">
+        <svg lucidePlus class="h-4 w-4"></svg>
+        Aggiungi sezione
+      </button>
+      <button type="button" class="btn btn-primary btn-sm self-start" (click)="saveNotation()">
+        Salva
+      </button>
+    </div>
+
+    } @else {
+    <div class="space-y-4">
+      @for (section of grid().sections; track section.id; let sectionIndex = $index) {
+      <section class="rounded-lg border border-base-300 bg-base-200/40 p-3">
+        <div class="mb-3 flex items-baseline gap-2">
+          <span class="text-lg font-bold">{{ section.label }}</span>
+          @if (section.name) {
+          <span class="text-sm text-base-content/70">{{ section.name }}</span>
+          }
+        </div>
+        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          @for (bar of section.bars; track bar.id; let barIndex = $index) {
+          <div class="rounded-md border border-base-300 bg-base-100 p-3">
+            <div class="grid grid-cols-4 gap-1 border-y border-base-300 py-2 text-center font-mono text-lg">
+              @for (beat of bar.beats; track $index; let beatIndex = $index) {
+              <span class="min-w-0 truncate rounded px-1 transition-colors"
+                [class.bg-primary]="isActiveBeat(sectionIndex, barIndex, beatIndex)"
+                [class.text-primary-content]="isActiveBeat(sectionIndex, barIndex, beatIndex)"
+                [title]="getBeatLabel(beat, beatIndex)">
+                {{ getBeatLabel(beat, beatIndex) }}
+              </span>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </section>
+      }
+    </div>
+    }
+  </div>
+</div>

@@ -23,7 +23,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
   order: number;
 }
 
@@ -83,6 +83,30 @@ export interface ChordProgressionItem extends SessionItem {
   type: 'chordprogression';
   title: string;
   chords: ChordDefinition[];
+}
+
+export interface HarmonicBeat {
+  chord: string | null;
+  holdPrevious: boolean;
+}
+
+export interface HarmonicBar {
+  id: string;
+  beats: [HarmonicBeat, HarmonicBeat, HarmonicBeat, HarmonicBeat];
+}
+
+export interface HarmonicSection {
+  id: string;
+  label: string;
+  name?: string;
+  bars: HarmonicBar[];
+}
+
+export interface HarmonicGridItem extends SessionItem {
+  type: 'harmonicgrid';
+  title: string;
+  bpm?: number;
+  sections: HarmonicSection[];
 }
 
 export interface ComparisonItem extends SessionItem {
