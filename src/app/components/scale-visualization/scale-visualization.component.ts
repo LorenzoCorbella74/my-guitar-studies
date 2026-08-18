@@ -15,6 +15,7 @@ interface FretNote {
   fret: number;
   note: string;
   isScaleNote: boolean;
+  isCustomNote: boolean;
   scaleIndex?: number;
   octave?: number;
 }
@@ -199,16 +200,72 @@ export class ScaleVisualizationComponent implements OnInit {
   notesWithDegrees = computed(() => {
     if (!this.hasConfig()) return [];
     const notes = this.scaleNotes();
+    const item = this.scaleItem();
+    const customNotes = item.customNotes || [];
     const cfg = this.config();
     const root = cfg.root;
-    
-    return notes.map(note => {
+    const rootChroma = Note.chroma(root);
+
+    const baseNotes = notes.map(note => {
       const noteName = note.replace(/[0-9]/g, '');
       const degree = Interval.distance(root, noteName);
       return {
         note: noteName, // Keep original note name (with flats if present)
-        degree: degree || '1P'
+        degree: degree || '1P',
+        isCustom: false
       };
+    });
+
+    const baseChromas = new Set<number>();
+    baseNotes.forEach(entry => {
+      const chroma = Note.chroma(entry.note);
+      if (chroma !== undefined) {
+        baseChromas.add(chroma);
+      }
+    });
+
+    const customEntries = customNotes
+      .map(note => note.replace(/[0-9]/g, ''))
+      .map(note => Note.get(note).pc || note)
+      .filter(note => note.length > 0)
+      .map(note => {
+        const chroma = Note.chroma(note);
+        return { note, chroma };
+      })
+      .filter((entry): entry is { note: string; chroma: number } => entry.chroma !== undefined)
+      .filter(entry => !baseChromas.has(entry.chroma))
+      .filter((entry, idx, arr) => arr.findIndex(other => other.chroma === entry.chroma) === idx)
+      .map(entry => ({
+        note: entry.note,
+        degree: Interval.distance(root, entry.note) || '1P',
+        isCustom: true
+      }));
+
+    const merged = [...baseNotes, ...customEntries];
+
+    if (rootChroma === undefined) {
+      return merged;
+    }
+
+    return [...merged].sort((a, b) => {
+      const aChroma = Note.chroma(a.note);
+      const bChroma = Note.chroma(b.note);
+      if (aChroma === undefined || bChroma === undefined) {
+        return a.note.localeCompare(b.note);
+      }
+
+      const aDistance = (aChroma - rootChroma + 12) % 12;
+      const bDistance = (bChroma - rootChroma + 12) % 12;
+
+      if (aDistance !== bDistance) {
+        return aDistance - bDistance;
+      }
+
+      if (a.isCustom !== b.isCustom) {
+        return a.isCustom ? 1 : -1;
+      }
+
+      return a.note.localeCompare(b.note);
     });
   });
 
@@ -217,13 +274,55 @@ export class ScaleVisualizationComponent implements OnInit {
     
     const cfg = this.config();
     const scaleNotesArray = this.scaleNotes().map(n => n.replace(/[0-9]/g, ''));
+    const allVisibleNotes = this.notesWithDegrees();
+    const customNotes = this.scaleItem().customNotes || [];
+    const customChromas = new Set<number>();
+    customNotes.forEach(note => {
+      const chroma = Note.chroma(note.replace(/[0-9]/g, ''));
+      if (chroma !== undefined) {
+        customChromas.add(chroma);
+      }
+    });
     
     // Create map using chroma (0-11) as key for enharmonic comparison
-    const scaleNotesMap = new Map<number, { originalNote: string; index: number }>();
+    const scaleNotesMap = new Map<number, { originalNote: string; index: number; isScaleNote: boolean; isCustomNote: boolean }>();
+    allVisibleNotes.forEach((entry, index) => {
+      const chroma = Note.chroma(entry.note);
+      if (chroma !== undefined && !scaleNotesMap.has(chroma)) {
+        const isScaleNote = scaleNotesArray.some(scaleNote => {
+          const scaleChroma = Note.chroma(scaleNote);
+          return scaleChroma !== undefined && scaleChroma === chroma;
+        });
+        scaleNotesMap.set(chroma, {
+          originalNote: entry.note,
+          index,
+          isScaleNote,
+          isCustomNote: customChromas.has(chroma) && !isScaleNote
+        });
+      }
+    });
+
+    // Ensure scale notes are always represented with their source spelling when available
     scaleNotesArray.forEach((note, index) => {
       const chroma = Note.chroma(note);
       if (chroma !== undefined) {
-        scaleNotesMap.set(chroma, { originalNote: note, index });
+        const existing = scaleNotesMap.get(chroma);
+        if (existing) {
+          scaleNotesMap.set(chroma, {
+            ...existing,
+            originalNote: note,
+            index,
+            isScaleNote: true,
+            isCustomNote: false
+          });
+        } else {
+          scaleNotesMap.set(chroma, {
+            originalNote: note,
+            index,
+            isScaleNote: true,
+            isCustomNote: false
+          });
+        }
       }
     });
     
@@ -255,6 +354,7 @@ export class ScaleVisualizationComponent implements OnInit {
           fret,
           note: isScaleNote ? scaleNoteData.originalNote : NOTES[noteChroma],
           isScaleNote,
+          isCustomNote: scaleNoteData?.isCustomNote ?? false,
           scaleIndex: isScaleNote ? scaleNoteData.index : undefined,
           octave: currentOctave
         });
@@ -357,7 +457,8 @@ export class ScaleVisualizationComponent implements OnInit {
             string: stringIndex,
             fret,
             note: NOTES[noteChroma],
-            isScaleNote: true
+            isScaleNote: true,
+            isCustomNote: false
           });
         }
       }
@@ -467,7 +568,7 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   areAlternateNotesVisible(): boolean {
-    const notes = this.notesWithDegrees();
+    const notes = this.scaleNotes().map(note => note.replace(/[0-9]/g, ''));
     const item = this.scaleItem();
     const noteVis = item.noteVisibility || {};
     
@@ -475,7 +576,7 @@ export class ScaleVisualizationComponent implements OnInit {
     const alternateIndices = [1, 3, 5];
     return alternateIndices.some(idx => {
       if (idx < notes.length) {
-        const note = notes[idx].note;
+        const note = notes[idx];
         return noteVis[note] !== false;
       }
       return false;
@@ -483,7 +584,7 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   toggleAlternateNotes(): void {
-    const notes = this.notesWithDegrees();
+    const notes = this.scaleNotes().map(note => note.replace(/[0-9]/g, ''));
     const item = this.scaleItem();
     const currentVisibility = item.noteVisibility || {};
     
@@ -494,7 +595,7 @@ export class ScaleVisualizationComponent implements OnInit {
     const newVisibility = { ...currentVisibility };
     alternateIndices.forEach(idx => {
       if (idx < notes.length) {
-        const note = notes[idx].note;
+        const note = notes[idx];
         newVisibility[note] = !shouldHide;
       }
     });
@@ -698,9 +799,18 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   handleNoteClick(event: MouseEvent, fretNote: FretNote): void {
+    if (event.shiftKey) {
+      this.toggleCustomNoteFromFret(fretNote);
+      return;
+    }
+
     // Check if CTRL or CMD key is pressed
     if (event.ctrlKey || event.metaKey) {
       this.toggleNoteInOverlay(fretNote);
+      return;
+    }
+
+    if (!fretNote.isScaleNote && !fretNote.isCustomNote) {
       return;
     }
     
@@ -740,6 +850,55 @@ export class ScaleVisualizationComponent implements OnInit {
     
     // Save to Firebase
     this.saveHighlightState(newState);
+  }
+
+  private toggleCustomNoteFromFret(fretNote: FretNote): void {
+    const item = this.scaleItem();
+    const noteName = Note.get(fretNote.note).pc || fretNote.note;
+    const clickedChroma = Note.chroma(noteName);
+    if (clickedChroma === undefined) {
+      return;
+    }
+
+    const baseScaleChromas = new Set<number>();
+    this.scaleNotes().forEach(note => {
+      const chroma = Note.chroma(note.replace(/[0-9]/g, ''));
+      if (chroma !== undefined) {
+        baseScaleChromas.add(chroma);
+      }
+    });
+
+    // Prevent duplicating notes that already belong to the main scale/chord.
+    if (baseScaleChromas.has(clickedChroma)) {
+      return;
+    }
+
+    const currentCustomNotes = item.customNotes || [];
+    const existingIndex = currentCustomNotes.findIndex(note => {
+      const chroma = Note.chroma(note.replace(/[0-9]/g, ''));
+      return chroma !== undefined && chroma === clickedChroma;
+    });
+
+    let updatedCustomNotes: string[];
+    let updatedVisibility = { ...(item.noteVisibility || {}) };
+
+    if (existingIndex >= 0) {
+      const removedNote = currentCustomNotes[existingIndex];
+      updatedCustomNotes = currentCustomNotes.filter((_, index) => index !== existingIndex);
+      delete updatedVisibility[removedNote];
+      delete updatedVisibility[noteName];
+    } else {
+      updatedCustomNotes = [...currentCustomNotes, noteName];
+      updatedVisibility[noteName] = true;
+    }
+
+    const updatedItem = {
+      ...item,
+      customNotes: updatedCustomNotes,
+      noteVisibility: updatedVisibility
+    };
+
+    this.update.emit(updatedItem);
   }
   
   private saveHighlightState(state: { string: number; fret: number; note: string; level: 0 | 1 | 2 }): void {
