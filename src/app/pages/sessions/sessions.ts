@@ -79,6 +79,11 @@ export class SessionsListPage implements OnInit {
   });
 
   ngOnInit() {
+    const view = this.route.snapshot.queryParamMap.get('view');
+    if (view === 'table' || view === 'card') {
+      this.viewMode.set(view);
+    }
+
     this.loadData();
     
     // Controlla se c'è un groupId nei query params per aprire la modale

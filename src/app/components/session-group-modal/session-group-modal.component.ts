@@ -37,6 +37,7 @@ export class SessionGroupModalComponent {
   isOpen = input.required<boolean>();
   group = input<SessionGroup | null>(null);
   sessions = input<Session[]>([]);
+  viewMode = input<'card' | 'table'>('card');
   
   close = output<void>();
   confirm = output<{ name: string; tags: string[]; isGlobal: boolean; sessions?: Session[] }>();

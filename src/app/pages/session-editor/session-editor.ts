@@ -107,6 +107,7 @@ export class SessionEditorPage implements OnInit {
   groupId = signal<string | undefined>(undefined);
   groupName = signal<string | undefined>(undefined);
   groupSessions = signal<{ id: string; title: string }[]>([]);
+  returnView = signal<'card' | 'table'>('card');
   title = signal<string>('');
   sessionTags = signal<string[]>([]);
   items = signal<SessionItem[]>([]);
@@ -148,6 +149,8 @@ export class SessionEditorPage implements OnInit {
     // Questo permette di ricaricare la sessione quando si naviga tra sessioni diverse
     this.route.paramMap.subscribe(async (params) => {
       const id = params.get('id');
+      const view = this.route.snapshot.queryParamMap.get('view');
+      this.returnView.set(view === 'table' ? 'table' : 'card');
 
       if (!id || id === 'new') {
         this.title.set('Nuova sessione');
@@ -244,10 +247,10 @@ export class SessionEditorPage implements OnInit {
 
   private navigateBack() {
     const groupId = this.groupId();
-    if (groupId) {
-      this.router.navigate(['/sessions'], { queryParams: { openGroup: groupId } });
+    if (groupId && this.returnView() === 'card') {
+      this.router.navigate(['/sessions'], { queryParams: { openGroup: groupId, view: this.returnView() } });
     } else {
-      this.router.navigate(['/sessions']);
+      this.router.navigate(['/sessions'], { queryParams: { view: this.returnView() } });
     }
   }
 
