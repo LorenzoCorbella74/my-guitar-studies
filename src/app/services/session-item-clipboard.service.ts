@@ -9,7 +9,11 @@ export class SessionItemClipboardService {
   readonly hasItems = () => this.copiedItems().length > 0;
 
   copy(items: SessionItem[]): void {
-    this.copiedItems.set(items.map(item => this.clone(item)));
+    this.copiedItems.update(copied => [...copied, ...items.map(item => this.clone(item))]);
+  }
+
+  reset(): void {
+    this.copiedItems.set([]);
   }
 
   pasteInto(items: SessionItem[]): SessionItem[] {
@@ -19,7 +23,7 @@ export class SessionItemClipboardService {
       order: (items.length + index) * 10
     }));
 
-    this.copiedItems.set([]);
+    this.reset();
     return [...items, ...pastedItems];
   }
 

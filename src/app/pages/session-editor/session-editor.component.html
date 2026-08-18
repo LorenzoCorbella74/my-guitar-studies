@@ -18,6 +18,15 @@
                   >
                     Incolla {{ clipboard.count() }} elementi
                   </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm btn-square"
+                    (click)="clipboard.reset()"
+                    aria-label="Svuota elementi copiati"
+                    title="Svuota elementi copiati"
+                  >
+                    <svg lucideX class="w-4 h-4"></svg>
+                  </button>
                 }
                 <app-item-selector (itemSelected)="addItem($event)" />
                 <button class="btn btn-dash btn-primary btn-sm" (click)="save()" [disabled]="saving()">
