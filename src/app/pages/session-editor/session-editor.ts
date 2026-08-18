@@ -25,11 +25,12 @@ import { FretboardEditorNameDialogComponent } from "../../components/section-edi
 import { TabEditorComponent } from '../../components/tab-editor/tab-editor.component';
 import { CircleOfFifthsComponent } from '../../components/circle-of-fifths/circle-of-fifths.component';
 import { SessionItemClipboardService } from '../../services/session-item-clipboard.service';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`

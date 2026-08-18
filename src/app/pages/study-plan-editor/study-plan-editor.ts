@@ -11,11 +11,12 @@ import { StudyPlan, PlanMilestone, PlanSessionItem } from '../../models/study-pl
 import { SessionSelectorModalComponent } from '../../components/session-selector-modal/session-selector-modal.component';
 import { LucideArrowLeft, LucideSave, LucideX, LucideHeart, LucideTarget, LucidePlus, LucideGripVertical, LucideTrash, LucidePencil, LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { fadeSlideUp } from '../../animations';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'study-plan-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, DatePipe, CdkDrag, CdkDropList, CdkDragHandle, SessionSelectorModalComponent, LucideArrowLeft, LucideSave, LucideX, LucideHeart, LucideTarget, LucidePlus, LucideGripVertical, LucideTrash, LucidePencil, LucideChevronDown, LucideChevronRight],
+  imports: [RouterLink, FormsModule, DatePipe, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, SessionSelectorModalComponent, LucideArrowLeft, LucideSave, LucideX, LucideHeart, LucideTarget, LucidePlus, LucideGripVertical, LucideTrash, LucidePencil, LucideChevronDown, LucideChevronRight],
   templateUrl: './study-plan-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`

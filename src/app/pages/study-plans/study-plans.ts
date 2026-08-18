@@ -6,11 +6,12 @@ import { LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideAr
 import { TagService } from '../../services/tag.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp, listStagger } from '../../animations';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'study-plans-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideTarget, LucideClipboardList],
+  imports: [RouterLink, PageHeaderComponent, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideTarget, LucideClipboardList],
   templateUrl: './study-plans.component.html',
   animations: [fadeSlideUp, listStagger],
   styles: [`

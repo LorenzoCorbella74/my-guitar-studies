@@ -1,4 +1,7 @@
-<div class="container mx-auto p-6 max-w-2xl">
+<div class="min-h-screen">
+  <app-page-header />
+
+  <div class="container mx-auto max-w-2xl p-6">
   <h1 class="text-3xl font-bold mb-6">Impostazioni</h1>
 
   @if (settings(); as userSettings) {
@@ -71,4 +74,5 @@
   } @else {
     <p>Caricamento impostazioni...</p>
   }
+  </div>
 </div>

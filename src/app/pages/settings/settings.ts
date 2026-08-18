@@ -2,11 +2,12 @@ import { Component, ChangeDetectionStrategy, inject, signal, effect } from '@ang
 import { UserSettingsService } from '../../services/user-settings.service';
 import { ThemeService } from '../../services/theme.service';
 import { FRETBOARD_STYLES } from '../../components/scale-visualization/constants';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [PageHeaderComponent],
   templateUrl: './settings.component.html',
   styles: `
     :host {

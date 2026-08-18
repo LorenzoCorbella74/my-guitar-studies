@@ -9,11 +9,12 @@ import { TagService } from '../../services/tag.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { fadeSlideUp, listStagger } from '../../animations';
 import { SessionGroupModalComponent } from '../../components/session-group-modal/session-group-modal.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'sessions-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CdkDrag, CdkDropList, SessionGroupModalComponent, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText, LucideBook],
+  imports: [RouterLink, CdkDrag, CdkDropList, SessionGroupModalComponent, PageHeaderComponent, LucidePlus, LucideHeart, LucideTrash, LucideX, LucideCalendar, LucideArrowUp, LucideArrowDown, LucideArrowDownAZ, LucideArrowUpAZ, LucideList, LucideGrid, LucideFolderOpen, LucidePencil, LucideFileText, LucideBook],
   templateUrl: './sessions.component.html',
   animations: [fadeSlideUp, listStagger],
   styles: [`
