@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, input, output, signal, effect, comp
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CdkDrag, CdkDropList, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { LucideX, LucideUnlink, LucideGripVertical, LucideHeart } from '@lucide/angular';
+import { LucideX, LucideUnlink, LucideGripVertical, LucideHeart, LucideTrash } from '@lucide/angular';
 import { SessionGroup, Session } from '../../models/session.model';
 import { TagService } from '../../services/tag.service';
 import { AppRoutes } from '../../enums/routes.enum';
@@ -11,7 +11,7 @@ import { SessionService } from '../../services/session.service';
 @Component({
   selector: 'app-session-group-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, LucideX, LucideUnlink, LucideGripVertical, LucideHeart],
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, LucideX, LucideUnlink, LucideGripVertical, LucideHeart, LucideTrash],
   templateUrl: './session-group-modal.component.html',
   styles: [`
     :host {
@@ -41,6 +41,7 @@ export class SessionGroupModalComponent {
   close = output<void>();
   confirm = output<{ name: string; tags: string[]; isGlobal: boolean; sessions?: Session[] }>();
   unlinkSession = output<string>();
+  deleteSession = output<string>();
   
   routes = AppRoutes;
   

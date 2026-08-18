@@ -285,6 +285,10 @@ export class SessionsListPage implements OnInit {
       
       // Se ci sono sessioni riordinate, salva il nuovo ordine
       if (data.sessions) {
+        const newSessions = data.sessions.filter(session => session.groupId !== group.id);
+        await Promise.all(newSessions.map(session =>
+          this.sessionService.addSessionToGroup(session.id, group.id)
+        ));
         await this.sessionService.reorderGroupSessions(data.sessions);
       }
     } else {
@@ -298,6 +302,13 @@ export class SessionsListPage implements OnInit {
   async unlinkSessionFromGroup(sessionId: string) {
     await this.sessionService.removeSessionFromGroup(sessionId);
     this.loadData();
+  }
+
+  confirmDeleteFromGroup(sessionId: string) {
+    const session = this.sessionService.sessions().find(item => item.id === sessionId);
+    if (!session) return;
+
+    this.confirmDelete(session, new Event('click'));
   }
   
   async toggleGroupFavorite(id: string, event: Event) {
