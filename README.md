@@ -1,17 +1,21 @@
 # My Guitar Studies
 
-A modern web application for organizing and visualizing guitar study sessions with interactive fretboard diagrams, music theory tools, and rich note-taking capabilities.
+A desktop application for organizing and visualizing guitar study sessions with interactive fretboard diagrams, music theory tools, and rich note-taking capabilities.
 
 ## Overview
 
-**My Guitar Studies** is an Angular-based progressive web app designed to help guitarists document and analyze their practice sessions. It combines interactive SVG fretboard visualizations with flexible note-taking, enabling users to create comprehensive study materials that include scales, arpeggios, chord diagrams, comparison tables, and rich text annotations.
+**My Guitar Studies** is an Angular-based app designed to help guitarists document and analyze their practice sessions. It combines interactive SVG fretboard visualizations with flexible note-taking, enabling users to create comprehensive study materials that include scales, arpeggios, chord diagrams, comparison tables, and rich text annotations.
+
+The app runs as a local-first desktop application (via [Electrobun](https://electrobun.dev)) backed by a local [Hono](https://hono.dev) API and a SQLite database — no account, no cloud backend required.
 
 ## Tech Stack
 
 | Category | Technology |
 |----------|-----------|
 | **Framework** | Angular 21 (Standalone Components) |
-| **Backend** | Firebase (Auth + Firestore) |
+| **Desktop Shell** | Electrobun (Bun runtime + system webview) |
+| **Backend API** | Hono, running in-process inside the desktop shell |
+| **Database** | SQLite (`bun:sqlite`) |
 | **Music Theory** | Tonal.js v6 |
 | **Audio** | smplr (soundfonts) |
 | **Rich Text Editor** | ngx-editor |
@@ -20,57 +24,93 @@ A modern web application for organizing and visualizing guitar study sessions wi
 | **Styling** | Tailwind CSS v4 + DaisyUI |
 | **State Management** | Angular Signals |
 
+## Project Layout
+
+- `src/` — Angular application
+- `backend/` — Hono API + SQLite schema, shared by dev and desktop builds
+- `desktop/` — Electrobun desktop shell (wraps the Angular build + the backend)
+- `scripts/migrate-firestore-to-sqlite.ts` — one-off migration script from the legacy Firebase backend
+
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ and npm 10+
-- Firebase project with Firestore and Authentication enabled
+- [Bun](https://bun.sh) (required to run the backend and the desktop shell)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd my-guitar-studies
-
-# Install dependencies
 npm install
+```
 
-# Configure environment variables
-# Copy .env.local file and add your Firebase credentials
-cp .env.example .env.local
-# Edit .env.local with your Firebase config values
+### Run in the browser (Angular dev server only)
 
-# Start development server
+Useful for UI work; you still need the backend running separately (see below) for data to load.
+
+```bash
 npm start
 ```
 
-The app will be available at `http://localhost:4200`
+The app will be available at `http://localhost:4200`.
 
-### Environment Variables
+### Run the backend API standalone
 
-Create a `.env.local` file in the root directory with your Firebase credentials:
+Starts the Hono + SQLite API on `http://localhost:5175`, storing data in `backend/data/app.db`.
 
-```env
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
+```bash
+npm run backend:dev
 ```
 
-The `firebase.ts` configuration file is auto-generated from these variables.
+### Run the full desktop app locally
 
-### Available Scripts
+Builds the Angular app and launches the Electrobun desktop shell (Angular UI + backend running in-process, SQLite stored in the OS user-data directory).
 
-- `npm start` - Start development server (auto-generates Firebase config)
-- `npm run build` - Build for production (auto-generates Firebase config)
-- `npm test` - Run unit tests
+```bash
+npm run desktop:dev
+```
 
-### Deployment
+### Build a distributable desktop app
 
-For deployment instructions to Netlify, see [NETLIFY.md](NETLIFY.md).
+Builds the Angular app and packages the Electrobun desktop installer for the **current OS**.
+
+```bash
+npm run desktop:build
+```
+
+The installer is created under `desktop/build/canary-<platform>/` (e.g. `my-guitar-studies-Setup-canary.exe` on Windows, a `.app`/`.dmg`-style bundle on macOS). Electrobun builds for the OS/architecture it runs on — to produce both **Windows** and **macOS** installers you need to run `npm run desktop:build` once on a Windows machine and once on a macOS machine.
+
+### Available npm Scripts
+
+- `npm start` — Angular dev server only (`http://localhost:4200`)
+- `npm run build` — Angular production build (used by the desktop scripts below)
+- `npm test` — Run unit tests
+- `npm run backend:dev` — Run the Hono + SQLite backend standalone (`http://localhost:5175`)
+- `npm run desktop:dev` — Build Angular + launch the Electrobun desktop shell in dev mode
+- `npm run desktop:build` — Build Angular + package the desktop installer for the current OS
+- `npm run migrate:firestore` — One-off migration of data from the legacy Firebase backend (see below)
+
+## Migrating data from the legacy Firebase backend
+
+If you have existing data in the old Firebase/Firestore backend, migrate it into the local SQLite database with `scripts/migrate-firestore-to-sqlite.ts`.
+
+1. Download a service account key from the Firebase Console: **Project Settings > Service Accounts > Generate new private key**, and save it locally (e.g. `scripts/serviceAccountKey.json` — already excluded from git).
+2. Find your Firestore `userId` (the UID of the account you used in the old web app).
+3. Run the migration:
+
+```powershell
+# PowerShell
+$env:FIREBASE_SERVICE_ACCOUNT="./scripts/serviceAccountKey.json"; $env:FIRESTORE_USER_ID="<your-uid>"; npm run migrate:firestore
+```
+
+```bash
+# bash / macOS / Linux
+FIREBASE_SERVICE_ACCOUNT=./scripts/serviceAccountKey.json FIRESTORE_USER_ID=<your-uid> npm run migrate:firestore
+```
+
+The script prints a count of migrated records per collection (sessions, session groups, study plans, tags, settings) for a quick sanity check. Document IDs are preserved so cross-references (session ↔ group, milestone ↔ session) stay intact.
 
 ## Architecture
 
@@ -82,11 +122,14 @@ Built with Angular 21's latest features:
 - **OnPush Change Detection** for optimal performance
 - **Native Control Flow** (`@if`, `@for`, `@switch`)
 
+See [REFACTOR_DESKTOP.md](REFACTOR_DESKTOP.md) for the detailed migration plan from the original Firebase web app to this local desktop architecture.
+
 ## Resources
 
+- [Electrobun Documentation](https://docs.electrobunny.ai/electrobun/)
+- [Hono Documentation](https://hono.dev)
 - [Lucide Icons](https://lucide.dev/icons/)
 - [Lucide Angular Guide](https://lucide.dev/guide/angular/getting-started)
-- [Firebase Console](https://console.firebase.google.com/u/0/project/my-guitar-studies/firestore/databases/-default-/data/)
 - [Tonal.js Documentation](https://github.com/tonaljs/tonal)
 
 ## License
