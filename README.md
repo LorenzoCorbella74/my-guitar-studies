@@ -112,6 +112,16 @@ FIREBASE_SERVICE_ACCOUNT=./scripts/serviceAccountKey.json FIRESTORE_USER_ID=<you
 
 The script prints a count of migrated records per collection (sessions, session groups, study plans, tags, settings) for a quick sanity check. Document IDs are preserved so cross-references (session ↔ group, milestone ↔ session) stay intact.
 
+## Syncing data between two instances (e.g. Windows + macOS)
+
+Since each instance stores its own local SQLite database, use the **Backup e sincronizzazione** card in the Settings page to move data between installations:
+
+1. On the source instance, click **Esporta dati** — downloads a `my-guitar-studies-backup-<timestamp>.json` file with every session, group, study plan, tag, and setting.
+2. Copy that file to the other machine (USB drive, cloud storage, email, etc.).
+3. On the target instance, open Settings and click **Importa dati**, then select the file.
+
+Importing **replaces all existing data** on the target instance, so it's a one-way, one-shot transfer rather than continuous two-way sync — always export from the instance you consider "current" before importing elsewhere.
+
 ## Architecture
 
 Built with Angular 21's latest features:
