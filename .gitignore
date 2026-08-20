@@ -57,3 +57,7 @@ Thumbs.db
 /spikes/electrobun-poc/build
 /spikes/electrobun-poc/dist
 
+# Electrobun desktop shell build artifacts
+/desktop/node_modules
+/desktop/build
+

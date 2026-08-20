@@ -113,11 +113,21 @@ Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implement
 - Validato: `npm run build` completa senza errori TypeScript (solo warning preesistenti su bundle budget e CommonJS di `vextab`, non legati al refactor). `npm run test` conferma l'assenza di suite di test nel progetto (comportamento preesistente, non una regressione).
 - Non ancora eseguito in questa sessione: smoke test manuale dell'app in esecuzione nel browser con backend avviato in parallelo (richiede `npm run backend:dev` + `npm start` contemporaneamente) — consigliato prima di considerare chiusa la migrazione.
 
+## Esito Fase 4 (shell desktop Electrobun, implementata e validata su Windows)
+- Nuova cartella `desktop/` (progetto Electrobun separato da `spikes/electrobun-poc/`, quest'ultimo resta solo come riferimento dello spike).
+- `desktop/electrobun.config.ts`: copia l'output di build Angular reale (`../dist/my-guitar-studies/browser`, prodotto da `npm run build` alla radice) dentro `views/mainview`. Nessuna dipendenza da Vite: l'output Angular CLI è già una SPA statica flat, copiata così com'è.
+- `desktop/src/bun/paths.ts`: calcola la directory dati utente OS-specifica (`%APPDATA%\MyGuitarStudies` su Windows, `~/Library/Application Support/MyGuitarStudies` su macOS, `~/.local/share/MyGuitarStudies` su Linux).
+- `desktop/src/bun/index.ts`: imposta `process.env.DB_PATH` sulla directory utente **prima** di importare dinamicamente `backend/app.ts` (necessario perché `backend/db.ts` apre il file SQLite al caricamento del modulo), avvia il backend Hono in-process su `http://localhost:5175` via `Bun.serve`, poi crea la `BrowserWindow` che carica la view compilata (fallback al dev server Angular su `localhost:4200` se il canale è `dev` e il server risulta raggiungibile).
+- Validato end-to-end con `bunx electrobun dev` dalla cartella `desktop/`: finestra WebView2 avviata con l'app Angular reale (index.html, main.js, polyfills, styles, immagini caricati correttamente dai log), backend raggiungibile su `http://localhost:5175/api/*` con risposte corrette (`GET /api/sessions`, `GET /api/settings` con creazione default), file SQLite creato correttamente in `%APPDATA%\MyGuitarStudies\app.db`.
+- Validata la build di produzione (`bunx electrobun build --env=canary`): installer Windows funzionante da **~34 MB totali** (`my-guitar-studies-Setup-canary.exe` + archivio `.tar.zst`).
+- Aggiunti script di comodo alla radice: `npm run desktop:dev` (build Angular + avvio shell in dev) e `npm run desktop:build` (build Angular + packaging installer).
+- Non ancora validato in questa sessione: build/packaging su macOS (nessuna macchina disponibile) — resta il rischio noto già documentato in Fase 0.
+
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)
 - [x] Fase 1 — Backend Hono + SQLite (vedi esito sopra)
 - [x] Fase 2 — Refactor service layer Angular (vedi esito sopra)
 - [x] Fase 3 — Rimozione auth (vedi esito sopra)
-- [ ] Fase 4 — Shell desktop
+- [x] Fase 4 — Shell desktop (vedi esito sopra; macOS non testato)
 - [ ] Fase 5 — Migrazione dati
 - [x] Fase 6 — Cleanup Firebase (anticipato, vedi esito Fase 2-3; resta da decidere il destino di `netlify.toml`/`NETLIFY.md`, vedi Further Considerations)

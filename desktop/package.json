@@ -1,0 +1,15 @@
+{
+  "name": "my-guitar-studies-desktop",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "description": "Electrobun desktop shell for My Guitar Studies (wraps the Angular build + the Hono/SQLite backend).",
+  "scripts": {
+    "dev": "electrobun dev --watch",
+    "build": "electrobun build --env=canary"
+  },
+  "dependencies": {
+    "electrobun": "^1.18.1",
+    "hono": "^4.13.3"
+  }
+}
