@@ -52,6 +52,10 @@ Thumbs.db
 # Local SQLite backend data
 /backend/data
 
+# Firebase service account credentials (used only by the one-off migration script)
+scripts/serviceAccountKey.json
+*serviceAccountKey*.json
+
 # Electrobun spike (not part of the main app build)
 /spikes/electrobun-poc/node_modules
 /spikes/electrobun-poc/build

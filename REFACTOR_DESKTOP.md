@@ -123,11 +123,20 @@ Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implement
 - Aggiunti script di comodo alla radice: `npm run desktop:dev` (build Angular + avvio shell in dev) e `npm run desktop:build` (build Angular + packaging installer).
 - Non ancora validato in questa sessione: build/packaging su macOS (nessuna macchina disponibile) — resta il rischio noto già documentato in Fase 0.
 
+## Esito Fase 5 (script di migrazione Firestore -> SQLite, implementato e smoke-testato)
+- `scripts/migrate-firestore-to-sqlite.ts`: script one-off Bun che usa `firebase-admin` (service account) per esportare le collection `sessions`, `sessionGroups`, `studyPlans`, `tags` e il documento `settings/{userId}` di un singolo `userId` Firestore, e le importa nel DB SQLite tramite lo stesso schema di `backend/db.ts`.
+- Gli ID dei documenti Firestore vengono **preservati** (`INSERT OR REPLACE` con `doc.id` come chiave primaria) per non rompere i riferimenti incrociati (`sessions.groupId` -> `session_groups.id`, `milestones[].sessions[].sessionId` -> `sessions.id`).
+- Timestamp Firestore convertiti in stringhe ISO tramite `toIso()`.
+- Guard clause: lo script si interrompe con un messaggio chiaro se mancano `FIREBASE_SERVICE_ACCOUNT` (percorso al service account JSON) o `FIRESTORE_USER_ID`.
+- Aggiunto `firebase-admin` come devDependency (usato solo da questo script, nessun impatto sul bundle dell'app). Il file del service account è escluso da git (`scripts/serviceAccountKey.json` e pattern `*serviceAccountKey*.json` in `.gitignore`).
+- Comando: `FIREBASE_SERVICE_ACCOUNT=./scripts/serviceAccountKey.json FIRESTORE_USER_ID=<uid> npm run migrate:firestore` (o direttamente `bun run scripts/migrate-firestore-to-sqlite.ts` con le stesse env var).
+- Validato: la guard clause blocca correttamente l'esecuzione senza credenziali. **Non ancora eseguito con credenziali reali** in questa sessione (richiede il service account JSON scaricato dalla Firebase Console e lo user ID Firestore da parte dell'utente) — da eseguire manualmente prima di considerare la migrazione dati conclusa, seguendo poi il conteggio stampato a fine script per uno spot-check contro Firestore.
+
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)
 - [x] Fase 1 — Backend Hono + SQLite (vedi esito sopra)
 - [x] Fase 2 — Refactor service layer Angular (vedi esito sopra)
 - [x] Fase 3 — Rimozione auth (vedi esito sopra)
 - [x] Fase 4 — Shell desktop (vedi esito sopra; macOS non testato)
-- [ ] Fase 5 — Migrazione dati
+- [x] Fase 5 — Migrazione dati (script pronto, esecuzione reale da fare a cura dell'utente con le proprie credenziali)
 - [x] Fase 6 — Cleanup Firebase (anticipato, vedi esito Fase 2-3; resta da decidere il destino di `netlify.toml`/`NETLIFY.md`, vedi Further Considerations)

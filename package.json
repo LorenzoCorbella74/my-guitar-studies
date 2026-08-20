@@ -9,7 +9,8 @@
     "test": "ng test",
     "backend:dev": "bun run --watch backend/index.ts",
     "desktop:dev": "npm run build && cd desktop && bunx electrobun dev --watch",
-    "desktop:build": "npm run build && cd desktop && bunx electrobun build --env=canary"
+    "desktop:build": "npm run build && cd desktop && bunx electrobun build --env=canary",
+    "migrate:firestore": "bun run scripts/migrate-firestore-to-sqlite.ts"
   },
   "prettier": {
     "printWidth": 100,
@@ -55,6 +56,7 @@
     "@angular/compiler-cli": "^21.0.0",
     "@types/bun": "^1.3.14",
     "@types/vextab": "^3.0.4",
+    "firebase-admin": "^14.3.0",
     "jsdom": "^27.1.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
