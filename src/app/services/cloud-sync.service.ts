@@ -20,6 +20,8 @@ export interface SyncResult {
   tags: number;
 }
 
+const COLLECTIONS = ['sessions', 'sessionGroups', 'studyPlans', 'tags'] as const;
+
 @Injectable({ providedIn: 'root' })
 export class CloudSyncService {
   private cloudAuthService = inject(CloudAuthService);
@@ -36,36 +38,41 @@ export class CloudSyncService {
     return this.firestore;
   }
 
-  /**
-   * Last-write-wins merge by id, comparing `updatedAt`. Deletions are not tracked
-   * (an item removed on one side reappears if the other side still has it) — acceptable
-   * for a personal, manual sync between a couple of trusted devices.
-   */
-  private mergeById<T extends { id: string; updatedAt: string }>(local: T[], remote: T[]): T[] {
-    const merged = new Map<string, T>();
-    for (const item of local) merged.set(item.id, item);
-    for (const item of remote) {
-      const existing = merged.get(item.id);
-      if (!existing || new Date(item.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
-        merged.set(item.id, item);
-      }
-    }
-    return Array.from(merged.values());
+  private requireUid(): string {
+    const uid = this.cloudAuthService.getUserId();
+    if (!uid) throw new Error("Devi effettuare l'accesso per sincronizzare.");
+    return uid;
   }
 
-  private mergeSettings(local: any, remote: any): any {
-    if (!local) return remote;
-    if (!remote) return local;
-    return new Date(remote.updatedAt).getTime() > new Date(local.updatedAt).getTime() ? remote : local;
+  private toResult(payload: BackupPayload): SyncResult {
+    return {
+      sessions: payload.sessions.length,
+      sessionGroups: payload.sessionGroups.length,
+      studyPlans: payload.studyPlans.length,
+      tags: payload.tags.length
+    };
   }
 
   private async pullRemote(uid: string): Promise<BackupPayload> {
     const firestore = await this.getFirestore();
     const { collection, getDocs, doc, getDoc } = await import('firebase/firestore');
 
+    // Pre-migration Firestore documents may still store createdAt/updatedAt as Firestore
+    // Timestamp objects instead of ISO strings; bun:sqlite can't bind those directly.
+    const toIso = (value: unknown): string => {
+      if (typeof value === 'string') return value;
+      if (value && typeof (value as any).toDate === 'function') return (value as any).toDate().toISOString();
+      return new Date().toISOString();
+    };
+    const normalizeDates = (item: Record<string, any>) => ({
+      ...item,
+      createdAt: toIso(item['createdAt']),
+      updatedAt: toIso(item['updatedAt'])
+    });
+
     const readCollection = async (name: string) => {
       const snapshot = await getDocs(collection(firestore, `users/${uid}/${name}`));
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snapshot.docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
     };
 
     const [sessions, sessionGroups, studyPlans, tags] = await Promise.all([
@@ -83,20 +90,17 @@ export class CloudSyncService {
       sessionGroups,
       studyPlans,
       tags,
-      settings: settingsSnap.exists() ? { id: settingsSnap.id, ...settingsSnap.data() } : null
+      settings: settingsSnap.exists() ? normalizeDates({ id: settingsSnap.id, ...settingsSnap.data() }) : null
     };
   }
 
-  private async pushRemote(uid: string, merged: BackupPayload): Promise<void> {
+  /**
+   * Makes Firestore an exact mirror of `data`: upserts every local record and deletes
+   * any remote document whose id no longer exists locally.
+   */
+  private async pushRemote(uid: string, data: BackupPayload): Promise<void> {
     const firestore = await this.getFirestore();
-    const { doc, writeBatch } = await import('firebase/firestore');
-
-    const entries: [string, any[]][] = [
-      ['sessions', merged.sessions],
-      ['sessionGroups', merged.sessionGroups],
-      ['studyPlans', merged.studyPlans],
-      ['tags', merged.tags]
-    ];
+    const { collection, getDocs, doc, writeBatch } = await import('firebase/firestore');
 
     let batch = writeBatch(firestore);
     let opsInBatch = 0;
@@ -108,52 +112,56 @@ export class CloudSyncService {
       }
     };
 
-    for (const [name, items] of entries) {
+    const byCollection: Record<(typeof COLLECTIONS)[number], any[]> = {
+      sessions: data.sessions,
+      sessionGroups: data.sessionGroups,
+      studyPlans: data.studyPlans,
+      tags: data.tags
+    };
+
+    for (const name of COLLECTIONS) {
+      const items = byCollection[name];
+      const localIds = new Set(items.map((item) => item.id));
+
+      const existingSnap = await getDocs(collection(firestore, `users/${uid}/${name}`));
+      for (const existingDoc of existingSnap.docs) {
+        if (!localIds.has(existingDoc.id)) {
+          batch.delete(existingDoc.ref);
+          opsInBatch++;
+          await commitIfFull();
+        }
+      }
+
       for (const item of items) {
-        const { id, ...data } = item;
-        batch.set(doc(firestore, `users/${uid}/${name}/${id}`), data);
+        const { id, ...fields } = item;
+        batch.set(doc(firestore, `users/${uid}/${name}/${id}`), fields);
         opsInBatch++;
         await commitIfFull();
       }
     }
 
-    if (merged.settings) {
-      const { id, ...data } = merged.settings;
-      batch.set(doc(firestore, `users/${uid}/settings/${uid}`), data);
+    if (data.settings) {
+      const { id, ...fields } = data.settings;
+      batch.set(doc(firestore, `users/${uid}/settings/${uid}`), fields);
       opsInBatch++;
     }
 
     if (opsInBatch > 0) await batch.commit();
   }
 
-  async syncNow(): Promise<SyncResult> {
-    const uid = this.cloudAuthService.getUserId();
-    if (!uid) throw new Error('Devi effettuare l\'accesso per sincronizzare.');
+  /** Overwrites the local desktop database with whatever is currently in Firestore. */
+  async pullFromCloud(): Promise<SyncResult> {
+    const uid = this.requireUid();
+    const remote = await this.pullRemote(uid);
+    await this.backupService.importData(remote);
+    return this.toResult(remote);
+  }
 
-    const [local, remote] = await Promise.all([
-      this.backupService.exportData() as Promise<BackupPayload>,
-      this.pullRemote(uid)
-    ]);
-
-    const merged: BackupPayload = {
-      exportedAt: new Date().toISOString(),
-      sessions: this.mergeById(local.sessions, remote.sessions),
-      sessionGroups: this.mergeById(local.sessionGroups, remote.sessionGroups),
-      studyPlans: this.mergeById(local.studyPlans, remote.studyPlans),
-      tags: this.mergeById(local.tags, remote.tags),
-      settings: this.mergeSettings(local.settings, remote.settings)
-    };
-
-    await Promise.all([
-      this.backupService.importData(merged),
-      this.pushRemote(uid, merged)
-    ]);
-
-    return {
-      sessions: merged.sessions.length,
-      sessionGroups: merged.sessionGroups.length,
-      studyPlans: merged.studyPlans.length,
-      tags: merged.tags.length
-    };
+  /** Overwrites Firestore with whatever is currently in the local desktop database. */
+  async pushToCloud(): Promise<SyncResult> {
+    const uid = this.requireUid();
+    const local = (await this.backupService.exportData()) as BackupPayload;
+    await this.pushRemote(uid, local);
+    return this.toResult(local);
   }
 }

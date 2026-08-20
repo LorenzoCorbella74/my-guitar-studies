@@ -143,25 +143,23 @@ Progetto spike rimosso dal repository dopo aver validato la Fase 0 (aveva esauri
 - Uso previsto: esportare su un'istanza (es. Windows), copiare manualmente il file `.json` sull'altra macchina (es. macOS, via USB/cloud drive/email), importarlo da Impostazioni. Non è una sincronizzazione automatica/continua, ma un trasferimento manuale one-shot bidirezionale.
 - **Nota operativa SQLite/WAL**: se in futuro serve copiare il file `.db` a mano (come fatto per instradare i dati migrati verso la user-data dir dell'app desktop), copiare **sempre insieme** `app.db`, `app.db-wal` e `app.db-shm` — in modalità WAL i dati più recenti possono risiedere quasi interamente nel file `-wal` non ancora "checkpointato" nel file principale. La funzione di export/import JSON qui sopra evita questo problema perché legge sempre lo stato corrente tramite query SQL (non il file grezzo).
 
-## Sincronizzazione cloud manuale tra le 2 istanze desktop via Firebase (richiesto dall'utente)
+## Sincronizzazione cloud manuale tra le 2 istanze desktop via Firebase (richiesto dall'utente, poi rivisto)
 - **Scope volutamente ridotto**: solo sync manuale on-demand tra le istanze desktop esistenti (Windows + macOS). Nessuna build web separata in questa iterazione (valutata come possibile step successivo in fase di brainstorming).
 - Reintrodotto il pacchetto client `firebase` (solo SDK client, non `firebase-admin`) come dipendenza regolare — caricato **solo on-demand** tramite `import()` dinamici in `cloud-auth.service.ts` e `cloud-sync.service.ts`, per non appesantire il bundle iniziale (verificato in build: Firebase finisce in lazy chunk separati, non nel bundle main).
 - `src/app/sync/firebase-config.ts`: config client del progetto Firebase "my-guitar-studies" (lo stesso già usato prima della migrazione) — non è un segreto, è normale che sia nel bundle client; la sicurezza è demandata alle regole Firestore.
-- `src/app/services/cloud-auth.service.ts`: login/logout con **Firebase Auth (email/password)**, single-account personale. Niente più campo manuale `FIRESTORE_USER_ID`: lo `uid` viene ricavato automaticamente dalla sessione autenticata (decisione presa durante il brainstorming per allinearsi anche alle regole di sicurezza Firestore, che possono richiedere `request.auth.uid`).
-- `src/app/services/cloud-sync.service.ts`: algoritmo di sync manuale "Sincronizza ora":
-  1. legge lo stato locale (riusa `BackupService.exportData()`, già esistente)
-  2. legge lo stato remoto da Firestore (path `users/{uid}/sessions|sessionGroups|studyPlans|tags` + `users/{uid}/settings/{uid}`, stesso schema già usato dallo script di migrazione)
-  3. merge per singolo record per `id`, **last-write-wins su `updatedAt`**
-  4. scrive il risultato del merge sia in locale (riusa `BackupService.importData()`, full-replace con lo stato già mergiato) sia su Firestore (batch write, chunk da 400 operazioni)
-- **Limite noto e accettato**: le cancellazioni non sono tracciate (nessun tombstone/soft-delete) — un record eliminato su un lato riappare se l'altro lato lo possiede ancora con un `updatedAt` più vecchio. Accettabile per uso personale tra pochi dispositivi fidati; eventuale soft-delete (`deletedAt`) rimane un possibile miglioramento futuro, non implementato ora per non appesantire lo scope.
-- UI: nuova card "Sincronizzazione cloud (Firebase)" nelle Impostazioni, sopra la card di backup/export-import file (lasciata invariata come richiesto). Mostra form di login se non autenticato, altrimenti email connessa + bottone "Sincronizza ora" + "Esci".
+- `src/app/services/cloud-auth.service.ts`: login/logout con **Firebase Auth (email/password)**, single-account personale. Lo `uid` viene ricavato automaticamente dalla sessione autenticata (nessun campo manuale per l'id utente).
+- **Revisione del design di sync (dopo test reali)**: il primo tentativo usava un unico bottone "Sincronizza ora" con merge automatico last-write-wins su `updatedAt`. In fase di test l'utente ha riportato risultati poco prevedibili (percepiti come "Firestore vince sempre"); un'indagine con script diagnostici ad-hoc (poi rimossi) ha confermato che l'algoritmo di merge era corretto, ma la logica combinata pull+merge+push in un solo pulsante risultava difficile da ragionare e verificare per l'utente. **Sostituito con due operazioni esplicite e unidirezionali**, senza merge:
+  - **"Prendi i dati" (Cloud → Desktop)**: legge tutto da Firestore e sovrascrive interamente il DB locale (`BackupService.importData()`, stesso full-replace già usato dall'import file).
+  - **"Invia dati a Firestore" (Desktop → Cloud)**: legge tutto dal DB locale e sovrascrive Firestore, **incluse le cancellazioni** (i documenti remoti con `id` non più presente in locale vengono eliminati in batch) — a differenza della vecchia versione con merge, questa direzione realizza un vero mirror completo, non un'unione.
+  - Entrambe le azioni sono protette da `ConfirmService` (sovrascrivono interamente un lato), e dopo il pull i service Angular in memoria (`SessionService`, `StudyPlanService`, `TagService`, `UserSettingsService`) vengono ricaricati esplicitamente.
+  - Compromesso accettato: la sincronizzazione ora richiede una scelta esplicita di direzione da parte dell'utente (nessun merge automatico) — più semplice da capire e da debuggare, ma serve disciplina nel ricordarsi quale istanza è "la fonte di verità" del momento.
 - **Prerequisito da configurare manualmente (fuori dal repo)**: le regole di sicurezza Firestore del progetto devono permettere lettura/scrittura al path `users/{uid}/**` solo quando `request.auth.uid == uid`, altrimenti la sync fallisce con permission denied. Esempio minimo:
   ```
   match /users/{uid}/{document=**} {
     allow read, write: if request.auth != null && request.auth.uid == uid;
   }
   ```
-- Validato: build Angular pulita, Firebase confermato in lazy chunk separati, app desktop avviata con la nuova card visibile. **Non ancora testato il login/sync reale con credenziali** in questa sessione (richiede che l'utente configuri le regole Firestore e usi le proprie credenziali).
+- Validato: build Angular pulita, pull/push testati manualmente dall'utente nell'app desktop reale.
 
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)

@@ -4,6 +4,9 @@ import { ThemeService } from '../../services/theme.service';
 import { BackupService } from '../../services/backup.service';
 import { CloudAuthService } from '../../services/cloud-auth.service';
 import { CloudSyncService } from '../../services/cloud-sync.service';
+import { SessionService } from '../../services/session.service';
+import { StudyPlanService } from '../../services/study-plan.service';
+import { TagService } from '../../services/tag.service';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { FRETBOARD_STYLES } from '../../components/scale-visualization/constants';
@@ -29,6 +32,9 @@ export class SettingsPage {
   private confirmService = inject(ConfirmService);
   cloudAuthService = inject(CloudAuthService);
   private cloudSyncService = inject(CloudSyncService);
+  private sessionService = inject(SessionService);
+  private studyPlanService = inject(StudyPlanService);
+  private tagService = inject(TagService);
 
   settings = this.userSettingsService.settings;
   currentTheme = this.themeService.theme;
@@ -77,17 +83,57 @@ export class SettingsPage {
     await this.cloudAuthService.signOut();
   }
 
-  async onSyncNow(): Promise<void> {
+  async onPullFromCloud(): Promise<void> {
+    this.confirmService.show(
+      'Prendi i dati dal cloud',
+      "Questa operazione sostituirà TUTTI i dati locali (sessioni, gruppi, piani di studio, tag, impostazioni) con quelli presenti su Firestore. Continuare?",
+      () => this.performPull()
+    );
+  }
+
+  private async performPull(): Promise<void> {
     this.syncing.set(true);
     try {
-      const result = await this.cloudSyncService.syncNow();
+      const result = await this.cloudSyncService.pullFromCloud();
+      // Il DB locale è cambiato sotto ai service in memoria: ricarica tutto quello che è già in cache.
+      await Promise.all([
+        this.sessionService.loadSessions(),
+        this.sessionService.loadGroups(),
+        this.studyPlanService.loadPlans(),
+        this.tagService.loadTags(),
+        this.userSettingsService.loadSettings()
+      ]);
       this.toastService.showToast(
-        `Sincronizzazione completata: ${result.sessions} sessioni, ${result.sessionGroups} gruppi, ${result.studyPlans} piani, ${result.tags} tag`,
+        `Dati presi dal cloud: ${result.sessions} sessioni, ${result.sessionGroups} gruppi, ${result.studyPlans} piani, ${result.tags} tag`,
         'success'
       );
     } catch (e) {
-      console.error('sync error:', e);
-      this.toastService.showToast('Sincronizzazione non riuscita', 'error');
+      console.error('pull error:', e);
+      this.toastService.showToast('Recupero dati dal cloud non riuscito', 'error');
+    } finally {
+      this.syncing.set(false);
+    }
+  }
+
+  async onPushToCloud(): Promise<void> {
+    this.confirmService.show(
+      'Invia dati a Firestore',
+      "Questa operazione sostituirà TUTTI i dati presenti su Firestore con quelli di questa installazione locale. Continuare?",
+      () => this.performPush()
+    );
+  }
+
+  private async performPush(): Promise<void> {
+    this.syncing.set(true);
+    try {
+      const result = await this.cloudSyncService.pushToCloud();
+      this.toastService.showToast(
+        `Dati inviati al cloud: ${result.sessions} sessioni, ${result.sessionGroups} gruppi, ${result.studyPlans} piani, ${result.tags} tag`,
+        'success'
+      );
+    } catch (e) {
+      console.error('push error:', e);
+      this.toastService.showToast('Invio dati al cloud non riuscito', 'error');
     } finally {
       this.syncing.set(false);
     }

@@ -77,9 +77,13 @@
           @if (cloudAuthService.currentUser(); as user) {
             <p class="text-sm opacity-70">Connesso come <strong>{{ user.email }}</strong></p>
             <div class="flex flex-wrap gap-2 mt-2">
-              <button type="button" class="btn btn-primary btn-sm" [disabled]="syncing()" (click)="onSyncNow()">
+              <button type="button" class="btn btn-primary btn-sm" [disabled]="syncing()" (click)="onPullFromCloud()">
                 <svg lucideCloud class="h-4 w-4"></svg>
-                {{ syncing() ? 'Sincronizzazione...' : 'Sincronizza ora' }}
+                {{ syncing() ? 'Attendere...' : 'Prendi i dati (Cloud → Desktop)' }}
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" [disabled]="syncing()" (click)="onPushToCloud()">
+                <svg lucideCloud class="h-4 w-4"></svg>
+                {{ syncing() ? 'Attendere...' : 'Invia dati a Firestore (Desktop → Cloud)' }}
               </button>
               <button type="button" class="btn btn-ghost btn-sm" (click)="onCloudSignOut()">Esci</button>
             </div>
