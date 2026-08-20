@@ -8,7 +8,8 @@
     "prebuild": "tsx scripts/generate-firebase-config.ts",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "backend:dev": "bun run --watch backend/index.ts"
   },
   "prettier": {
     "printWidth": 100,
@@ -37,6 +38,7 @@
     "@tailwindcss/postcss": "^4.2.4",
     "daisyui": "^5.5.19",
     "firebase": "^12.12.1",
+    "hono": "^4.13.3",
     "ngx-editor": "^19.0.0-beta.1",
     "postcss": "^8.5.10",
     "rxjs": "~7.8.0",
@@ -52,6 +54,7 @@
     "@angular/build": "^21.0.2",
     "@angular/cli": "^21.0.2",
     "@angular/compiler-cli": "^21.0.0",
+    "@types/bun": "^1.3.14",
     "@types/vextab": "^3.0.4",
     "dotenv": "^17.4.2",
     "jsdom": "^27.1.0",

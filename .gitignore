@@ -52,3 +52,11 @@ Thumbs.db
 # Firebase credentials (auto-generated)
 /src/firebase.ts
 
+# Local SQLite backend data
+/backend/data
+
+# Electrobun spike (not part of the main app build)
+/spikes/electrobun-poc/node_modules
+/spikes/electrobun-poc/build
+/spikes/electrobun-poc/dist
+
