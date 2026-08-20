@@ -5,6 +5,7 @@ import { ToastContainerComponent } from './components/toast/toast.component';
 import { UserSettingsService } from './services/user-settings.service';
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 import { ConfirmService } from './services/confirm.service';
+import packageJson from '../../package.json';
 
 @Component({
   standalone: true,
@@ -20,6 +21,7 @@ import { ConfirmService } from './services/confirm.service';
       (confirm)="confirmService.confirm()"
       (cancel)="confirmService.cancel()"
     />
+    <span class="app-version" aria-label="Versione applicazione">v{{ appVersion }}</span>
     <router-outlet />
   `,
   styleUrl: './app.css'
@@ -28,5 +30,6 @@ export class App {
 
   confirmService = inject(ConfirmService);
   userSettingsService = inject(UserSettingsService); // Initialize user settings
+  appVersion = packageJson.version;
 
 }
