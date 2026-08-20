@@ -103,11 +103,21 @@ Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implement
 - Dipendenza `hono` e `@types/bun` aggiunte al `package.json` root (via npm, nessun conflitto di lockfile).
 - `backend/data/` (file SQLite locale) escluso da git.
 
+## Esito Fase 2-3 (refactor service Angular + rimozione auth, implementato e validato)
+- `session.service.ts`, `study-plan.service.ts`, `tag.service.ts`, `user-settings.service.ts` riscritti da zero: nessuna dipendenza Firestore/Firebase residua, tutte le chiamate passano da `HttpClient` verso `http://localhost:5175/api/*` (costante centralizzata in `src/app/services/api-config.ts`).
+- Le date arrivano dal backend come stringhe ISO e vengono convertite in `Date` lato client (stessa interfaccia pubblica dei service verso i componenti, nessuna modifica richiesta ai consumer).
+- `reorderGroupSessions` e la cancellazione di un gruppo usano i nuovi endpoint dedicati (`POST /session-groups/reorder-sessions`, cascata lato server) al posto dei `writeBatch` Firestore.
+- `user-settings.service.ts` carica le impostazioni nel costruttore (nessun gating su stato auth, single-user locale) invece che tramite `effect()` su `AuthService.currentUser()`.
+- Rimossi completamente: `auth.service.ts`, `guards/auth.guard.ts`, `pages/login/`, gating `canActivate`/`@if isAuthenticated()` in `app.routes.ts` e `app.ts`. `page-header.component.ts` non mostra più email utente/voce "Esci".
+- Cleanup Firebase anticipato dalla Fase 6 (necessario per build pulita): rimossi pacchetto `firebase`, `src/firebase.ts`, `scripts/generate-firebase-config.ts`, `firestore.rules`, `firebase.json`, script `prestart`/`prebuild`, dipendenze `dotenv`/`tsx` (non più usate da nessun altro script), tipi `VITE_FIREBASE_*` da `vite-env.d.ts`.
+- Validato: `npm run build` completa senza errori TypeScript (solo warning preesistenti su bundle budget e CommonJS di `vextab`, non legati al refactor). `npm run test` conferma l'assenza di suite di test nel progetto (comportamento preesistente, non una regressione).
+- Non ancora eseguito in questa sessione: smoke test manuale dell'app in esecuzione nel browser con backend avviato in parallelo (richiede `npm run backend:dev` + `npm start` contemporaneamente) — consigliato prima di considerare chiusa la migrazione.
+
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)
 - [x] Fase 1 — Backend Hono + SQLite (vedi esito sopra)
-- [ ] Fase 2 — Refactor service layer Angular
-- [ ] Fase 3 — Rimozione auth
+- [x] Fase 2 — Refactor service layer Angular (vedi esito sopra)
+- [x] Fase 3 — Rimozione auth (vedi esito sopra)
 - [ ] Fase 4 — Shell desktop
 - [ ] Fase 5 — Migrazione dati
-- [ ] Fase 6 — Cleanup e documentazione
+- [x] Fase 6 — Cleanup Firebase (anticipato, vedi esito Fase 2-3; resta da decidere il destino di `netlify.toml`/`NETLIFY.md`, vedi Further Considerations)

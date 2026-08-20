@@ -6,7 +6,6 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { loadingInterceptor } from './interceptors/loading.interceptor';
-import { AuthService } from './services/auth.service';
 import { LoadingService } from './services/loading.service';
 import { ToastService } from './services/toast.service';
 
@@ -17,7 +16,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withViewTransitions()),
     provideAnimations(),
     provideHttpClient(withInterceptors([loadingInterceptor, errorInterceptor])),
-    AuthService,
     LoadingService,
     ToastService,
   ]

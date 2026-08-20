@@ -1,125 +1,59 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Firestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, Timestamp, serverTimestamp, getFirestore as getFirestoreFn, writeBatch } from 'firebase/firestore';
-import { AuthService } from './auth.service';
-import { Session, SessionGroup, Tag, SessionSortBy } from '../models/session.model';
-import { LoadingService } from './loading.service';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { Session, SessionGroup, SessionSortBy } from '../models/session.model';
+import { API_BASE_URL } from './api-config';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
 
-  private authService = inject(AuthService);
-  private loadingService = inject(LoadingService);
-  private firestore: Firestore;
+  private http = inject(HttpClient);
 
   private _sessions = signal<Session[]>([]);
   sessions = this._sessions.asReadonly();
-  
+
   private _groups = signal<SessionGroup[]>([]);
   groups = this._groups.asReadonly();
 
-  constructor() {
-    this.firestore = getFirestoreFn(this.authService.app);
-  }
-
-  private get userId(): string | null {
-    return this.authService.getUserId();
-  }
-
-  private get sessionsRef() {
-    if (!this.userId) throw new Error('Not authenticated');
-    return collection(this.firestore, `users/${this.userId}/sessions`);
-  }
-
-  private get groupsRef() {
-    if (!this.userId) throw new Error('Not authenticated');
-    return collection(this.firestore, `users/${this.userId}/sessionGroups`);
-  }
+  private readonly sessionsUrl = `${API_BASE_URL}/sessions`;
+  private readonly groupsUrl = `${API_BASE_URL}/session-groups`;
 
   /**
-   * Remove undefined values recursively from an object.
-   * Firestore does not support undefined values.
+   * Convert ISO date strings coming from the backend into Date objects.
    */
-  private removeUndefined(obj: any): any {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.removeUndefined(item));
-    }
-
-    if (typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
-          cleaned[key] = this.removeUndefined(obj[key]);
-        }
-      }
-      return cleaned;
-    }
-
-    return obj;
+  private toDate(value: unknown): Date | null {
+    return typeof value === 'string' ? new Date(value) : null;
   }
 
-  /**
-   * Safely convert a Firestore Timestamp to Date.
-   * Returns null if the value is not a valid Timestamp.
-   */
-  private toDate(timestamp: any): Date | null {
-    if (!timestamp) return null;
-    if (typeof timestamp.toDate === 'function') {
-      return timestamp.toDate();
-    }
-    return null;
+  private mapSession(raw: any): Session {
+    return {
+      ...raw,
+      createdAt: this.toDate(raw.createdAt),
+      updatedAt: this.toDate(raw.updatedAt)
+    } as Session;
+  }
+
+  private mapGroup(raw: any): SessionGroup {
+    return {
+      ...raw,
+      createdAt: this.toDate(raw.createdAt),
+      updatedAt: this.toDate(raw.updatedAt)
+    } as SessionGroup;
   }
 
   async loadSessions(): Promise<void> {
     try {
-      const q = query(this.sessionsRef, orderBy('updatedAt', 'desc'));
-      const snapshot = await this.loadingService.track(getDocs(q));
-
-      const data: Session[] = [];
-      snapshot.forEach((doc) => {
-        const docData = doc.data();
-        data.push({
-          id: doc.id,
-          title: (docData['title'] as string) || '',
-          tags: (docData['tags'] as string[]) || [],
-          isFavorite: (docData['isFavorite'] as boolean) || false,
-          items: (docData['items'] as unknown[]) || [],
-          groupId: docData['groupId'] as string | undefined,
-          groupOrder: docData['groupOrder'] as number | undefined,
-          createdAt: this.toDate(docData['createdAt']),
-          updatedAt: this.toDate(docData['updatedAt'])
-        } as Session);
-      });
-      this._sessions.set(data);
+      const rows = await firstValueFrom(this.http.get<any[]>(this.sessionsUrl));
+      this._sessions.set(rows.map(r => this.mapSession(r)));
     } catch (e) {
       console.error('loadSessions error:', e);
     }
   }
 
   async getSession(id: string): Promise<Session | null> {
-    if (!this.userId) return null;
-
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/sessions`, id);
-      const docSnap = await this.loadingService.track(getDoc(docRef));
-
-      if (!docSnap.exists()) return null;
-
-      const docData = docSnap.data();
-      return {
-        id: docSnap.id,
-        title: (docData['title'] as string) || '',
-        tags: (docData['tags'] as string[]) || [],
-        isFavorite: (docData['isFavorite'] as boolean) || false,
-        items: (docData['items'] as unknown[]) || [],
-        groupId: docData['groupId'] as string | undefined,
-        groupOrder: docData['groupOrder'] as number | undefined,
-        createdAt: this.toDate(docData['createdAt']),
-        updatedAt: this.toDate(docData['updatedAt'])
-      } as Session;
+      const row = await firstValueFrom(this.http.get<any>(`${this.sessionsUrl}/${id}`));
+      return row ? this.mapSession(row) : null;
     } catch (e) {
       console.error('getSession error:', e);
       return null;
@@ -127,19 +61,10 @@ export class SessionService {
   }
 
   async createSession(title: string): Promise<string> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const now = serverTimestamp();
-      const docRef = await this.loadingService.track(addDoc(this.sessionsRef, {
-        title,
-        tags: [],
-        isFavorite: false,
-        items: [],
-        createdAt: now,
-        updatedAt: now
-      }));
+      const row = await firstValueFrom(this.http.post<any>(this.sessionsUrl, { title }));
       await this.loadSessions();
-      return docRef.id;
+      return row.id;
     } catch (e) {
       console.error('createSession error:', e);
       throw e;
@@ -147,14 +72,8 @@ export class SessionService {
   }
 
   async updateSession(id: string, data: Partial<Session>): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/sessions`, id);
-      const cleanData = this.removeUndefined({
-        ...data,
-        updatedAt: serverTimestamp()
-      });
-      await this.loadingService.track(updateDoc(docRef, cleanData));
+      await firstValueFrom(this.http.patch(`${this.sessionsUrl}/${id}`, data));
       await this.loadSessions();
     } catch (e) {
       console.error('updateSession error:', e);
@@ -162,10 +81,8 @@ export class SessionService {
   }
 
   async deleteSession(id: string): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/sessions`, id);
-      await this.loadingService.track(deleteDoc(docRef));
+      await firstValueFrom(this.http.delete(`${this.sessionsUrl}/${id}`));
       await this.loadSessions();
     } catch (e) {
       console.error('deleteSession error:', e);
@@ -217,45 +134,18 @@ export class SessionService {
 
   async loadGroups(): Promise<void> {
     try {
-      const q = query(this.groupsRef, orderBy('order', 'asc'));
-      const snapshot = await this.loadingService.track(getDocs(q));
-
-      const data: SessionGroup[] = [];
-      snapshot.forEach((doc) => {
-        const docData = doc.data();
-        data.push({
-          id: doc.id,
-          name: (docData['name'] as string) || '',
-          tags: (docData['tags'] as string[]) || [],
-          isGlobal: (docData['isGlobal'] as boolean) || false,
-          isFavorite: (docData['isFavorite'] as boolean) || false,
-          order: (docData['order'] as number) || 0,
-          createdAt: this.toDate(docData['createdAt']),
-          updatedAt: this.toDate(docData['updatedAt'])
-        } as SessionGroup);
-      });
-      this._groups.set(data);
+      const rows = await firstValueFrom(this.http.get<any[]>(this.groupsUrl));
+      this._groups.set(rows.map(r => this.mapGroup(r)));
     } catch (e) {
       console.error('loadGroups error:', e);
     }
   }
 
   async createGroup(name: string, tags: string[], isGlobal = false): Promise<string> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const now = serverTimestamp();
-      const maxOrder = this._groups().reduce((max, g) => Math.max(max, g.order), -1);
-      const docRef = await this.loadingService.track(addDoc(this.groupsRef, {
-        name,
-        tags,
-        isGlobal,
-        isFavorite: false,
-        order: maxOrder + 1,
-        createdAt: now,
-        updatedAt: now
-      }));
+      const row = await firstValueFrom(this.http.post<any>(this.groupsUrl, { name, tags, isGlobal }));
       await this.loadGroups();
-      return docRef.id;
+      return row.id;
     } catch (e) {
       console.error('createGroup error:', e);
       throw e;
@@ -263,14 +153,8 @@ export class SessionService {
   }
 
   async updateGroup(id: string, data: Partial<SessionGroup>): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/sessionGroups`, id);
-      const cleanData = this.removeUndefined({
-        ...data,
-        updatedAt: serverTimestamp()
-      });
-      await this.loadingService.track(updateDoc(docRef, cleanData));
+      await firstValueFrom(this.http.patch(`${this.groupsUrl}/${id}`, data));
       await this.loadGroups();
     } catch (e) {
       console.error('updateGroup error:', e);
@@ -278,21 +162,9 @@ export class SessionService {
   }
 
   async deleteGroup(id: string): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      // Rimuovi groupId dalle sessioni appartenenti al gruppo
-      const sessionsInGroup = this._sessions().filter(s => s.groupId === id);
-      const batch = writeBatch(this.firestore);
-      
-      for (const session of sessionsInGroup) {
-        const sessionRef = doc(this.firestore, `users/${this.userId}/sessions`, session.id);
-        batch.update(sessionRef, { groupId: null, updatedAt: serverTimestamp() });
-      }
-      
-      const groupRef = doc(this.firestore, `users/${this.userId}/sessionGroups`, id);
-      batch.delete(groupRef);
-      
-      await this.loadingService.track(batch.commit());
+      // Il backend rimuove groupId dalle sessioni del gruppo in una transazione.
+      await firstValueFrom(this.http.delete(`${this.groupsUrl}/${id}`));
       await Promise.all([this.loadSessions(), this.loadGroups()]);
     } catch (e) {
       console.error('deleteGroup error:', e);
@@ -310,7 +182,6 @@ export class SessionService {
   }
 
   async addSessionToGroup(sessionId: string, groupId: string): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
       await this.updateSession(sessionId, { groupId });
     } catch (e) {
@@ -319,13 +190,8 @@ export class SessionService {
   }
 
   async removeSessionFromGroup(sessionId: string): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/sessions`, sessionId);
-      await this.loadingService.track(updateDoc(docRef, { 
-        groupId: null,
-        updatedAt: serverTimestamp()
-      }));
+      await firstValueFrom(this.http.patch(`${this.sessionsUrl}/${sessionId}`, { groupId: null }));
       await this.loadSessions();
     } catch (e) {
       console.error('removeSessionFromGroup error:', e);
@@ -337,21 +203,12 @@ export class SessionService {
   }
 
   async reorderGroupSessions(sessions: Session[]): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const batch = writeBatch(this.firestore);
-      sessions.forEach((session, index) => {
-        const docRef = doc(this.firestore, `users/${this.userId}/sessions`, session.id);
-        batch.update(docRef, { 
-          groupOrder: index,
-          updatedAt: serverTimestamp()
-        });
-      });
-      await this.loadingService.track(batch.commit());
+      const payload = { sessions: sessions.map((s, index) => ({ id: s.id, groupOrder: index })) };
+      await firstValueFrom(this.http.post(`${this.groupsUrl}/reorder-sessions`, payload));
       await this.loadSessions();
     } catch (e) {
       console.error('reorderGroupSessions error:', e);
     }
   }
 }
-

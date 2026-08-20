@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideCircleUser, LucideMoon, LucideMusic2, LucideSun } from '@lucide/angular';
-import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 
 @Component({
@@ -37,11 +36,9 @@ import { ThemeService } from '../../services/theme.service';
             </button>
             @if (menuOpen()) {
               <ul class="menu menu-sm dropdown-content z-50 mt-2 w-52 gap-1 rounded-box bg-base-100 p-2 shadow-lg">
-                <li class="menu-title px-2 py-1"><span class="text-xs opacity-60">{{ userEmail() }}</span></li>
                 <li><a routerLink="/sessions" (click)="closeMenu()">Sessioni</a></li>
                 <li><a routerLink="/study-plans" (click)="closeMenu()">Piani di studio</a></li>
                 <li><a routerLink="/settings" (click)="closeMenu()">Impostazioni</a></li>
-                <li><button type="button" (click)="onLogout()">Esci</button></li>
               </ul>
             }
           </div>
@@ -54,11 +51,9 @@ import { ThemeService } from '../../services/theme.service';
   `
 })
 export class PageHeaderComponent {
-  private authService = inject(AuthService);
   public themeService = inject(ThemeService);
 
   menuOpen = signal(false);
-  userEmail = computed(() => this.authService.currentUser()?.email || 'User');
 
   toggleMenu(): void {
     this.menuOpen.update(open => !open);
@@ -66,10 +61,5 @@ export class PageHeaderComponent {
 
   closeMenu(): void {
     this.menuOpen.set(false);
-  }
-
-  async onLogout(): Promise<void> {
-    this.closeMenu();
-    await this.authService.signOut();
   }
 }

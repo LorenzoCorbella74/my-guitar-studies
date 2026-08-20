@@ -1,128 +1,54 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Firestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, serverTimestamp, getFirestore as getFirestoreFn } from 'firebase/firestore';
-import { AuthService } from './auth.service';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { StudyPlan, PlanMilestone, PlanSessionItem, PlanProgress, MilestoneProgress } from '../models/study-plan.model';
-import { LoadingService } from './loading.service';
+import { API_BASE_URL } from './api-config';
 
 @Injectable({ providedIn: 'root' })
 export class StudyPlanService {
-  private authService = inject(AuthService);
-  private loadingService = inject(LoadingService);
-  private firestore: Firestore;
+  private http = inject(HttpClient);
 
   private _plans = signal<StudyPlan[]>([]);
   plans = this._plans.asReadonly();
 
-  constructor() {
-    this.firestore = getFirestoreFn(this.authService.app);
+  private readonly plansUrl = `${API_BASE_URL}/study-plans`;
+
+  private toDate(value: unknown): Date | null {
+    return typeof value === 'string' ? new Date(value) : null;
   }
 
-  private get userId(): string | null {
-    return this.authService.getUserId();
-  }
+  private mapPlan(raw: any): StudyPlan {
+    const milestones = (raw.milestones as PlanMilestone[]) || [];
+    // Normalize sessions for backward compatibility
+    const normalizedMilestones = milestones.map(m => ({
+      ...m,
+      sessions: (m.sessions || []).map(s => ({
+        ...s,
+        completionPercentage: s.completionPercentage !== undefined ? s.completionPercentage : (s.completed ? 100 : 0)
+      }))
+    }));
 
-  private get plansRef() {
-    if (!this.userId) throw new Error('Not authenticated');
-    return collection(this.firestore, `users/${this.userId}/studyPlans`);
-  }
-
-  private removeUndefined(obj: any): any {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.removeUndefined(item));
-    }
-
-    if (typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
-          cleaned[key] = this.removeUndefined(obj[key]);
-        }
-      }
-      return cleaned;
-    }
-
-    return obj;
-  }
-
-  private toDate(timestamp: any): Date | null {
-    if (!timestamp) return null;
-    if (typeof timestamp.toDate === 'function') {
-      return timestamp.toDate();
-    }
-    return null;
+    return {
+      ...raw,
+      milestones: normalizedMilestones,
+      createdAt: this.toDate(raw.createdAt),
+      updatedAt: this.toDate(raw.updatedAt)
+    } as StudyPlan;
   }
 
   async loadPlans(): Promise<void> {
     try {
-      const q = query(this.plansRef, orderBy('updatedAt', 'desc'));
-      const snapshot = await this.loadingService.track(getDocs(q));
-
-      const data: StudyPlan[] = [];
-      snapshot.forEach((doc) => {
-        const docData = doc.data();
-        const milestones = (docData['milestones'] as PlanMilestone[]) || [];
-        
-        // Normalize sessions for backward compatibility
-        const normalizedMilestones = milestones.map(m => ({
-          ...m,
-          sessions: (m.sessions || []).map(s => ({
-            ...s,
-            completionPercentage: s.completionPercentage !== undefined ? s.completionPercentage : (s.completed ? 100 : 0)
-          }))
-        }));
-
-        data.push({
-          id: doc.id,
-          name: (docData['name'] as string) || '',
-          description: (docData['description'] as string) || '',
-          tags: (docData['tags'] as string[]) || [],
-          isFavorite: (docData['isFavorite'] as boolean) || false,
-          milestones: normalizedMilestones,
-          createdAt: this.toDate(docData['createdAt']),
-          updatedAt: this.toDate(docData['updatedAt'])
-        } as StudyPlan);
-      });
-      this._plans.set(data);
+      const rows = await firstValueFrom(this.http.get<any[]>(this.plansUrl));
+      this._plans.set(rows.map(r => this.mapPlan(r)));
     } catch (e) {
       console.error('loadPlans error:', e);
     }
   }
 
   async getPlan(id: string): Promise<StudyPlan | null> {
-    if (!this.userId) return null;
-
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/studyPlans`, id);
-      const docSnap = await this.loadingService.track(getDoc(docRef));
-
-      if (!docSnap.exists()) return null;
-
-      const docData = docSnap.data();
-      const milestones = (docData['milestones'] as PlanMilestone[]) || [];
-      
-      // Normalize sessions for backward compatibility
-      const normalizedMilestones = milestones.map(m => ({
-        ...m,
-        sessions: (m.sessions || []).map(s => ({
-          ...s,
-          completionPercentage: s.completionPercentage !== undefined ? s.completionPercentage : (s.completed ? 100 : 0)
-        }))
-      }));
-
-      return {
-        id: docSnap.id,
-        name: (docData['name'] as string) || '',
-        description: (docData['description'] as string) || '',
-        tags: (docData['tags'] as string[]) || [],
-        isFavorite: (docData['isFavorite'] as boolean) || false,
-        milestones: normalizedMilestones,
-        createdAt: this.toDate(docData['createdAt']),
-        updatedAt: this.toDate(docData['updatedAt'])
-      } as StudyPlan;
+      const row = await firstValueFrom(this.http.get<any>(`${this.plansUrl}/${id}`));
+      return row ? this.mapPlan(row) : null;
     } catch (e) {
       console.error('getPlan error:', e);
       return null;
@@ -130,20 +56,10 @@ export class StudyPlanService {
   }
 
   async createPlan(data: { name: string; description?: string; tags?: string[]; isFavorite?: boolean }): Promise<string> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const now = serverTimestamp();
-      const docRef = await this.loadingService.track(addDoc(this.plansRef, {
-        name: data.name,
-        description: data.description || '',
-        tags: data.tags || [],
-        isFavorite: data.isFavorite || false,
-        milestones: [],
-        createdAt: now,
-        updatedAt: now
-      }));
+      const row = await firstValueFrom(this.http.post<any>(this.plansUrl, data));
       await this.loadPlans();
-      return docRef.id;
+      return row.id;
     } catch (e) {
       console.error('createPlan error:', e);
       throw e;
@@ -151,14 +67,8 @@ export class StudyPlanService {
   }
 
   async updatePlan(id: string, data: Partial<StudyPlan>): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/studyPlans`, id);
-      const cleanData = this.removeUndefined({
-        ...data,
-        updatedAt: serverTimestamp()
-      });
-      await this.loadingService.track(updateDoc(docRef, cleanData));
+      await firstValueFrom(this.http.patch(`${this.plansUrl}/${id}`, data));
       await this.loadPlans();
     } catch (e) {
       console.error('updatePlan error:', e);
@@ -166,10 +76,8 @@ export class StudyPlanService {
   }
 
   async deletePlan(id: string): Promise<void> {
-    if (!this.userId) throw new Error('Not authenticated');
     try {
-      const docRef = doc(this.firestore, `users/${this.userId}/studyPlans`, id);
-      await this.loadingService.track(deleteDoc(docRef));
+      await firstValueFrom(this.http.delete(`${this.plansUrl}/${id}`));
       await this.loadPlans();
     } catch (e) {
       console.error('deletePlan error:', e);
@@ -336,8 +244,7 @@ export class StudyPlanService {
     for (const milestone of plan.milestones) {
       const mTotal = milestone.sessions.length;
       const mCompleted = milestone.sessions.filter(s => s.completed).length;
-      
-      // Calcola la media delle percentuali di completamento
+
       const totalPercentage = milestone.sessions.reduce((sum, s) => sum + (s.completionPercentage || 0), 0);
       const mPercentage = mTotal > 0 ? Math.round(totalPercentage / mTotal) : 0;
 
@@ -352,7 +259,6 @@ export class StudyPlanService {
       completedSessions += mCompleted;
     }
 
-    // Calcola la media globale delle percentuali di tutte le sessioni
     const allSessions = plan.milestones.flatMap(m => m.sessions);
     const totalCompletionPercentage = allSessions.reduce((sum, s) => sum + (s.completionPercentage || 0), 0);
     const percentage = allSessions.length > 0 ? Math.round(totalCompletionPercentage / allSessions.length) : 0;

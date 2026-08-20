@@ -848,7 +848,7 @@ export class ScaleVisualizationComponent implements OnInit {
     // Update the signal
     this.highlightState.set(newState);
     
-    // Save to Firebase
+    // Persist the highlight state
     this.saveHighlightState(newState);
   }
 
