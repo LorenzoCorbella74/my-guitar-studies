@@ -85,7 +85,7 @@ Dato "stesso runtime ovunque", classifica:
 
 **Decisione go/no-go**: GO su Electrobun. Il criterio "stesso runtime ovunque" è pienamente soddisfatto (Bun per shell, backend Hono e DB) e il packaging Windows è già superiore alle aspettative (dimensioni minime, nessuna dipendenza da Chromium). Si procede con Electrobun come shell scelta; il fallback Electron resta documentato ma non necessario allo stato attuale.
 
-Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implementativo per la Fase 4 (non è collegato al build principale del progetto).
+Progetto spike rimosso dal repository dopo aver validato la Fase 0 (aveva esaurito il suo scopo una volta creata la shell reale in `desktop/`).
 
 ## Esito Fase 1 (backend Hono + SQLite, implementato e validato)
 - Cartella `backend/` alla radice del progetto (eseguita da Bun, condivide `package.json` root; nessun workspace separato).
@@ -114,7 +114,7 @@ Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implement
 - Non ancora eseguito in questa sessione: smoke test manuale dell'app in esecuzione nel browser con backend avviato in parallelo (richiede `npm run backend:dev` + `npm start` contemporaneamente) — consigliato prima di considerare chiusa la migrazione.
 
 ## Esito Fase 4 (shell desktop Electrobun, implementata e validata su Windows)
-- Nuova cartella `desktop/` (progetto Electrobun separato da `spikes/electrobun-poc/`, quest'ultimo resta solo come riferimento dello spike).
+- Nuova cartella `desktop/` (progetto Electrobun separato dallo spike iniziale, rimosso dal repository una volta completata la validazione).
 - `desktop/electrobun.config.ts`: copia l'output di build Angular reale (`../dist/my-guitar-studies/browser`, prodotto da `npm run build` alla radice) dentro `views/mainview`. Nessuna dipendenza da Vite: l'output Angular CLI è già una SPA statica flat, copiata così com'è.
 - `desktop/src/bun/paths.ts`: calcola la directory dati utente OS-specifica (`%APPDATA%\MyGuitarStudies` su Windows, `~/Library/Application Support/MyGuitarStudies` su macOS, `~/.local/share/MyGuitarStudies` su Linux).
 - `desktop/src/bun/index.ts`: imposta `process.env.DB_PATH` sulla directory utente **prima** di importare dinamicamente `backend/app.ts` (necessario perché `backend/db.ts` apre il file SQLite al caricamento del modulo), avvia il backend Hono in-process su `http://localhost:5175` via `Bun.serve`, poi crea la `BrowserWindow` che carica la view compilata (fallback al dev server Angular su `localhost:4200` se il canale è `dev` e il server risulta raggiungibile).
