@@ -10,6 +10,7 @@ export default {
 		// Requires `npm run build` at the repo root first (Angular CLI output).
 		copy: {
 			"../dist/my-guitar-studies/browser": "views/mainview",
+			"../backend": "backend",
 		},
 		watchIgnore: ["dist/**"],
 		mac: {

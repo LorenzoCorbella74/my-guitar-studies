@@ -30,8 +30,15 @@ import { ThemeService } from '../../services/theme.service';
               <svg lucideMoon class="h-4 w-4"></svg>
             }
           </button>
-          <div class="dropdown dropdown-end">
-            <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="toggleMenu()" aria-label="Menu utente" title="Menu utente">
+          <div class="dropdown dropdown-end" [class.dropdown-open]="menuOpen()">
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="toggleMenu()"
+              [attr.aria-expanded]="menuOpen()"
+              aria-label="Menu utente"
+              title="Menu utente"
+            >
               <svg lucideCircleUser class="h-5 w-5"></svg>
             </button>
             @if (menuOpen()) {

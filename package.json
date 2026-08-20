@@ -8,8 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "backend:dev": "bun run --watch backend/index.ts",
-    "desktop:dev": "npm run build && cd desktop && bunx electrobun dev --watch",
-    "desktop:build": "npm run build && cd desktop && bunx electrobun build --env=canary",
+    "desktop:dev": "npm run build && cd desktop && npx electrobun dev --watch",
+    "desktop:build": "npm run build && cd desktop && npx electrobun build --env=canary",
     "migrate:firestore": "bun run scripts/migrate-firestore-to-sqlite.ts"
   },
   "prettier": {
