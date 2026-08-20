@@ -2,16 +2,18 @@ import { Component, ChangeDetectionStrategy, inject, signal, effect } from '@ang
 import { UserSettingsService } from '../../services/user-settings.service';
 import { ThemeService } from '../../services/theme.service';
 import { BackupService } from '../../services/backup.service';
+import { CloudAuthService } from '../../services/cloud-auth.service';
+import { CloudSyncService } from '../../services/cloud-sync.service';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { FRETBOARD_STYLES } from '../../components/scale-visualization/constants';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
-import { LucideDownload, LucideUpload } from '@lucide/angular';
+import { LucideDownload, LucideUpload, LucideCloud } from '@lucide/angular';
 
 @Component({
   selector: 'settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, LucideDownload, LucideUpload],
+  imports: [PageHeaderComponent, LucideDownload, LucideUpload, LucideCloud],
   templateUrl: './settings.component.html',
   styles: `
     :host {
@@ -25,12 +27,18 @@ export class SettingsPage {
   private backupService = inject(BackupService);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmService);
+  cloudAuthService = inject(CloudAuthService);
+  private cloudSyncService = inject(CloudSyncService);
 
   settings = this.userSettingsService.settings;
   currentTheme = this.themeService.theme;
   
   fretboardStyles = FRETBOARD_STYLES;
   selectedFretboardIndex = signal(0);
+
+  cloudEmail = signal('');
+  cloudPassword = signal('');
+  syncing = signal(false);
 
   constructor() {
     effect(() => {
@@ -52,6 +60,37 @@ export class SettingsPage {
     const index = parseInt(select.value, 10);
     this.selectedFretboardIndex.set(index);
     await this.userSettingsService.saveSettings(this.currentTheme(), index);
+  }
+
+  async onCloudSignIn(): Promise<void> {
+    try {
+      await this.cloudAuthService.signIn(this.cloudEmail(), this.cloudPassword());
+      this.cloudPassword.set('');
+      this.toastService.showToast('Accesso effettuato', 'success');
+    } catch (e) {
+      console.error('cloud sign-in error:', e);
+      this.toastService.showToast('Accesso non riuscito: controlla email e password', 'error');
+    }
+  }
+
+  async onCloudSignOut(): Promise<void> {
+    await this.cloudAuthService.signOut();
+  }
+
+  async onSyncNow(): Promise<void> {
+    this.syncing.set(true);
+    try {
+      const result = await this.cloudSyncService.syncNow();
+      this.toastService.showToast(
+        `Sincronizzazione completata: ${result.sessions} sessioni, ${result.sessionGroups} gruppi, ${result.studyPlans} piani, ${result.tags} tag`,
+        'success'
+      );
+    } catch (e) {
+      console.error('sync error:', e);
+      this.toastService.showToast('Sincronizzazione non riuscita', 'error');
+    } finally {
+      this.syncing.set(false);
+    }
   }
 
   async onExportData(): Promise<void> {

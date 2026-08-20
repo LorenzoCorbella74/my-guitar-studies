@@ -70,6 +70,46 @@
         </div>
       </div>
 
+      <!-- Cloud Sync (Firebase) -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Sincronizzazione cloud (Firebase)</h2>
+          @if (cloudAuthService.currentUser(); as user) {
+            <p class="text-sm opacity-70">Connesso come <strong>{{ user.email }}</strong></p>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <button type="button" class="btn btn-primary btn-sm" [disabled]="syncing()" (click)="onSyncNow()">
+                <svg lucideCloud class="h-4 w-4"></svg>
+                {{ syncing() ? 'Sincronizzazione...' : 'Sincronizza ora' }}
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" (click)="onCloudSignOut()">Esci</button>
+            </div>
+          } @else {
+            <p class="text-sm opacity-70">
+              Accedi con l'account Firebase personale per sincronizzare i dati tra le tue istanze desktop.
+            </p>
+            <div class="form-control gap-2 mt-2 max-w-sm">
+              <input
+                type="email"
+                placeholder="Email"
+                class="input input-bordered input-sm"
+                [value]="cloudEmail()"
+                (input)="cloudEmail.set($any($event.target).value)"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                class="input input-bordered input-sm"
+                [value]="cloudPassword()"
+                (input)="cloudPassword.set($any($event.target).value)"
+              />
+              <button type="button" class="btn btn-primary btn-sm" [disabled]="cloudAuthService.loading()" (click)="onCloudSignIn()">
+                {{ cloudAuthService.loading() ? 'Accesso...' : 'Accedi' }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Backup / Sync -->
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">

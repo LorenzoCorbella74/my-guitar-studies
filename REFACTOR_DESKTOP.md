@@ -143,6 +143,26 @@ Progetto spike rimosso dal repository dopo aver validato la Fase 0 (aveva esauri
 - Uso previsto: esportare su un'istanza (es. Windows), copiare manualmente il file `.json` sull'altra macchina (es. macOS, via USB/cloud drive/email), importarlo da Impostazioni. Non è una sincronizzazione automatica/continua, ma un trasferimento manuale one-shot bidirezionale.
 - **Nota operativa SQLite/WAL**: se in futuro serve copiare il file `.db` a mano (come fatto per instradare i dati migrati verso la user-data dir dell'app desktop), copiare **sempre insieme** `app.db`, `app.db-wal` e `app.db-shm` — in modalità WAL i dati più recenti possono risiedere quasi interamente nel file `-wal` non ancora "checkpointato" nel file principale. La funzione di export/import JSON qui sopra evita questo problema perché legge sempre lo stato corrente tramite query SQL (non il file grezzo).
 
+## Sincronizzazione cloud manuale tra le 2 istanze desktop via Firebase (richiesto dall'utente)
+- **Scope volutamente ridotto**: solo sync manuale on-demand tra le istanze desktop esistenti (Windows + macOS). Nessuna build web separata in questa iterazione (valutata come possibile step successivo in fase di brainstorming).
+- Reintrodotto il pacchetto client `firebase` (solo SDK client, non `firebase-admin`) come dipendenza regolare — caricato **solo on-demand** tramite `import()` dinamici in `cloud-auth.service.ts` e `cloud-sync.service.ts`, per non appesantire il bundle iniziale (verificato in build: Firebase finisce in lazy chunk separati, non nel bundle main).
+- `src/app/sync/firebase-config.ts`: config client del progetto Firebase "my-guitar-studies" (lo stesso già usato prima della migrazione) — non è un segreto, è normale che sia nel bundle client; la sicurezza è demandata alle regole Firestore.
+- `src/app/services/cloud-auth.service.ts`: login/logout con **Firebase Auth (email/password)**, single-account personale. Niente più campo manuale `FIRESTORE_USER_ID`: lo `uid` viene ricavato automaticamente dalla sessione autenticata (decisione presa durante il brainstorming per allinearsi anche alle regole di sicurezza Firestore, che possono richiedere `request.auth.uid`).
+- `src/app/services/cloud-sync.service.ts`: algoritmo di sync manuale "Sincronizza ora":
+  1. legge lo stato locale (riusa `BackupService.exportData()`, già esistente)
+  2. legge lo stato remoto da Firestore (path `users/{uid}/sessions|sessionGroups|studyPlans|tags` + `users/{uid}/settings/{uid}`, stesso schema già usato dallo script di migrazione)
+  3. merge per singolo record per `id`, **last-write-wins su `updatedAt`**
+  4. scrive il risultato del merge sia in locale (riusa `BackupService.importData()`, full-replace con lo stato già mergiato) sia su Firestore (batch write, chunk da 400 operazioni)
+- **Limite noto e accettato**: le cancellazioni non sono tracciate (nessun tombstone/soft-delete) — un record eliminato su un lato riappare se l'altro lato lo possiede ancora con un `updatedAt` più vecchio. Accettabile per uso personale tra pochi dispositivi fidati; eventuale soft-delete (`deletedAt`) rimane un possibile miglioramento futuro, non implementato ora per non appesantire lo scope.
+- UI: nuova card "Sincronizzazione cloud (Firebase)" nelle Impostazioni, sopra la card di backup/export-import file (lasciata invariata come richiesto). Mostra form di login se non autenticato, altrimenti email connessa + bottone "Sincronizza ora" + "Esci".
+- **Prerequisito da configurare manualmente (fuori dal repo)**: le regole di sicurezza Firestore del progetto devono permettere lettura/scrittura al path `users/{uid}/**` solo quando `request.auth.uid == uid`, altrimenti la sync fallisce con permission denied. Esempio minimo:
+  ```
+  match /users/{uid}/{document=**} {
+    allow read, write: if request.auth != null && request.auth.uid == uid;
+  }
+  ```
+- Validato: build Angular pulita, Firebase confermato in lazy chunk separati, app desktop avviata con la nuova card visibile. **Non ancora testato il login/sync reale con credenziali** in questa sessione (richiede che l'utente configuri le regole Firestore e usi le proprie credenziali).
+
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)
 - [x] Fase 1 — Backend Hono + SQLite (vedi esito sopra)
