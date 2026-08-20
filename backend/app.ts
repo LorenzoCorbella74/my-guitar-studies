@@ -4,6 +4,7 @@ import { sessionGroups } from './routes/session-groups';
 import { studyPlans } from './routes/study-plans';
 import { tags } from './routes/tags';
 import { settings } from './routes/settings';
+import { backup } from './routes/backup';
 
 export const app = new Hono();
 
@@ -12,3 +13,4 @@ app.route('/api/session-groups', sessionGroups);
 app.route('/api/study-plans', studyPlans);
 app.route('/api/tags', tags);
 app.route('/api/settings', settings);
+app.route('/api/backup', backup);

@@ -132,11 +132,23 @@ Progetto spike conservato in `spikes/electrobun-poc/` come riferimento implement
 - Comando: `FIREBASE_SERVICE_ACCOUNT=./scripts/serviceAccountKey.json FIRESTORE_USER_ID=<uid> npm run migrate:firestore` (o direttamente `bun run scripts/migrate-firestore-to-sqlite.ts` con le stesse env var).
 - Validato: la guard clause blocca correttamente l'esecuzione senza credenziali. **Non ancora eseguito con credenziali reali** in questa sessione (richiede il service account JSON scaricato dalla Firebase Console e lo user ID Firestore da parte dell'utente) — da eseguire manualmente prima di considerare la migrazione dati conclusa, seguendo poi il conteggio stampato a fine script per uno spot-check contro Firestore.
 
+## Backup/sincronizzazione manuale tra istanze (post-migrazione, richiesto dall'utente)
+- Nuovo endpoint backend `backend/routes/backup.ts`, montato su `/api/backup`:
+  - `GET /api/backup/export`: esporta l'intero DB (sessions, sessionGroups, studyPlans, tags, settings) come JSON.
+  - `POST /api/backup/import`: sostituisce **tutti** i dati esistenti con quelli del JSON fornito, in una singola transazione SQLite; preserva gli ID per non rompere i riferimenti incrociati.
+- Nuovo `src/app/services/backup.service.ts` (HttpClient verso i due endpoint sopra).
+- Pagina Impostazioni (`src/app/pages/settings/`): nuova card "Backup e sincronizzazione" con due azioni:
+  - **Esporta dati**: scarica un file `my-guitar-studies-backup-<timestamp>.json` (validato: download reale funzionante su Windows via WebView2).
+  - **Importa dati**: file picker + `ConfirmService` (azione distruttiva, sostituisce tutto) prima di inviare il file al backend; dopo l'import la pagina viene ricaricata (`window.location.reload()`) per evitare stato stale nei signal degli altri service.
+- Uso previsto: esportare su un'istanza (es. Windows), copiare manualmente il file `.json` sull'altra macchina (es. macOS, via USB/cloud drive/email), importarlo da Impostazioni. Non è una sincronizzazione automatica/continua, ma un trasferimento manuale one-shot bidirezionale.
+- **Nota operativa SQLite/WAL**: se in futuro serve copiare il file `.db` a mano (come fatto per instradare i dati migrati verso la user-data dir dell'app desktop), copiare **sempre insieme** `app.db`, `app.db-wal` e `app.db-shm` — in modalità WAL i dati più recenti possono risiedere quasi interamente nel file `-wal` non ancora "checkpointato" nel file principale. La funzione di export/import JSON qui sopra evita questo problema perché legge sempre lo stato corrente tramite query SQL (non il file grezzo).
+
 ## Stato implementazione
 - [x] Fase 0 — Spike Electrobun (GO — vedi esito sopra)
 - [x] Fase 1 — Backend Hono + SQLite (vedi esito sopra)
 - [x] Fase 2 — Refactor service layer Angular (vedi esito sopra)
 - [x] Fase 3 — Rimozione auth (vedi esito sopra)
 - [x] Fase 4 — Shell desktop (vedi esito sopra; macOS non testato)
-- [x] Fase 5 — Migrazione dati (script pronto, esecuzione reale da fare a cura dell'utente con le proprie credenziali)
+- [x] Fase 5 — Migrazione dati (eseguita con successo dall'utente: 63 sessioni, 10 gruppi, 1 piano, 25 tag)
 - [x] Fase 6 — Cleanup Firebase (anticipato, vedi esito Fase 2-3; resta da decidere il destino di `netlify.toml`/`NETLIFY.md`, vedi Further Considerations)
+- [x] Extra — Backup/sincronizzazione manuale export/import JSON (vedi sopra)

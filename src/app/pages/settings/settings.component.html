@@ -69,6 +69,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Backup / Sync -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Backup e sincronizzazione</h2>
+          <p class="text-sm opacity-70">
+            Esporta tutti i tuoi dati (sessioni, gruppi, piani di studio, tag e impostazioni) in un file,
+            per trasferirli su un'altra installazione dell'app (es. da Windows a Mac).
+          </p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button type="button" class="btn btn-primary btn-sm" (click)="onExportData()">
+              <svg lucideDownload class="h-4 w-4"></svg>
+              Esporta dati
+            </button>
+            <label class="btn btn-outline btn-sm">
+              <svg lucideUpload class="h-4 w-4"></svg>
+              Importa dati
+              <input type="file" accept="application/json" class="hidden" (change)="onImportFileSelected($event)" />
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
   } @else {
