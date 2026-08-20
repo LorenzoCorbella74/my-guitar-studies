@@ -60,4 +60,5 @@ Thumbs.db
 # Electrobun desktop shell build artifacts
 /desktop/node_modules
 /desktop/build
+/desktop/artifacts
 
