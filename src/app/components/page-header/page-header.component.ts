@@ -50,7 +50,10 @@ import { ThemeService } from '../../services/theme.service';
     </header>
   `,
   styles: `
-    :host { display: block; }
+    /* display: contents removes the host box so the inner <header> containing
+       block is the page wrapper (full scroll height), not this host element
+       (which would otherwise be exactly header-height tall and break sticky). */
+    :host { display: contents; }
   `
 })
 export class PageHeaderComponent {
