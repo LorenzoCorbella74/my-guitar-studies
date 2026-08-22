@@ -1,46 +1,28 @@
-import { Component, ChangeDetectionStrategy, input, output, effect, signal, OnDestroy } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, input, output, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { SectionItem } from '../../models/session.model';
-import { LucideTrash2, LucideSave, LucidePencil } from '@lucide/angular';
-import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
+import { LucideTrash2 } from '@lucide/angular';
+import { QuillEditorComponent } from 'ngx-quill';
+import type Quill from 'quill';
 
 @Component({
   selector: 'app-section-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, ReactiveFormsModule, LucideTrash2, LucideSave, LucidePencil, NgxEditorModule],
+  imports: [FormsModule, LucideTrash2, QuillEditorComponent],
   template: `
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
-        <div class="flex justify-between items-start gap-4 mb-4">
-          @if (editMode()) {
-            <input
-              type="text"
-              class="input input-bordered flex-1"
-              [(ngModel)]="localTitle"
-              placeholder="Titolo sezione"
-            />
-          } @else {
-            <h3 class="card-title flex-1">{{ section().title || 'Sezione senza titolo' }}</h3>
-          }
-          
-          <div class="flex gap-2">
-            @if (editMode()) {
-              <button
-                class="btn btn-sm btn-primary"
-                (click)="saveSection()"
-                aria-label="Salva sezione"
-              >
-                <svg lucideSave class="w-4 h-4"></svg>
-              </button>
-            } @else {
-              <button
-                class="btn btn-sm btn-ghost"
-                (click)="startEdit()"
-                aria-label="Modifica sezione"
-              >
-                <svg lucidePencil class="w-4 h-4"></svg>
-              </button>
-            }
+        <div class="flex justify-between items-start gap-4">
+          <h4
+            class="card-title flex-1 font-bold"
+            contenteditable="true"
+            role="textbox"
+            aria-label="Titolo sezione"
+            [attr.data-placeholder]="localTitle ? null : 'Titolo sezione'"
+            (input)="onTitleInput($event)"
+            (keydown.enter)="$event.preventDefault()"
+          >{{ localTitle }}</h4>
+
             <button
               class="btn btn-sm btn-ghost"
               (click)="deleteSection()"
@@ -48,120 +30,171 @@ import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
             >
               <svg lucideTrash2 class="w-4 h-4"></svg>
             </button>
-          </div>
+          
         </div>
 
-        @if (editMode()) {
-          <div class="border border-base-300 rounded-lg overflow-hidden">
-            @if (editor()) {
-              <div class="NgxEditor__Wrapper">
-                <ngx-editor-menu [editor]="editor()!" [toolbar]="toolbar"></ngx-editor-menu>
-                <ngx-editor
-                  [editor]="editor()!"
-                  [formControl]="contentControl"
-                  [placeholder]="'Scrivi il contenuto della sezione...'"
-                ></ngx-editor>
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="prose max-w-none" [innerHTML]="section().content || 'Nessun contenuto'"></div>
-        }
+        <div class="section-editor-container">
+          <quill-editor
+            [(ngModel)]="content"
+            [modules]="modules"
+            theme="snow"
+            format="html"
+            [sanitize]="true"
+            [placeholder]="'Scrivi il contenuto della sezione...'"
+              (onEditorCreated)="onEditorCreated($event)"
+            (onContentChanged)="onContentChanged($event)"
+            aria-label="Contenuto della sezione"
+          ></quill-editor>
+        </div>
       </div>
     </div>
   `,
   styles: `
     :host {
       display: block;
-    }
-    
-    .NgxEditor__Wrapper {
-      border: none;
+      min-width: 0;
     }
 
-    ::ng-deep .NgxEditor {
+    .section-editor-container {
+      min-width: 0;
+      max-width: 100%;
+      width: 100%;
+      margin-bottom:0.5rem
+    }
+
+    quill-editor {
+      display: block;
+      width: 100%;
+    }
+    
+    ::ng-deep .ql-container {
+      min-height: 200px;
       background: transparent;
     }
 
-    ::ng-deep .NgxEditor__Content {
+    ::ng-deep .ql-editor {
       min-height: 200px;
-      padding: 1rem;
-    }
-
-    ::ng-deep .NgxEditor__MenuBar {
-      background: hsl(var(--b2));
-      border-bottom: 1px solid hsl(var(--bc) / 0.1);
-      padding: 0.5rem;
+      color: inherit;
     }
   `
 })
-export class SectionEditorComponent implements OnDestroy {
+export class SectionEditorComponent implements OnInit {
   section = input.required<SectionItem>();
-  
+
   save = output<{ title: string; content: string }>();
   delete = output<void>();
   edit = output<void>();
-  
-  editMode = input(false);
-  
+
   localTitle = '';
-  editor = signal<Editor | null>(null);
-  contentControl = new FormControl('');
+  content = '';
+  private quillEditor: Quill | null = null;
 
-  toolbar: Toolbar = [
-    ['bold', 'italic', 'underline', 'strike'],
-    ['ordered_list', 'bullet_list'],
-    ['link'],
-    ['text_color', 'background_color'],
-    ['align_left', 'align_center', 'align_right', 'align_justify'],
-  ];
+  modules = {
+    toolbar: {
+      container: [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ header: [1, 2, 3, false] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote'],
+        ['link'],
+/*         [{ color: [] }, { background: [] }], */
+        [{ align: [] }]
+      ],
+      handlers: {
+        link: (value: boolean) => this.handleLink(value)
+      }
+    }
+  };
 
-  constructor() {
-    effect(() => {
-      const isEditing = this.editMode();
-      setTimeout(() => {
-        if (isEditing) {
-          this.initEditor();
-        } else {
-          this.destroyEditor();
-        }
-      }, 0);
-    }, { allowSignalWrites: true });
-  }
-
-  private initEditor() {
-    this.destroyEditor();
-
-    const newEditor = new Editor();
-    this.editor.set(newEditor);
+  ngOnInit() {
     this.localTitle = this.section().title;
-    this.contentControl.setValue(this.section().content);
+    this.content = this.section().content || '';
   }
-  
-  private destroyEditor() {
-    const currentEditor = this.editor();
-    if (currentEditor) {
-      currentEditor.destroy();
-      this.editor.set(null);
+
+  onContentChanged(event: { html: string | null }) {
+    this.content = event.html || '';
+    this.save.emit({ title: this.localTitle, content: this.normalizeLinks(this.content) });
+  }
+
+  onTitleInput(event: Event) {
+    this.localTitle = (event.target as HTMLElement).textContent?.trim() || '';
+    this.save.emit({ title: this.localTitle, content: this.normalizeLinks(this.content) });
+  }
+
+  private handleLink(value: boolean) {
+    const editor = this.getQuillEditor();
+    if (!editor) return;
+
+    if (!value) {
+      editor.format('link', false);
+      return;
+    }
+
+    const range = editor.getSelection();
+    if (!range) return;
+
+    const currentLink = editor.getFormat(range)['link'];
+    const input = window.prompt('Inserisci URL', typeof currentLink === 'string' ? currentLink : '');
+    if (input === null) return;
+
+    const url = this.normalizeUrl(input);
+    if (url) {
+      editor.format('link', url);
+    } else {
+      editor.format('link', false);
     }
   }
-  
-  startEdit() {
-    this.edit.emit();
+
+  onEditorCreated(editor: Quill) {
+    this.quillEditor = editor;
   }
-  
-  saveSection() {
-    this.save.emit({ 
-      title: this.localTitle, 
-      content: this.contentControl.value || ''
+
+  private getQuillEditor(): Quill | null {
+    return this.quillEditor;
+  }
+
+  private normalizeUrl(value: string): string {
+    const url = value.trim();
+    if (!url) return '';
+    if (/^(?:https?:\/\/|mailto:|tel:|#|\/)/i.test(url)) return url;
+    return `https://${url}`;
+  }
+
+  private normalizeLinks(html: string): string {
+    if (!html || typeof DOMParser === 'undefined') return html;
+
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(anchor => {
+      const href = anchor.getAttribute('href')?.trim() || '';
+      const text = anchor.textContent?.trim() || '';
+      const externalUrl = text.match(/^(?:https?:\/\/)?(?:www\.)[^\s]+$/i)?.[0];
+
+      if (externalUrl) {
+        const isResolvedLocalUrl = this.isResolvedLocalUrl(href, externalUrl);
+
+        if (!/^[a-z][a-z\d+.-]*:/i.test(href) || isResolvedLocalUrl) {
+          anchor.setAttribute('href', `https://${externalUrl.replace(/^https?:\/\//i, '')}`);
+        }
+      }
     });
+
+    return document.body.innerHTML;
   }
-  
+
+  private isResolvedLocalUrl(href: string, externalUrl: string): boolean {
+    if (typeof window === 'undefined' || !/^https?:\/\//i.test(href)) return false;
+
+    try {
+      const url = new URL(href);
+      return url.origin === window.location.origin &&
+        url.pathname.endsWith(`/${externalUrl.replace(/^https?:\/\//i, '')}`);
+    } catch {
+      return false;
+    }
+  }
+
   deleteSection() {
     this.delete.emit();
   }
-  
-  ngOnDestroy() {
-    this.destroyEditor();
-  }
+
 }

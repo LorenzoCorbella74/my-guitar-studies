@@ -136,8 +136,6 @@
                   @if (item.type === 'section') {
                     <app-section-editor
                       [section]="$any(item)"
-                      [editMode]="editingItemId() === item.id"
-                      (edit)="editingItemId.set(item.id)"
                       (save)="updateSection(item.id, $event)"
                       (delete)="deleteItem(item.id)"
                     />
