@@ -14,6 +14,8 @@ export class UserSettingsService {
 
   private _settings = signal<UserSettings | null>(null);
   settings = this._settings.asReadonly();
+  private _loadError = signal<string | null>(null);
+  loadError = this._loadError.asReadonly();
 
   constructor() {
     this.firestore = getFirestore(this.authService.app);
@@ -33,6 +35,7 @@ export class UserSettingsService {
     const userId = this.authService.getUserId();
     if (!userId) return;
 
+    this._loadError.set(null);
     this.loadingService.showLoading();
     
     try {
@@ -51,8 +54,8 @@ export class UserSettingsService {
           audioDetune: data['audioDetune'],
           audioSustain: data['audioSustain'],
           playMetronome: data['playMetronome'],
-          createdAt: data['createdAt']?.toDate() || null,
-          updatedAt: data['updatedAt']?.toDate() || null
+          createdAt: this.toDate(data['createdAt']),
+          updatedAt: this.toDate(data['updatedAt'])
         };
         this._settings.set(settings);
         
@@ -64,9 +67,25 @@ export class UserSettingsService {
         // Create default settings
         await this.createDefaultSettings();
       }
+    } catch (error) {
+      console.error('loadSettings error:', error);
+      this._loadError.set(error instanceof Error ? error.message : 'Impossibile caricare le impostazioni.');
     } finally {
       this.loadingService.hideLoading();
     }
+  }
+
+  private toDate(value: unknown): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    return null;
   }
 
   private async createDefaultSettings(): Promise<void> {

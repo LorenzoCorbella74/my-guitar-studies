@@ -78,16 +78,16 @@ import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
     .NgxEditor__Wrapper {
       border: none;
     }
-    
+
     ::ng-deep .NgxEditor {
       background: transparent;
     }
-    
+
     ::ng-deep .NgxEditor__Content {
       min-height: 200px;
       padding: 1rem;
     }
-    
+
     ::ng-deep .NgxEditor__MenuBar {
       background: hsl(var(--b2));
       border-bottom: 1px solid hsl(var(--bc) / 0.1);
@@ -107,7 +107,7 @@ export class SectionEditorComponent implements OnDestroy {
   localTitle = '';
   editor = signal<Editor | null>(null);
   contentControl = new FormControl('');
-  
+
   toolbar: Toolbar = [
     ['bold', 'italic', 'underline', 'strike'],
     ['ordered_list', 'bullet_list'],
@@ -115,13 +115,10 @@ export class SectionEditorComponent implements OnDestroy {
     ['text_color', 'background_color'],
     ['align_left', 'align_center', 'align_right', 'align_justify'],
   ];
-  
+
   constructor() {
-    // Inizializza/distruggi editor quando editMode cambia
     effect(() => {
       const isEditing = this.editMode();
-      
-      // Usa setTimeout per evitare loop infiniti
       setTimeout(() => {
         if (isEditing) {
           this.initEditor();
@@ -131,11 +128,10 @@ export class SectionEditorComponent implements OnDestroy {
       }, 0);
     }, { allowSignalWrites: true });
   }
-  
+
   private initEditor() {
-    // Distruggi editor esistente prima di crearne uno nuovo
     this.destroyEditor();
-    
+
     const newEditor = new Editor();
     this.editor.set(newEditor);
     this.localTitle = this.section().title;
@@ -157,7 +153,7 @@ export class SectionEditorComponent implements OnDestroy {
   saveSection() {
     this.save.emit({ 
       title: this.localTitle, 
-      content: this.contentControl.value || '' 
+      content: this.contentControl.value || ''
     });
   }
   

@@ -69,8 +69,49 @@
           </div>
         </div>
       </div>
+
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Dati utente</h2>
+          <p class="text-sm opacity-75">Esporta o sostituisci i tuoi dati di studio in formato JSON.</p>
+          <input
+            #backupFileInput
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            (change)="onBackupFileSelected($event)"
+          />
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="dataOperation() !== null"
+              (click)="exportUserData()"
+            >
+              Esporta dati
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline"
+              [disabled]="dataOperation() !== null"
+              (click)="selectBackupFile()"
+            >
+              Importa backup
+            </button>
+          </div>
+          @if (dataOperation(); as operation) {
+            <span class="loading loading-spinner loading-sm" aria-label="Operazione in corso"></span>
+            <span class="text-sm">Operazione in corso...</span>
+          }
+          @if (dataMessage()) {
+            <p class="text-sm" role="status">{{ dataMessage() }}</p>
+          }
+        </div>
+      </div>
     </div>
 
+  } @else if (settingsLoadError(); as error) {
+    <p role="alert" class="alert alert-error">{{ error }}</p>
   } @else {
     <p>Caricamento impostazioni...</p>
   }
