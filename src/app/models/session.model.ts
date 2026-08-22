@@ -33,10 +33,12 @@ export interface SectionItem extends SessionItem {
   content: string;
 }
 
+export type NoteVisibility = 0 | 0.35 | 1;
+
 export interface ScaleItem extends SessionItem {
   type: 'scale';
   config: VisualizationConfig;
-  noteVisibility: Record<string, boolean>;
+  noteVisibility: Record<string, NoteVisibility | 0.5 | boolean>;
   customNotes?: string[];
   overlays?: OverlayItem[];
   highlightedNotes?: HighlightedNote[];
@@ -45,7 +47,7 @@ export interface ScaleItem extends SessionItem {
 export interface ArpeggioItem extends SessionItem {
   type: 'arpeggio';
   config: VisualizationConfig;
-  noteVisibility: Record<string, boolean>;
+  noteVisibility: Record<string, NoteVisibility | 0.5 | boolean>;
   customNotes?: string[];
   overlays?: OverlayItem[];
   highlightedNotes?: HighlightedNote[];
@@ -54,7 +56,7 @@ export interface ArpeggioItem extends SessionItem {
 export interface ChordItem extends SessionItem {
   type: 'chord';
   config: VisualizationConfig;
-  noteVisibility: Record<string, boolean>;
+  noteVisibility: Record<string, NoteVisibility | 0.5 | boolean>;
   customNotes?: string[];
   overlays?: OverlayItem[];
   highlightedNotes?: HighlightedNote[];

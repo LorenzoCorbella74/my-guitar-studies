@@ -87,9 +87,11 @@
               <button
                 type="button"
                 class="btn btn-xs btn-dash flex flex-col gap-0 h-auto py-1 px-2"
-                [class.btn-primary]="isNoteVisible(noteInfo.note) && !noteInfo.isCustom"
-                [class.btn-secondary]="isNoteVisible(noteInfo.note) && noteInfo.isCustom"
-                [class.btn-ghost]="!isNoteVisible(noteInfo.note)"
+                [class.btn-primary]="getNoteVisibility(noteInfo.note) === 1 && !noteInfo.isCustom"
+                [class.btn-secondary]="getNoteVisibility(noteInfo.note) === 1 && noteInfo.isCustom"
+                [class.btn-warning]="getNoteVisibility(noteInfo.note) === 0.35"
+                [class.btn-ghost]="isNoteHidden(noteInfo.note)"
+                [attr.aria-label]="noteInfo.note + ': ' + getNoteVisibilityLabel(noteInfo.note)"
                 (click)="toggleNote(noteInfo.note)"
               >
                 <span class="text-[10px] leading-tight opacity-60">{{ noteInfo.degree }}</span>
@@ -260,7 +262,7 @@
 
           <!-- Main Notes -->
           @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
-            @if ((fretNote.isScaleNote || fretNote.isCustomNote) && isNoteVisible(fretNote.note) && isInFretRange(fretNote.fret)) {
+            @if ((fretNote.isScaleNote || fretNote.isCustomNote) && !isNoteHidden(fretNote.note) && isInFretRange(fretNote.fret)) {
               <g 
                 (click)="handleNoteClick($event, fretNote)" 
                 style="cursor: pointer;"
@@ -270,7 +272,7 @@
                   [attr.cy]="getStringY(fretNote.string)"
                   r="15"
                   [attr.fill]="fretNote.isCustomNote ? '#000' : getNoteColor(fretNote.scaleIndex, fretNote.note, fretNote.octave)"
-                  [attr.opacity]="config().noteOpacity ?? 1.0"
+                  [attr.opacity]="getNoteOpacity(fretNote.note) * (config().noteOpacity ?? 1.0)"
                   stroke="#000"
                   stroke-width="1.5"
                 />

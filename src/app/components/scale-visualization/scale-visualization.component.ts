@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, OnInit, input, output, signal, computed, inject } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { LucidePencil, LucideTrash2, LucideEye, LucideEyeOff, LucideSettings, LucideNetwork, LucideLayers, LucideCopy } from '@lucide/angular';
-import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem, HighlightedNote } from '../../models/session.model';
+import { ScaleItem, ArpeggioItem, ChordItem, OverlayItem, HighlightedNote, NoteVisibility } from '../../models/session.model';
 import { Scale, ScaleType, Chord, ChordType, Interval, Note } from 'tonal';
 import { ConfigurationDialogComponent, ConfigurationDialogData, ConfigurationDialogResult } from './dialogs/configuration-dialog.component';
 import { DisplayConfigDialogComponent, DisplayConfigDialogData, DisplayConfigDialogResult } from './dialogs/display-config-dialog.component';
@@ -537,11 +537,38 @@ export class ScaleVisualizationComponent implements OnInit {
     return DEGREE_COLOURS[degree as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['1P'];
   }
 
-  isNoteVisible(note: string): boolean {
+  getNoteVisibility(note: string): NoteVisibility {
     const item = this.scaleItem();
     const noteVis = item.noteVisibility || {};
-    // Default to visible if not specified
-    return noteVis[note] !== false;
+    const value = noteVis[note];
+
+    // Keep existing Firestore documents readable while new writes use numeric states.
+    if (value === false || value === 0) return 0;
+    if (value === 0.5 || value === 0.35) return 0.35;
+    return 1;
+  }
+
+  isNoteVisible(note: string): boolean {
+    return this.getNoteVisibility(note) > 0;
+  }
+
+  isNoteHidden(note: string): boolean {
+    return this.getNoteVisibility(note) === 0;
+  }
+
+  getNoteOpacity(note: string): number {
+    return this.getNoteVisibility(note);
+  }
+
+  getNoteVisibilityLabel(note: string): string {
+    switch (this.getNoteVisibility(note)) {
+      case 0:
+        return 'nascosta';
+      case 0.35:
+        return 'opacita 35%';
+      default:
+        return 'visibile';
+    }
   }
 
   isInFretRange(fret: number): boolean {
@@ -554,13 +581,14 @@ export class ScaleVisualizationComponent implements OnInit {
   toggleNote(note: string): void {
     const item = this.scaleItem();
     const currentVisibility = item.noteVisibility || {};
-    const isCurrentlyVisible = currentVisibility[note] !== false;
+    const currentValue = this.getNoteVisibility(note);
+    const nextValue: NoteVisibility = currentValue === 1 ? 0.35 : currentValue === 0.35 ? 0 : 1;
     
     const updatedItem = {
       ...item,
       noteVisibility: {
         ...currentVisibility,
-        [note]: !isCurrentlyVisible
+        [note]: nextValue
       }
     };
     
@@ -569,15 +597,12 @@ export class ScaleVisualizationComponent implements OnInit {
 
   areAlternateNotesVisible(): boolean {
     const notes = this.scaleNotes().map(note => note.replace(/[0-9]/g, ''));
-    const item = this.scaleItem();
-    const noteVis = item.noteVisibility || {};
-    
     // Check if 2nd, 4th, 6th notes (indices 1, 3, 5) are visible
     const alternateIndices = [1, 3, 5];
     return alternateIndices.some(idx => {
       if (idx < notes.length) {
         const note = notes[idx];
-        return noteVis[note] !== false;
+        return this.isNoteVisible(note);
       }
       return false;
     });
@@ -596,7 +621,7 @@ export class ScaleVisualizationComponent implements OnInit {
     alternateIndices.forEach(idx => {
       if (idx < notes.length) {
         const note = notes[idx];
-        newVisibility[note] = !shouldHide;
+        newVisibility[note] = shouldHide ? 0 : 1;
       }
     });
     
@@ -889,7 +914,7 @@ export class ScaleVisualizationComponent implements OnInit {
       delete updatedVisibility[noteName];
     } else {
       updatedCustomNotes = [...currentCustomNotes, noteName];
-      updatedVisibility[noteName] = true;
+      updatedVisibility[noteName] = 1;
     }
 
     const updatedItem = {
