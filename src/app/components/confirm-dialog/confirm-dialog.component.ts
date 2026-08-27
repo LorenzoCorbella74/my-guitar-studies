@@ -6,7 +6,7 @@ import { Component, ChangeDetectionStrategy, input, output, signal } from '@angu
   imports: [],
   template: `
     @if (isOpen()) {
-      <dialog class="modal modal-open">
+      <dialog class="modal modal-open z-[1100]">
         <div class="modal-box">
           <h3 class="font-bold text-lg">{{ title() }}</h3>
           <p class="py-4">{{ message() }}</p>
@@ -15,7 +15,7 @@ import { Component, ChangeDetectionStrategy, input, output, signal } from '@angu
             <button class="btn btn-error" (click)="onConfirm()">Elimina</button>
           </div>
         </div>
-        <form method="dialog" class="modal-backdrop">
+        <form method="dialog" class="modal-backdrop z-[1100]">
           <button (click)="onCancel()">close</button>
         </form>
       </dialog>
