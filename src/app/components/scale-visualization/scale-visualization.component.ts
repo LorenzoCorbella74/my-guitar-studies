@@ -824,7 +824,7 @@ export class ScaleVisualizationComponent implements OnInit {
   }
 
   handleNoteClick(event: MouseEvent, fretNote: FretNote): void {
-    if (event.shiftKey) {
+    if (event.altKey) {
       this.toggleCustomNoteFromFret(fretNote);
       return;
     }
