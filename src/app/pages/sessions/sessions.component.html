@@ -56,6 +56,7 @@
             class="btn btn-ghost btn-sm"
             (click)="toggleViewMode()"
             [attr.aria-label]="viewMode() === 'card' ? 'Visualizza come tabella' : 'Visualizza come card'"
+            [title]="viewMode() === 'card' ? 'Visualizza come tabella' : 'Visualizza come card'"
           >
             @if (viewMode() === 'card') {
               <svg lucideList class="w-5 h-5"></svg>
@@ -103,6 +104,7 @@
               (click)="toggleAddDropdown()"
               (blur)="onAddDropdownBlur()"
               aria-label="Aggiungi"
+              title="Aggiungi sessione di studio o gruppo"
             >
               <svg lucidePlus class="w-5 h-5"></svg>
             </button>
