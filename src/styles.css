@@ -3,6 +3,43 @@
 
   @plugin "daisyui";
 
+  /* Dark theme "Charcoal Soft": base pi\u00f9 chiari, meno neri, colori semantici desaturati
+     per un contrasto pi\u00f9 morbido rispetto al tema dark di default di daisyUI. */
+  @plugin "daisyui/theme" {
+    name: "dark";
+    default: false;
+    prefersdark: true;
+    color-scheme: dark;
+    --color-base-100: oklch(29% 0.014 253);
+    --color-base-200: oklch(26% 0.013 253);
+    --color-base-300: oklch(23% 0.012 253);
+    --color-base-content: oklch(88% 0.02 256);
+    --color-primary: oklch(60% 0.17 277);
+    --color-primary-content: oklch(94% 0.014 272);
+    --color-secondary: oklch(64% 0.17 354);
+    --color-secondary-content: oklch(93% 0.02 342);
+    --color-accent: oklch(74% 0.11 182);
+    --color-accent-content: oklch(36% 0.05 188);
+    --color-neutral: oklch(20% 0.006 286);
+    --color-neutral-content: oklch(90% 0.004 286);
+    --color-info: oklch(72% 0.12 233);
+    --color-info-content: oklch(29% 0.05 243);
+    --color-success: oklch(74% 0.13 163);
+    --color-success-content: oklch(36% 0.06 169);
+    --color-warning: oklch(80% 0.14 84);
+    --color-warning-content: oklch(40% 0.09 46);
+    --color-error: oklch(70% 0.15 13);
+    --color-error-content: oklch(27% 0.08 12);
+    --radius-selector: 0.5rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.5rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+  }
+
   /* Fullscreen background image with theme-aware opacity overlay */
   body {
     min-height: 100vh;

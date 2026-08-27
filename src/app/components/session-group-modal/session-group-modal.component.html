@@ -15,7 +15,7 @@
           <div class="flex justify-between items-center mb-4">
 
             <!-- Nome Gruppo -->
-            <div class="form-control mb-4 flex items-center gap-2">
+            <div class="form-control flex items-center gap-2">
               <span class="shrink-0"><strong>Nome</strong></span>
             
               <input
@@ -27,18 +27,9 @@
               />
             </div>
 
-            <label class="label cursor-pointer gap-2 ms-2">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm border-orange-500 checked:border-orange-500 checked:bg-orange-500"
-                [checked]="isGlobal()"
-                (change)="isGlobal.set($any($event.target).checked)"
-                aria-label="Rendi gruppo globale"
-              />
-              <span class="label-text"><strong>Globale</strong></span>
-            </label>
+            
             <!-- Tag Gruppo -->
-            <div class="flex items-center gap-4 mb-4">
+            <div class="flex items-center gap-4">
               <h3 class="shrink-0 ms-2"><strong>Tag</strong></h3>
               <div class="flex-1 relative">
                 <div class="input input-bordered flex flex-wrap items-center gap-1 min-h-[2.5rem] h-auto py-1 cursor-text w-full"
@@ -77,6 +68,20 @@
                 }
               </div>
             </div>
+
+           
+              <label class="label items-center cursor-pointer gap-2 ms-2">
+                <input
+                  type="checkbox"
+                  class="checkbox checkbox-sm border-orange-500 checked:border-orange-500 checked:bg-orange-500"
+                  [checked]="isGlobal()"
+                  (change)="isGlobal.set($any($event.target).checked)"
+                  aria-label="Rendi gruppo globale"
+                />
+                <span class="label-text"><strong>Globale</strong></span>
+              </label>
+            
+
           </div>
           
           
