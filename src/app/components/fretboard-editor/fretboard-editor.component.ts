@@ -51,7 +51,6 @@ export class FretboardEditorComponent implements OnInit {
     { value: '#84B179', key: 'palette2' },
     { value: '#FFB399', key: 'palette3' },
     { value: '#ffffff', key: 'white' },
-
   ];
 
   selectedColor = signal<string>('yellow'); // default giallo

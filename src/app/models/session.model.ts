@@ -77,11 +77,45 @@ export interface OverlayItem {
   visible?: boolean; // If undefined, defaults to true
 }
 
+export type ChordNoteDegree = 'root' | 'third' | 'sixth' | 'fifth' | 'seventh' | 'ninth' | 'eleventh' | 'generic';
+
 export interface ChordDefinition {
   name: string;
   startFret: number;
   strings: (number | 'x' | 'o')[];
   barres?: Record<number, number[]>; // { fret: [stringIndices] }
+  noteDegrees?: Partial<Record<number, ChordNoteDegree>>; // { stringIndex: degree }, undefined = colore default
+}
+
+// Ciclo Alt/Option+click: nessun grado (colore default) -> tonica -> terza -> ... -> generico -> ...
+export const CHORD_NOTE_DEGREE_CYCLE: (ChordNoteDegree | undefined)[] =
+  [undefined, 'root', 'third', 'fifth', 'seventh', 'ninth', 'eleventh', 'sixth', 'generic'];
+
+export const CHORD_NOTE_DEGREE_LABELS: Record<ChordNoteDegree, string> = {
+  root: 'Tonica',
+  third: 'Terza',
+  fifth: 'Quinta',
+  seventh: 'Settima',
+  ninth: 'Nona',
+  eleventh: 'Undicesima',
+  sixth: 'Sesta',
+  generic: 'Generico'
+};
+
+// Stessa palette usata nel fretboard editor (fretboard-editor.component.ts)
+export const CHORD_NOTE_DEGREE_COLORS: Record<ChordNoteDegree, string> = {
+  root: '#ffee58',    // yellow
+  third: '#ffa726',   // orange
+  fifth: '#FF4136',   // red
+  seventh: '#9e9e9e', // grey
+  ninth: '#AACDDC',   // palette1
+  eleventh: '#84B179', // palette2
+  sixth: '#FFB399',   // palette3
+  generic: '#ffffff'  // white, va bordato per restare visibile
+};
+
+export function getChordNoteDegreeColor(degree: ChordNoteDegree | undefined): string | undefined {
+  return degree ? CHORD_NOTE_DEGREE_COLORS[degree] : undefined;
 }
 
 export interface ChordProgressionItem extends SessionItem {

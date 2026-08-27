@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
-import { ChordDefinition } from '../../models/session.model';
+import { ChordDefinition, getChordNoteDegreeColor } from '../../models/session.model';
 import { LucidePencil, LucideTrash2 } from '@lucide/angular';
 
 @Component({
@@ -115,7 +115,10 @@ import { LucidePencil, LucideTrash2 } from '@lucide/angular';
               [attr.cx]="getStringX(i)"
               [attr.cy]="fretStartY + (stringValue - 0.5) * fretSpacing"
               r="7"
-              class="fill-primary"
+              [class.fill-primary]="!getNoteDegreeColor(i)"
+              stroke="black"
+              stroke-width="1"
+              [style.fill]="getNoteDegreeColor(i)"
             />
           }
         }
@@ -166,6 +169,10 @@ export class ChordDiagramComponent {
   
   getStringX(stringIndex: number): number {
     return this.stringStartX + stringIndex * this.stringSpacing;
+  }
+  
+  getNoteDegreeColor(stringIndex: number): string | undefined {
+    return getChordNoteDegreeColor(this.chord().noteDegrees?.[stringIndex]);
   }
   
   hasBarreAt(stringIndex: number, fret: number): boolean {

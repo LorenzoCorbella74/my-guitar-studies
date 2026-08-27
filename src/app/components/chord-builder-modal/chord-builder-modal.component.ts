@@ -1,6 +1,13 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ChordDefinition } from '../../models/session.model';
+import {
+  ChordDefinition,
+  ChordNoteDegree,
+  CHORD_NOTE_DEGREE_CYCLE,
+  CHORD_NOTE_DEGREE_LABELS,
+  CHORD_NOTE_DEGREE_COLORS,
+  getChordNoteDegreeColor
+} from '../../models/session.model';
 import { LucideWand2 } from '@lucide/angular';
 import { Chord, Note } from 'tonal';
 
@@ -55,11 +62,20 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
             <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
                     <div>
-                        <p class="label-text">Clicca sui tasti per aggiungere/rimuovere note (max 6).</p>
-                        <p class="label-text">Clicca sul nome della corda per cambiare stato (X/O/•)</p>
-                        <p class="label-text text-info">Tieni premuto Ctrl/Cmd e clicca per aggiungere/rimuovere barrè</p>
+                        <p class="label-text text-[0.7rem]">Clicca sui tasti per aggiungere/rimuovere note (max 6).</p>
+                        <p class="label-text text-[0.7rem]">Clicca sul nome della corda per cambiare stato (X/O/•)</p>
+                        <p class="label-text text-[0.7rem] text-info">Tieni premuto Ctrl/Cmd e clicca per aggiungere/rimuovere barrè</p>
+                        <p class="label-text text-[0.7rem] text-info">Tieni premuto Alt/Option e clicca su una nota per cambiarne il colore (grado)</p>
                     </div>
                     <p class="label-text-alt">Note selezionate: {{ selectedNotesCount() }}/6</p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-3 mb-2">
+                  @for (degree of degreeLegend; track degree.key) {
+                    <span class="flex justify-center items-center gap-1 text-xs">
+                      <span class="w-3 h-3 rounded-full border border-base-content/30" [style.background-color]="degree.color"></span>
+                      {{ degree.label }}
+                    </span>
+                  }
                 </div>
            
               <div class="bg-base-200 rounded-lg p-4 flex justify-center">
@@ -172,7 +188,11 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
                           [attr.cx]="getStringX(string)"
                           [attr.cy]="fretStartY + (fret - 0.5) * fretSpacing"
                           r="15"
-                          class="fill-primary pointer-events-none"
+                          class="pointer-events-none"
+                          [class.fill-primary]="!getNoteDegreeColor(string)"
+                          stroke="black"
+                          stroke-width="1.5"
+                          [style.fill]="getNoteDegreeColor(string)"
                         />
                       }
                     }
@@ -235,7 +255,14 @@ export class ChordBuilderModalComponent {
   tempStartFret = signal(1);
   tempStrings = signal<(number | 'x' | 'o')[]>([0, 0, 0, 0, 0, 0]);
   tempBarres = signal<Record<number, number[]>>({});
+  tempNoteDegrees = signal<Partial<Record<number, ChordNoteDegree>>>({});
   detectedChordName = signal('');
+  
+  degreeLegend = (Object.keys(CHORD_NOTE_DEGREE_LABELS) as ChordNoteDegree[]).map(key => ({
+    key,
+    label: CHORD_NOTE_DEGREE_LABELS[key],
+    color: CHORD_NOTE_DEGREE_COLORS[key]
+  }));
   
   constructor() {
     // Watch editingChord changes to initialize form
@@ -246,6 +273,7 @@ export class ChordBuilderModalComponent {
         this.tempStartFret.set(chord.startFret);
         this.tempStrings.set([...chord.strings]);
         this.tempBarres.set(chord.barres ? { ...chord.barres } : {});
+        this.tempNoteDegrees.set(chord.noteDegrees ? { ...chord.noteDegrees } : {});
       } else if (this.isOpen()) {
         // Reset form when opening for new chord
         this.resetForm();
@@ -301,13 +329,36 @@ export class ChordBuilderModalComponent {
   }
   
   handleFretClick(event: MouseEvent, stringIndex: number, fret: number) {
-    if (event.ctrlKey || event.metaKey) {
+    if (event.altKey) {
+      // Alt/Option + click = cicla il colore (grado) della nota su questa corda
+      this.cycleNoteDegree(stringIndex);
+    } else if (event.ctrlKey || event.metaKey) {
       // Ctrl/Cmd + click = toggle barre
       this.toggleBarre(stringIndex, fret);
     } else {
       // Normal click = toggle note
       this.toggleNote(stringIndex, fret);
     }
+  }
+  
+  cycleNoteDegree(stringIndex: number) {
+    const current = this.tempNoteDegrees()[stringIndex];
+    const currentIndex = CHORD_NOTE_DEGREE_CYCLE.indexOf(current);
+    const next = CHORD_NOTE_DEGREE_CYCLE[(currentIndex + 1) % CHORD_NOTE_DEGREE_CYCLE.length];
+    
+    this.tempNoteDegrees.update(degrees => {
+      const newDegrees = { ...degrees };
+      if (next) {
+        newDegrees[stringIndex] = next;
+      } else {
+        delete newDegrees[stringIndex];
+      }
+      return newDegrees;
+    });
+  }
+  
+  getNoteDegreeColor(stringIndex: number): string | undefined {
+    return getChordNoteDegreeColor(this.tempNoteDegrees()[stringIndex]);
   }
   
   toggleNote(stringIndex: number, fret: number) {
@@ -483,11 +534,13 @@ export class ChordBuilderModalComponent {
     if (!this.canSave()) return;
     
     const barres = this.tempBarres();
+    const noteDegrees = this.tempNoteDegrees();
     const chord: ChordDefinition = {
       name: this.tempName(),
       startFret: this.tempStartFret(),
       strings: [...this.tempStrings()],
-      ...(Object.keys(barres).length > 0 && { barres: { ...barres } })
+      ...(Object.keys(barres).length > 0 && { barres: { ...barres } }),
+      ...(Object.keys(noteDegrees).length > 0 && { noteDegrees: { ...noteDegrees } })
     };
     
     this.save.emit(chord);
@@ -504,6 +557,7 @@ export class ChordBuilderModalComponent {
     this.tempStartFret.set(1);
     this.tempStrings.set([0, 0, 0, 0, 0, 0]);
     this.tempBarres.set({});
+    this.tempNoteDegrees.set({});
     this.detectedChordName.set('');
   }
 }
