@@ -77,6 +77,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   isPlaying = signal(false);
   currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
+  private audioScheduleInterval: number | null = null;
   overlays = signal<OverlayItem[]>([]);
 
   // Transition state
@@ -481,6 +482,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     // This must be called in response to user interaction
     await this.audioService.resumeAudioContext();
     await this.metronomeService.resumeAudioContext();
+    await this.audioService.loadInstrument();
 
     this.isPlaying.set(true);
     this.currentLayerIndex.set(0);
@@ -500,6 +502,10 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     if (this.playbackInterval !== null) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
+    }
+    if (this.audioScheduleInterval !== null) {
+      clearInterval(this.audioScheduleInterval);
+      this.audioScheduleInterval = null;
     }
     if (this.transitionCheckInterval !== null) {
       clearInterval(this.transitionCheckInterval);
@@ -527,14 +533,52 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     const settings = this.userSettingsService.settings();
     const playMetronome = settings?.playMetronome ?? true;
 
-    // Play first beat and chord immediately
-    if (playMetronome) {
-      this.metronomeService.playClick(true); // Accent on first beat
-    }
+    const audioContext = this.audioService.getAudioContext();
+    const metronomeAudioContext = this.metronomeService.getAudioContext();
+    const scheduleAheadSeconds = 0.2;
+    let nextBeatTime = audioContext.currentTime + 0.1;
+    let scheduledLayerIndex = 0;
+    let scheduledLayerBeatCounter = 0;
+    let scheduledGlobalBeatCounter = 0;
+
     this.currentBeat.set(1);
 
-    // Play chord for first layer
-    this.playChordForCurrentLayer();
+    const scheduleAudio = () => {
+      if (!this.isPlaying()) return;
+
+      while (nextBeatTime < audioContext.currentTime + scheduleAheadSeconds) {
+        const layer = this.layers()[scheduledLayerIndex];
+        if (!layer) return;
+
+        const currentBeatNumber = (scheduledGlobalBeatCounter % 4) + 1;
+        if (playMetronome) {
+          const metronomeTime = metronomeAudioContext
+            ? metronomeAudioContext.currentTime + Math.max(0, nextBeatTime - audioContext.currentTime)
+            : undefined;
+          this.metronomeService.playClick(currentBeatNumber === 1, metronomeTime);
+        }
+
+        if (scheduledLayerBeatCounter === 0) {
+          this.playChordForLayer(layer, nextBeatTime);
+        }
+
+        scheduledGlobalBeatCounter++;
+        scheduledLayerBeatCounter++;
+
+        if (scheduledLayerBeatCounter >= layer.duration * 4) {
+          scheduledLayerBeatCounter = 0;
+          scheduledLayerIndex = (scheduledLayerIndex + 1) % this.layers().length;
+          if (scheduledLayerIndex === 0) {
+            scheduledGlobalBeatCounter = 0;
+          }
+        }
+
+        nextBeatTime += beatDuration / 1000;
+      }
+    };
+
+    scheduleAudio();
+    this.audioScheduleInterval = window.setInterval(scheduleAudio, 25);
 
     // High-frequency check for transitions (every 50ms for precise timing)
     this.transitionCheckInterval = window.setInterval(() => {
@@ -568,11 +612,6 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       // Update beat indicator
       this.currentBeat.set(currentBeatNumber);
 
-      // Play click (accent on beat 1 of each measure)
-      if (playMetronome) {
-        this.metronomeService.playClick(currentBeatNumber === 1);
-      }
-
       // Calculate how many beats the current layer should last
       const currentLayer = this.layers()[this.currentLayerIndex()];
       const beatsForLayer = currentLayer.duration * 4; // Convert duration to beats
@@ -593,9 +632,6 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
           this.currentLayerIndex.set(nextIndex);
           this.syncLayerSignals();
         }
-
-        // Play chord for new layer
-        this.playChordForCurrentLayer();
 
         // End transition after layer change is complete
         this.endTransition();
@@ -646,10 +682,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     }
   }
 
-  private playChordForCurrentLayer() {
-    const layer = this.currentLayer();
-    if (!layer) return;
-
+  private playChordForLayer(layer: TimelineLayer, scheduledTime: number) {
     const bpm = this.bpm();
     const beatDuration = 60 / bpm; // seconds per beat
     const durationInSeconds = layer.duration * 4 * beatDuration; // layer duration in seconds
@@ -661,7 +694,8 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       layer.chordType,
       layer.octave ?? 3,
       layer.inversion ?? 'root',
-      durationInSeconds
+      durationInSeconds,
+      scheduledTime
     ).catch(error => {
       console.error('Error playing chord:', error);
     });

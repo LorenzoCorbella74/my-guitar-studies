@@ -15,6 +15,7 @@ export class AudioService {
   private reverb: any | null = null;
   private currentNotes: any[] = [];
   private isInstrumentReady = false;
+  private instrumentReadyPromise: Promise<void> | null = null;
 
   constructor() {
     // Create AudioContext immediately (will be suspended until user interaction)
@@ -56,11 +57,17 @@ export class AudioService {
       const reverbMix = settings?.audioReverb ?? 0.0;
       this.instrument.output.addEffect("reverb", this.reverb, reverbMix);
       
-      // Wait for instrument to be ready
-      // smplr loads samples asynchronously in background
-      this.isInstrumentReady = true;
+      this.instrumentReadyPromise = this.instrument.ready.then(() => {
+        this.isInstrumentReady = true;
+      }).catch(error => {
+        this.instrument = null;
+        this.reverb = null;
+        this.instrumentReadyPromise = null;
+        throw error;
+      });
     }
-    
+
+    await this.instrumentReadyPromise;
     return this.instrument;
   }
 
@@ -73,6 +80,7 @@ export class AudioService {
     this.instrument = null;
     this.reverb = null;
     this.isInstrumentReady = false;
+    this.instrumentReadyPromise = null;
     
     // Load new instrument
     await this.loadInstrument();
@@ -238,6 +246,7 @@ export class AudioService {
       // Cleanup instrument if needed
       this.instrument = null;
       this.isInstrumentReady = false;
+      this.instrumentReadyPromise = null;
     }
   }
 }

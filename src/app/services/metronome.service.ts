@@ -14,11 +14,15 @@ export class MetronomeService {
     }
   }
 
+  getAudioContext(): AudioContext | null {
+    return this.audioContext;
+  }
+
   /**
    * Emette un suono di click (beat)
    * @param isAccent - Se true, suono più acuto per l'accento (primo beat)
    */
-  playClick(isAccent: boolean = false): void {
+  playClick(isAccent: boolean = false, scheduledTime?: number): void {
     if (!this.audioContext || !this.clickGain) return;
 
     const oscillator = this.audioContext.createOscillator();
@@ -31,7 +35,7 @@ export class MetronomeService {
     oscillator.frequency.value = isAccent ? 1200 : 800;
     
     // Envelope: attacco rapido, decadimento veloce
-    const now = this.audioContext.currentTime;
+    const now = scheduledTime ?? this.audioContext.currentTime;
     envelope.gain.setValueAtTime(0.5, now);
     envelope.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
 
