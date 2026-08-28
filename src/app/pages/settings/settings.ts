@@ -5,6 +5,8 @@ import { FRETBOARD_STYLES } from '../../components/scale-visualization/constants
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { ConfirmService } from '../../services/confirm.service';
 import { UserDataBackupService } from '../../services/user-data-backup.service';
+import { AudioService } from '../../services/audio.service';
+import { AVAILABLE_SOUNDFONT_INSTRUMENTS } from '../../data/soundfont-instruments';
 
 @Component({
   selector: 'settings-page',
@@ -22,6 +24,7 @@ export class SettingsPage {
   private themeService = inject(ThemeService);
   private confirmService = inject(ConfirmService);
   private backupService = inject(UserDataBackupService);
+  private audioService = inject(AudioService);
 
   @ViewChild('backupFileInput') backupFileInput?: ElementRef<HTMLInputElement>;
 
@@ -30,6 +33,7 @@ export class SettingsPage {
   currentTheme = this.themeService.theme;
   
   fretboardStyles = FRETBOARD_STYLES;
+  audioInstruments = AVAILABLE_SOUNDFONT_INSTRUMENTS;
   selectedFretboardIndex = signal(0);
   dataOperation = signal<'export' | 'import' | null>(null);
   dataMessage = signal('');
@@ -54,6 +58,12 @@ export class SettingsPage {
     const index = parseInt(select.value, 10);
     this.selectedFretboardIndex.set(index);
     await this.userSettingsService.saveSettings(this.currentTheme(), index);
+  }
+
+  async onAudioInstrumentChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    await this.userSettingsService.updateSettings({ audioInstrument: select.value });
+    await this.audioService.reloadInstrument();
   }
 
   async exportUserData() {

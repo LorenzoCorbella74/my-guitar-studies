@@ -26,6 +26,32 @@
         </div>
       </div>
 
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Riproduzione</h2>
+          <div class="form-control">
+            <label class="label" for="audio-instrument">
+              <span class="label-text">Strumento per accordi e progressioni</span>
+            </label>
+            <select
+              id="audio-instrument"
+              class="select select-bordered w-full"
+              [value]="userSettings.audioInstrument ?? 'electric_piano_1'"
+              (change)="onAudioInstrumentChange($event)"
+            >
+              @for (instrument of audioInstruments; track instrument.value) {
+                <option
+                  [value]="instrument.value"
+                  [selected]="(userSettings.audioInstrument ?? 'electric_piano_1') === instrument.value"
+                >
+                  {{ instrument.label }}
+                </option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Fretboard Style Settings -->
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -40,7 +66,9 @@
               (change)="onFretboardStyleChange($event)"
             >
               @for (style of fretboardStyles; track $index) {
-                <option [value]="$index">{{ style.label }}</option>
+                <option [value]="$index" [selected]="selectedFretboardIndex() === $index">
+                  {{ style.label }}
+                </option>
               }
             </select>
           </div>

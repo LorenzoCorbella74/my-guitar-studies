@@ -4,33 +4,7 @@ import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { FRETBOARD_STYLES } from '../../scale-visualization/constants';
 import { UserSettingsService } from '../../../services/user-settings.service';
 import { AudioService } from '../../../services/audio.service';
-
-// Available instruments from smplr Soundfont library
-export const AVAILABLE_INSTRUMENTS = [
-  { value: 'bright_acoustic_piano', label: 'Bright Acoustic Piano' },
-  { value: 'drawbar_organ', label: 'Drawbar Organ' },
-  { value: 'electric_piano_1', label: 'Electric Piano 1' },
-  { value: 'electric_grand_piano', label: 'Electric Grand Piano' },
-  { value: 'electric_guitar_jazz', label: 'Electric Jazz Guitar' },
-  { value: 'lead_1_square', label: 'Lead 1 (Square)' },
-  { value: 'lead_3_calliope', label: 'Lead 3 (Calliope)' },
-  { value: 'lead_4_chiff', label: 'Lead 4 (Chiff)' },
-  { value: 'pad_2_warm', label: 'Pad 2 (Warm)' },
-  { value: 'pad_3_polysynth', label: 'Pad 3 (Polysynth)' },
-  { value: 'pad_5_bowed', label: 'Pad 5 (Bowed)' },
-  { value: 'pad_7_halo', label: 'Pad 7 (Halo)' },
-  { value: 'pad_8_sweep', label: 'Pad 8 (Sweep)' },
-  { value: 'piccolo', label: 'Piccolo' },
-  { value: 'reed_organ', label: 'Reed Organ' },
-  { value: 'rock_organ', label: 'Rock Organ' },
-  { value: 'string_ensemble_1', label: 'String Ensemble 1' },
-  { value: 'string_ensemble_2', label: 'String Ensemble 2' },
-  { value: 'synth_brass_1', label: 'Synth Brass 1' },
-  { value: 'synth_brass_2', label: 'Synth Brass 2' },
-  { value: 'synth_choir', label: 'Synth Choir' },
-  { value: 'synth_strings_1', label: 'Synth Strings 1' },
-  { value: 'synth_strings_2', label: 'Synth Strings 2' }
-];
+import { AVAILABLE_SOUNDFONT_INSTRUMENTS } from '../../../data/soundfont-instruments';
 
 export interface DisplayTimelineConfigDialogData {
   colorMode: 'monocolor' | 'triads' | 'all' | 'octaves';
@@ -68,7 +42,7 @@ export class DisplayTimelineConfigDialogComponent implements OnInit {
   audioService = inject(AudioService);
 
   fretboardStyles = FRETBOARD_STYLES;
-  instruments = AVAILABLE_INSTRUMENTS;
+  instruments = AVAILABLE_SOUNDFONT_INSTRUMENTS;
 
   colorMode = signal(this.data.colorMode);
   fretboardColor = signal(this.data.fretboardColor);

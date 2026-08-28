@@ -128,42 +128,7 @@ export class UserSettingsService {
   }
 
   async saveSettings(theme: 'light' | 'dark', fretboardStyleIndex: number): Promise<void> {
-    const userId = this.authService.getUserId();
-    if (!userId) return;
-
-    this.loadingService.showLoading();
-    
-    try {
-      const docRef = doc(this.firestore, `users/${userId}/settings/${userId}`);
-      const now = new Date();
-      
-      const existingSettings = this._settings();
-      const settingsData = {
-        theme,
-        fretboardStyleIndex,
-        createdAt: existingSettings?.createdAt || now,
-        updatedAt: now
-      };
-
-      await setDoc(docRef, settingsData);
-
-      const settings: UserSettings = {
-        id: userId,
-        theme,
-        fretboardStyleIndex,
-        createdAt: existingSettings?.createdAt || now,
-        updatedAt: now
-      };
-
-      this._settings.set(settings);
-      
-      // Apply theme
-      if (theme !== this.themeService.theme()) {
-        this.themeService.setTheme(theme);
-      }
-    } finally {
-      this.loadingService.hideLoading();
-    }
+    await this.updateSettings({ theme, fretboardStyleIndex });
   }
 
   getDefaultFretboardStyleIndex(): number {
@@ -175,11 +140,10 @@ export class UserSettingsService {
     if (!userId) return;
 
     this.loadingService.showLoading();
-    
+
     try {
       const docRef = doc(this.firestore, `users/${userId}/settings/${userId}`);
       const now = new Date();
-      
       const existingSettings = this._settings();
       if (!existingSettings) return;
 
@@ -189,26 +153,23 @@ export class UserSettingsService {
         updatedAt: now
       };
 
-      // Convert to plain object for Firestore
-      const settingsData: any = {
+      const settingsData: Record<string, unknown> = {
         theme: updatedSettings.theme,
         fretboardStyleIndex: updatedSettings.fretboardStyleIndex,
         createdAt: updatedSettings.createdAt,
         updatedAt: now
       };
 
-      // Add audio settings if they exist
-      if (updatedSettings.audioInstrument !== undefined) settingsData.audioInstrument = updatedSettings.audioInstrument;
-      if (updatedSettings.audioVolume !== undefined) settingsData.audioVolume = updatedSettings.audioVolume;
-      if (updatedSettings.audioReverb !== undefined) settingsData.audioReverb = updatedSettings.audioReverb;
-      if (updatedSettings.audioDetune !== undefined) settingsData.audioDetune = updatedSettings.audioDetune;
-      if (updatedSettings.audioSustain !== undefined) settingsData.audioSustain = updatedSettings.audioSustain;
-      if (updatedSettings.playMetronome !== undefined) settingsData.playMetronome = updatedSettings.playMetronome;
+      if (updatedSettings.audioInstrument !== undefined) settingsData['audioInstrument'] = updatedSettings.audioInstrument;
+      if (updatedSettings.audioVolume !== undefined) settingsData['audioVolume'] = updatedSettings.audioVolume;
+      if (updatedSettings.audioReverb !== undefined) settingsData['audioReverb'] = updatedSettings.audioReverb;
+      if (updatedSettings.audioDetune !== undefined) settingsData['audioDetune'] = updatedSettings.audioDetune;
+      if (updatedSettings.audioSustain !== undefined) settingsData['audioSustain'] = updatedSettings.audioSustain;
+      if (updatedSettings.playMetronome !== undefined) settingsData['playMetronome'] = updatedSettings.playMetronome;
 
       await setDoc(docRef, settingsData, { merge: true });
       this._settings.set(updatedSettings);
-      
-      // Apply theme if changed
+
       if (updates.theme && updates.theme !== this.themeService.theme()) {
         this.themeService.setTheme(updates.theme);
       }
