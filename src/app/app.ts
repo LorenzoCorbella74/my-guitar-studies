@@ -19,7 +19,6 @@ import { ConfirmService } from './services/confirm.service';
       [isOpen]="confirmService.isOpen()"
       [title]="confirmService.title()"
       [message]="confirmService.message()"
-      (confirm)="confirmService.confirm()"
       (cancel)="confirmService.cancel()"
     />
     @if(this.authService.isAuthenticated()){
