@@ -213,6 +213,15 @@
                       (delete)="deleteItem(item.id)"
                     />
                   }
+                  @if (item.type === 'links') {
+                    <app-session-links-item
+                      [item]="$any(item)"
+                      [currentSessionId]="sessionId()"
+                      [allSessions]="allSessions()"
+                      (update)="updateLinksItem(item.id, $event)"
+                      (delete)="deleteItem(item.id)"
+                    />
+                  }
                 </div>
               </div>
             }

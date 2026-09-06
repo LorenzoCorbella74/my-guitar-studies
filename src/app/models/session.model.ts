@@ -23,7 +23,7 @@ export interface SessionGroup {
 
 export interface SessionItem {
   id: string;
-  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
+  type: 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths' | 'links';
   order: number;
 }
 
@@ -231,6 +231,11 @@ export interface CircleOfFifthsItem extends SessionItem {
   highlightDistance: 1 | 2;
   zoomLevel: number;
   detailsPanelOpen: boolean;
+}
+
+export interface LinksItem extends SessionItem {
+  type: 'links';
+  linkedSessionIds: string[];
 }
 
 export interface VisualizationConfig {
