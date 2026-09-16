@@ -28,10 +28,10 @@
 
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-          <h2 class="card-title">Riproduzione</h2>
+          <h2 class="card-title">Riproduzione e Sequencer</h2>
           <div class="form-control">
             <label class="label" for="audio-instrument">
-              <span class="label-text">Strumento per accordi e progressioni</span>
+              <span class="label-text">Strumento armonico predefinito</span>
             </label>
             <select
               id="audio-instrument"
@@ -45,6 +45,48 @@
                   [selected]="(userSettings.audioInstrument ?? 'electric_piano_1') === instrument.value"
                 >
                   {{ instrument.label }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="form-control mt-4">
+            <label class="label" for="drum-genre">
+              <span class="label-text">Genere musicale / Base di batteria di default</span>
+            </label>
+            <select
+              id="drum-genre"
+              class="select select-bordered w-full"
+              [value]="userSettings.audioDrumGenre ?? 'pop'"
+              (change)="onDrumGenreChange($event)"
+            >
+              @for (genre of drumGenres; track genre.value) {
+                <option
+                  [value]="genre.value"
+                  [selected]="(userSettings.audioDrumGenre ?? 'pop') === genre.value"
+                >
+                  {{ genre.label }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="form-control mt-4">
+            <label class="label" for="drum-kit">
+              <span class="label-text">Drum Kit di default</span>
+            </label>
+            <select
+              id="drum-kit"
+              class="select select-bordered w-full"
+              [value]="userSettings.audioDrumKit ?? 'TR-808'"
+              (change)="onDrumKitChange($event)"
+            >
+              @for (kit of drumKits; track kit.value) {
+                <option
+                  [value]="kit.value"
+                  [selected]="(userSettings.audioDrumKit ?? 'TR-808') === kit.value"
+                >
+                  {{ kit.label }}
                 </option>
               }
             </select>

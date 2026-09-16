@@ -1,3 +1,5 @@
+import { DrumGenre } from '../data/drum-patterns';
+
 export interface UserSettings {
   id: string; // userId
   theme: 'light' | 'dark';
@@ -10,6 +12,11 @@ export interface UserSettings {
   audioDetune?: number; // -100 to 100 cents, Default: 0
   audioSustain?: boolean; // Default: true
   playMetronome?: boolean; // Default: true
+
+  // Drum machine & sequencer settings
+  audioDrumGenre?: DrumGenre; // Default: 'pop'
+  audioDrumKit?: string; // Default: 'TR-808'
+  audioDrumVolume?: number; // 0-1, Default: 0.7
   
   createdAt: Date | null;
   updatedAt: Date | null;

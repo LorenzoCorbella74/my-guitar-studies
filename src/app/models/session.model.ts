@@ -1,3 +1,5 @@
+import { DrumGenre } from '../data/drum-patterns';
+
 export interface Session {
   id: string;
   title: string;
@@ -141,11 +143,22 @@ export interface HarmonicSection {
   bars: HarmonicBar[];
 }
 
+export interface SequencerConfig {
+  instrument?: string;
+  instrumentVolume?: number;
+  reverb?: number;
+  drumGenre?: DrumGenre;
+  drumKit?: string;
+  drumVolume?: number;
+  playMetronome?: boolean;
+}
+
 export interface HarmonicGridItem extends SessionItem {
   type: 'harmonicgrid';
   title: string;
   bpm?: number;
   sections: HarmonicSection[];
+  sequencerConfig?: SequencerConfig;
 }
 
 export interface ComparisonItem extends SessionItem {
@@ -178,6 +191,7 @@ export interface TimelineItem extends SessionItem {
   layers: TimelineLayer[];
   colorMode?: ColorMode;
   fretboardColor?: string;
+  sequencerConfig?: SequencerConfig;
 }
 
 export interface ModalInterchangeItem extends SessionItem {

@@ -12,27 +12,46 @@
       </button>
       @if (displayMode() === 'notation') {
       <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="toggleDisplayMode()"
-        aria-label="Modifica griglia armonica" title="Modifica griglia armonica">
+        aria-label="Modifica griglia armonica" title="Modifica griglia armonica" [disabled]="isPlaybackActive()">
         <svg lucidePencil class="h-4 w-4"></svg>
       </button>
       }
+      <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="openConfigModal()"
+        aria-label="Configura sequencer" title="Configura sequencer">
+        <svg lucideSettings class="h-4 w-4"></svg>
+      </button>
       <div class="flex items-center gap-2">
         <label class="flex items-center gap-2 text-sm font-semibold" for="harmonic-grid-bpm">
           BPM
           <input id="harmonic-grid-bpm" type="number" class="input input-bordered input-sm w-20"
             [value]="bpm" (change)="updateBpm(+$any($event.target).value)" min="40" max="240"
-            [disabled]="isPlaying()" />
+            [disabled]="isPlaybackActive()" />
         </label>
-        @if (isPlaying()) {
+        @if (isPlaybackActive()) {
         <app-beat-indicator [currentBeat]="currentBeat()" />
+        }
+        @if (playbackState() === 'stopped') {
+        <button type="button" class="btn btn-sm btn-success" (click)="play()" aria-label="Avvia playback">
+          <svg lucidePlay class="h-4 w-4"></svg>
+          Play
+        </button>
+        } @else if (playbackState() === 'playing') {
+        <button type="button" class="btn btn-sm btn-warning" (click)="pause()" aria-label="Pausa playback">
+          <svg lucidePause class="h-4 w-4"></svg>
+          Pausa
+        </button>
         <button type="button" class="btn btn-sm btn-error" (click)="stop()" aria-label="Ferma playback">
           <svg lucideSquare class="h-4 w-4"></svg>
           Stop
         </button>
-        } @else {
-        <button type="button" class="btn btn-sm btn-success" (click)="play()" aria-label="Avvia playback">
+        } @else if (playbackState() === 'paused') {
+        <button type="button" class="btn btn-sm btn-success" (click)="play()" aria-label="Riprendi playback">
           <svg lucidePlay class="h-4 w-4"></svg>
-          Play
+          Riprendi
+        </button>
+        <button type="button" class="btn btn-sm btn-error" (click)="stop()" aria-label="Ferma playback">
+          <svg lucideSquare class="h-4 w-4"></svg>
+          Stop
         </button>
         }
       </div>

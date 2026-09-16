@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, LucideSettings, LucideCopy } from '@lucide/angular';
+import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucidePause, LucideSquare, LucideSettings, LucideCopy } from '@lucide/angular';
 import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem, ChordInversion } from '../../models/session.model';
 import { Chord, ChordType, Interval, Note } from 'tonal';
 import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS, FRETBOARD_STYLES, OCTAVE_COLOURS } from '../scale-visualization/constants';
@@ -9,7 +9,8 @@ import { AudioService } from '../../services/audio.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
 import { Dialog } from '@angular/cdk/dialog';
-import { DisplayTimelineConfigDialogComponent, DisplayTimelineConfigDialogData, DisplayTimelineConfigDialogResult } from './dialog/display-timeline-config-dialog.component';
+import { SequencerConfigModalComponent, SequencerConfigDialogData, SequencerConfigDialogResult } from '../sequencer-config-modal/sequencer-config-modal.component';
+import { DrumGenre } from '../../data/drum-patterns';
 import { fade } from '../../animations';
 
 interface FretNote {
@@ -28,7 +29,7 @@ interface FretNote {
 @Component({
   selector: 'app-timeline-visualization',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucideSquare, BeatIndicatorComponent, LucideSettings, LucideCopy],
+  imports: [FormsModule, LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucidePause, LucideSquare, BeatIndicatorComponent, LucideSettings, LucideCopy],
   templateUrl: './timeline-visualization.component.html',
   animations: [fade],
   styles: `
@@ -59,10 +60,17 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       this.layerInversion.set(layer.inversion ?? 'root');
     }
 
-    // Pre-load instrument samples in background
-    // AudioContext will be suspended but samples will download
-    this.audioService.loadInstrument().catch(error => {
+    // Pre-load instrument and drum samples in background
+    const seqConfig = this.timelineItem().sequencerConfig;
+    const settings = this.userSettingsService.settings();
+    const instName = seqConfig?.instrument || settings?.audioInstrument;
+    const drumKit = seqConfig?.drumKit || settings?.audioDrumKit;
+
+    this.audioService.loadInstrument(instName).catch(error => {
       console.error('Failed to pre-load audio instrument:', error);
+    });
+    this.audioService.loadDrumMachine(drumKit).catch(error => {
+      console.error('Failed to pre-load drum machine:', error);
     });
   }
 
@@ -74,10 +82,16 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
 
   // State signals
   currentLayerIndex = signal(0);
-  isPlaying = signal(false);
+  playbackState = signal<'stopped' | 'playing' | 'paused'>('stopped');
+  isPlaying = computed(() => this.playbackState() === 'playing');
+  isPaused = computed(() => this.playbackState() === 'paused');
+  isPlaybackActive = computed(() => this.playbackState() !== 'stopped');
   currentBeat = signal(0); // 0-4 (0 = not playing, 1-4 = active beat)
   private playbackInterval: number | null = null;
   private audioScheduleInterval: number | null = null;
+  private currentGlobalBeatCounter = 0;
+  private currentLayerBeatCounter = 0;
+  private currentScheduledLayerIndex = 0;
   overlays = signal<OverlayItem[]>([]);
 
   // Transition state
@@ -478,23 +492,67 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   async play() {
     if (this.isPlaying()) return;
 
+    const isResuming = this.isPaused();
+
     // Resume AudioContext (resolves browser autoplay policy)
-    // This must be called in response to user interaction
     await this.audioService.resumeAudioContext();
     await this.metronomeService.resumeAudioContext();
-    await this.audioService.loadInstrument();
 
-    this.isPlaying.set(true);
-    this.currentLayerIndex.set(0);
-    this.syncLayerSignals(); // Sync with layer 0 at start
-    this.currentBeat.set(0);
+    const seqConfig = this.timelineItem().sequencerConfig;
+    const settings = this.userSettingsService.settings();
+    const instName = seqConfig?.instrument || settings?.audioInstrument;
+    const drumKit = seqConfig?.drumKit || settings?.audioDrumKit;
 
-    this.startPlayback();
+    await this.audioService.loadInstrument(instName);
+    await this.audioService.loadDrumMachine(drumKit);
+
+    this.playbackState.set('playing');
+
+    if (!isResuming) {
+      this.currentLayerIndex.set(0);
+      this.syncLayerSignals();
+      this.currentBeat.set(0);
+      this.currentGlobalBeatCounter = 0;
+      this.currentLayerBeatCounter = 0;
+      this.currentScheduledLayerIndex = 0;
+    }
+
+    this.startPlayback(isResuming);
+  }
+
+  pause() {
+    if (!this.isPlaying()) return;
+
+    this.playbackState.set('paused');
+    this.audioService.stopAllNotes();
+
+    if (this.playbackInterval !== null) {
+      clearInterval(this.playbackInterval);
+      this.playbackInterval = null;
+    }
+    if (this.audioScheduleInterval !== null) {
+      clearInterval(this.audioScheduleInterval);
+      this.audioScheduleInterval = null;
+    }
+    if (this.transitionCheckInterval !== null) {
+      clearInterval(this.transitionCheckInterval);
+      this.transitionCheckInterval = null;
+    }
+    if (this.transitionAnimationFrame !== null) {
+      cancelAnimationFrame(this.transitionAnimationFrame);
+      this.transitionAnimationFrame = null;
+    }
+    this.isTransitioning.set(false);
+    this.transitionProgress.set(0);
+    this.nextLayerIndex.set(null);
   }
 
   stop() {
-    this.isPlaying.set(false);
+    this.playbackState.set('stopped');
     this.currentBeat.set(0);
+    this.currentGlobalBeatCounter = 0;
+    this.currentLayerBeatCounter = 0;
+    this.currentScheduledLayerIndex = 0;
 
     // Stop all audio immediately
     this.audioService.stopAllNotes();
@@ -522,26 +580,35 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     this.syncLayerSignals(); // Sync back to layer 0
   }
 
-  private startPlayback() {
+  private startPlayback(isResuming: boolean = false) {
     const bpm = this.bpm();
     const beatDuration = 60000 / bpm; // milliseconds per quarter note beat
+    const beatDurationSec = 60 / bpm; // seconds per quarter note beat
 
-    let globalBeatCounter = 0; // Counter for beats across all measures (for beat indicator 1-4)
-    let layerBeatCounter = 0; // Counter for beats within current layer
-    let layerStartTime = Date.now(); // Track when current layer started
+    let globalBeatCounter = isResuming ? this.currentGlobalBeatCounter : 0;
+    let layerBeatCounter = isResuming ? this.currentLayerBeatCounter : 0;
+    let layerStartTime = Date.now() - (layerBeatCounter * beatDuration);
 
+    const seqConfig = this.timelineItem().sequencerConfig;
     const settings = this.userSettingsService.settings();
-    const playMetronome = settings?.playMetronome ?? true;
+
+    const drumGenre: DrumGenre = seqConfig?.drumGenre || settings?.audioDrumGenre || 'pop';
+    const drumVolume = seqConfig?.drumVolume ?? (settings?.audioDrumVolume ?? 0.7);
+    const instrumentName = seqConfig?.instrument || settings?.audioInstrument || 'electric_piano_1';
+    const instrumentVolume = seqConfig?.instrumentVolume ?? (settings?.audioVolume ?? 0.7);
+    const playMetronome = seqConfig?.playMetronome ?? (settings?.playMetronome ?? (drumGenre === 'metronome'));
 
     const audioContext = this.audioService.getAudioContext();
     const metronomeAudioContext = this.metronomeService.getAudioContext();
     const scheduleAheadSeconds = 0.2;
-    let nextBeatTime = audioContext.currentTime + 0.1;
-    let scheduledLayerIndex = 0;
-    let scheduledLayerBeatCounter = 0;
-    let scheduledGlobalBeatCounter = 0;
+    let nextBeatTime = audioContext.currentTime + 0.05;
+    let scheduledLayerIndex = isResuming ? this.currentScheduledLayerIndex : 0;
+    let scheduledLayerBeatCounter = isResuming ? this.currentLayerBeatCounter : 0;
+    let scheduledGlobalBeatCounter = isResuming ? this.currentGlobalBeatCounter : 0;
 
-    this.currentBeat.set(1);
+    if (!isResuming) {
+      this.currentBeat.set(1);
+    }
 
     const scheduleAudio = () => {
       if (!this.isPlaying()) return;
@@ -550,7 +617,9 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
         const layer = this.layers()[scheduledLayerIndex];
         if (!layer) return;
 
-        const currentBeatNumber = (scheduledGlobalBeatCounter % 4) + 1;
+        const currentBeatInBar = scheduledGlobalBeatCounter % 4; // 0, 1, 2, 3
+        const currentBeatNumber = currentBeatInBar + 1;
+
         if (playMetronome) {
           const metronomeTime = metronomeAudioContext
             ? metronomeAudioContext.currentTime + Math.max(0, nextBeatTime - audioContext.currentTime)
@@ -558,8 +627,18 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
           this.metronomeService.playClick(currentBeatNumber === 1, metronomeTime);
         }
 
+        if (drumGenre !== 'metronome') {
+          this.audioService.playDrumBeat(
+            drumGenre,
+            currentBeatInBar,
+            nextBeatTime,
+            beatDurationSec,
+            drumVolume
+          );
+        }
+
         if (scheduledLayerBeatCounter === 0) {
-          this.playChordForLayer(layer, nextBeatTime);
+          this.playChordForLayer(layer, nextBeatTime, instrumentName, instrumentVolume);
         }
 
         scheduledGlobalBeatCounter++;
@@ -573,7 +652,7 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
           }
         }
 
-        nextBeatTime += beatDuration / 1000;
+        nextBeatTime += beatDurationSec;
       }
     };
 
@@ -588,19 +667,17 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       const beatsForLayer = currentLayer.duration * 4;
       const layerDurationMs = beatsForLayer * beatDuration;
 
-      // Calculate transition duration (proportional to layer duration, max 800ms, min 400ms)
       const transitionDuration = Math.max(400, Math.min(800, layerDurationMs * 0.3));
 
       const elapsedInLayer = Date.now() - layerStartTime;
       const timeUntilNextLayer = layerDurationMs - elapsedInLayer;
 
-      // Start transition if we're within transition duration of the next layer
       if (timeUntilNextLayer <= transitionDuration && timeUntilNextLayer > 0) {
         const nextIndex = this.currentLayerIndex() + 1;
         const nextLayerIdx = nextIndex >= this.layers().length ? 0 : nextIndex;
         this.startTransition(nextLayerIdx, transitionDuration);
       }
-    }, 50); // Check every 50ms for smooth timing
+    }, 50);
 
     const tick = () => {
       if (!this.isPlaying()) return;
@@ -609,31 +686,32 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       layerBeatCounter++;
       const currentBeatNumber = (globalBeatCounter % 4) + 1; // 1-4 for visual indicator
 
-      // Update beat indicator
+      this.currentGlobalBeatCounter = globalBeatCounter;
+      this.currentLayerBeatCounter = layerBeatCounter;
+      this.currentScheduledLayerIndex = this.currentLayerIndex();
+
       this.currentBeat.set(currentBeatNumber);
 
-      // Calculate how many beats the current layer should last
       const currentLayer = this.layers()[this.currentLayerIndex()];
-      const beatsForLayer = currentLayer.duration * 4; // Convert duration to beats
+      const beatsForLayer = currentLayer.duration * 4;
 
-      // Advance layer when we've played all beats for current layer
       if (layerBeatCounter >= beatsForLayer) {
-        layerBeatCounter = 0; // Reset layer beat counter
-        layerStartTime = Date.now(); // Reset layer start time for next layer
+        layerBeatCounter = 0;
+        this.currentLayerBeatCounter = 0;
+        layerStartTime = Date.now();
 
         const nextIndex = this.currentLayerIndex() + 1;
         if (nextIndex >= this.layers().length) {
-          // Loop back to start
           this.currentLayerIndex.set(0);
           this.syncLayerSignals();
-          globalBeatCounter = 0; // Reset to sync beat indicator
-          this.currentBeat.set(1); // Start from beat 1 again
+          globalBeatCounter = 0;
+          this.currentGlobalBeatCounter = 0;
+          this.currentBeat.set(1);
         } else {
           this.currentLayerIndex.set(nextIndex);
           this.syncLayerSignals();
         }
 
-        // End transition after layer change is complete
         this.endTransition();
       }
     };
@@ -656,7 +734,6 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Ease-in-out function for smoother animation
       const eased = progress < 0.5
         ? 2 * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
@@ -682,20 +759,20 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
     }
   }
 
-  private playChordForLayer(layer: TimelineLayer, scheduledTime: number) {
+  private playChordForLayer(layer: TimelineLayer, scheduledTime: number, instrument?: string, volume?: number) {
     const bpm = this.bpm();
     const beatDuration = 60 / bpm; // seconds per beat
     const durationInSeconds = layer.duration * 4 * beatDuration; // layer duration in seconds
 
-    // Call async without await to not block the playback loop
-    // Instrument is already pre-loaded in play() method
     this.audioService.playChord(
       layer.root,
       layer.chordType,
       layer.octave ?? 3,
       layer.inversion ?? 'root',
       durationInSeconds,
-      scheduledTime
+      scheduledTime,
+      instrument,
+      volume
     ).catch(error => {
       console.error('Error playing chord:', error);
     });
@@ -839,19 +916,22 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
   }
 
   openConfigModal(): void {
-    const dialogData: DisplayTimelineConfigDialogData = {
+    const dialogData: SequencerConfigDialogData = {
+      title: 'Configura Sequencer Timeline',
+      showFretboardSettings: true,
       colorMode: this.colorMode(),
-      fretboardColor: this.fretboardColor()
+      fretboardColor: this.fretboardColor(),
+      sequencerConfig: this.timelineItem().sequencerConfig
     };
 
-    const dialogRef = this.dialog.open<DisplayTimelineConfigDialogResult, DisplayTimelineConfigDialogData>(
-      DisplayTimelineConfigDialogComponent,
+    const dialogRef = this.dialog.open<SequencerConfigDialogResult, SequencerConfigDialogData>(
+      SequencerConfigModalComponent,
       {
         data: dialogData,
         disableClose: false,
         hasBackdrop: true,
-        width: '48rem',
-        maxWidth: '90vw',
+        width: '36rem',
+        maxWidth: '92vw',
         maxHeight: '90vh'
       }
     );
@@ -860,8 +940,9 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
       if (result) {
         const updated: TimelineItem = {
           ...this.timelineItem(),
-          colorMode: result.colorMode,
-          fretboardColor: result.fretboardColor
+          colorMode: result.colorMode ?? this.colorMode(),
+          fretboardColor: result.fretboardColor ?? this.fretboardColor(),
+          sequencerConfig: result.sequencerConfig
         };
         this.update.emit(updated);
       }

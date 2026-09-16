@@ -1,17 +1,20 @@
-import { ChangeDetectionStrategy, Component, inject, input, OnDestroy, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnDestroy, output, signal } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
-import { LucideCopy, LucideGripVertical, LucidePencil, LucidePlay, LucidePlus, LucideSquare, LucideTrash2 } from '@lucide/angular';
+import { LucideCopy, LucideGripVertical, LucidePause, LucidePencil, LucidePlay, LucidePlus, LucideSettings, LucideSquare, LucideTrash2 } from '@lucide/angular';
 import { HarmonicBar, HarmonicBeat, HarmonicGridItem, HarmonicSection } from '../../models/session.model';
 import { AudioService } from '../../services/audio.service';
 import { MetronomeService } from '../../services/metronome.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 import { BeatIndicatorComponent } from '../beat-indicator/beat-indicator.component';
+import { Dialog } from '@angular/cdk/dialog';
+import { SequencerConfigModalComponent, SequencerConfigDialogData, SequencerConfigDialogResult } from '../sequencer-config-modal/sequencer-config-modal.component';
+import { DrumGenre } from '../../data/drum-patterns';
 
 @Component({
   selector: 'app-harmonic-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CdkDrag, CdkDragHandle, CdkDropList, FormsModule, BeatIndicatorComponent, LucideCopy, LucideGripVertical, LucidePencil, LucidePlay, LucidePlus, LucideSquare, LucideTrash2],
+  imports: [CdkDrag, CdkDragHandle, CdkDropList, FormsModule, BeatIndicatorComponent, LucideCopy, LucideGripVertical, LucidePause, LucidePencil, LucidePlay, LucidePlus, LucideSettings, LucideSquare, LucideTrash2],
   templateUrl: './harmonic-grid.component.html',
   styles: `
     :host { display: block; }
@@ -22,7 +25,12 @@ export class HarmonicGridComponent implements OnDestroy {
   update = output<HarmonicGridItem>();
   delete = output<void>();
   displayMode = signal<'edit' | 'notation'>('notation');
-  isPlaying = signal(false);
+  
+  playbackState = signal<'stopped' | 'playing' | 'paused'>('stopped');
+  isPlaying = computed(() => this.playbackState() === 'playing');
+  isPaused = computed(() => this.playbackState() === 'paused');
+  isPlaybackActive = computed(() => this.playbackState() !== 'stopped');
+
   currentBeat = signal(0);
   currentSectionIndex = signal(0);
   currentBarIndex = signal(0);
@@ -31,6 +39,7 @@ export class HarmonicGridComponent implements OnDestroy {
   private audioService = inject(AudioService);
   private metronomeService = inject(MetronomeService);
   private userSettingsService = inject(UserSettingsService);
+  private dialog = inject(Dialog);
   private playbackInterval: number | null = null;
 
   get bpm(): number {
@@ -42,6 +51,7 @@ export class HarmonicGridComponent implements OnDestroy {
   }
 
   toggleDisplayMode(): void {
+    if (this.isPlaybackActive()) return;
     this.displayMode.set('edit');
   }
 
@@ -54,21 +64,74 @@ export class HarmonicGridComponent implements OnDestroy {
     this.update.emit({ ...this.grid(), bpm });
   }
 
+  openConfigModal(): void {
+    const dialogData: SequencerConfigDialogData = {
+      title: 'Configura Sequencer Griglia Armonica',
+      showFretboardSettings: false,
+      sequencerConfig: this.grid().sequencerConfig
+    };
+
+    const dialogRef = this.dialog.open<SequencerConfigDialogResult, SequencerConfigDialogData>(
+      SequencerConfigModalComponent,
+      {
+        data: dialogData,
+        disableClose: false,
+        hasBackdrop: true,
+        width: '36rem',
+        maxWidth: '92vw',
+        maxHeight: '90vh'
+      }
+    );
+
+    dialogRef.closed.subscribe(result => {
+      if (result) {
+        this.update.emit({
+          ...this.grid(),
+          sequencerConfig: result.sequencerConfig
+        });
+      }
+    });
+  }
+
   async play(): Promise<void> {
     if (this.isPlaying()) return;
 
+    const isResuming = this.isPaused();
+
     await this.audioService.resumeAudioContext();
     await this.metronomeService.resumeAudioContext();
-    await this.audioService.loadInstrument();
 
-    this.isPlaying.set(true);
-    this.setPlaybackPosition(0);
+    const seqConfig = this.grid().sequencerConfig;
+    const settings = this.userSettingsService.settings();
+    const instName = seqConfig?.instrument || settings?.audioInstrument;
+    const drumKit = seqConfig?.drumKit || settings?.audioDrumKit;
+
+    await this.audioService.loadInstrument(instName);
+    await this.audioService.loadDrumMachine(drumKit);
+
+    this.playbackState.set('playing');
+
+    if (!isResuming) {
+      this.setPlaybackPosition(0);
+    }
     this.playCurrentBeat();
     this.playbackInterval = window.setInterval(() => this.advancePlayback(), 60000 / this.bpm);
   }
 
+  pause(): void {
+    if (!this.isPlaying()) return;
+
+    this.playbackState.set('paused');
+    this.audioService.stopAllNotes();
+
+    if (this.playbackInterval !== null) {
+      clearInterval(this.playbackInterval);
+      this.playbackInterval = null;
+    }
+  }
+
   stop(): void {
-    this.isPlaying.set(false);
+    this.playbackState.set('stopped');
     this.currentBeat.set(0);
     this.currentSectionIndex.set(0);
     this.currentBarIndex.set(0);
@@ -82,7 +145,7 @@ export class HarmonicGridComponent implements OnDestroy {
   }
 
   isActiveBeat(sectionIndex: number, barIndex: number, beatIndex: number): boolean {
-    return this.isPlaying()
+    return this.isPlaybackActive()
       && this.currentSectionIndex() === sectionIndex
       && this.currentBarIndex() === barIndex
       && this.currentBeatIndex() === beatIndex;
@@ -125,9 +188,31 @@ export class HarmonicGridComponent implements OnDestroy {
     );
     if (!current) return;
 
+    const seqConfig = this.grid().sequencerConfig;
     const settings = this.userSettingsService.settings();
-    if (settings?.playMetronome ?? true) {
-      this.metronomeService.playClick(current.beatIndex === 0);
+
+    const drumGenre: DrumGenre = seqConfig?.drumGenre || settings?.audioDrumGenre || 'pop';
+    const drumVolume = seqConfig?.drumVolume ?? (settings?.audioDrumVolume ?? 0.7);
+    const instName = seqConfig?.instrument || settings?.audioInstrument || 'electric_piano_1';
+    const instVolume = seqConfig?.instrumentVolume ?? (settings?.audioVolume ?? 0.7);
+    const playMetronome = seqConfig?.playMetronome ?? (settings?.playMetronome ?? (drumGenre === 'metronome'));
+
+    const audioContext = this.audioService.getAudioContext();
+    const scheduledTime = audioContext.currentTime;
+    const beatDuration = 60 / this.bpm;
+
+    if (playMetronome) {
+      this.metronomeService.playClick(current.beatIndex === 0, scheduledTime);
+    }
+
+    if (drumGenre !== 'metronome') {
+      this.audioService.playDrumBeat(
+        drumGenre,
+        current.beatIndex,
+        scheduledTime,
+        beatDuration,
+        drumVolume
+      );
     }
 
     if (!current.beat.chord) return;
@@ -139,7 +224,10 @@ export class HarmonicGridComponent implements OnDestroy {
       chord.type,
       3,
       'root',
-      this.getChordDuration(current)
+      this.getChordDuration(current),
+      scheduledTime,
+      instName,
+      instVolume
     ).catch(error => console.error('Error playing harmonic grid chord:', error));
   }
 
@@ -201,7 +289,7 @@ export class HarmonicGridComponent implements OnDestroy {
   }
 
   onSectionDrop(event: CdkDragDrop<HarmonicSection[]>): void {
-    if (this.isPlaying() || event.previousIndex === event.currentIndex) return;
+    if (this.isPlaybackActive() || event.previousIndex === event.currentIndex) return;
 
     const sections = [...this.grid().sections];
     moveItemInArray(sections, event.previousIndex, event.currentIndex);

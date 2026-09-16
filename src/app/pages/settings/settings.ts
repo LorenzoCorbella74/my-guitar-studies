@@ -7,6 +7,7 @@ import { ConfirmService } from '../../services/confirm.service';
 import { UserDataBackupService } from '../../services/user-data-backup.service';
 import { AudioService } from '../../services/audio.service';
 import { AVAILABLE_SOUNDFONT_INSTRUMENTS } from '../../data/soundfont-instruments';
+import { AVAILABLE_DRUM_KITS, DRUM_GENRES, DrumGenre } from '../../data/drum-patterns';
 
 @Component({
   selector: 'settings-page',
@@ -34,6 +35,8 @@ export class SettingsPage {
   
   fretboardStyles = FRETBOARD_STYLES;
   audioInstruments = AVAILABLE_SOUNDFONT_INSTRUMENTS;
+  drumGenres = DRUM_GENRES;
+  drumKits = AVAILABLE_DRUM_KITS;
   selectedFretboardIndex = signal(0);
   dataOperation = signal<'export' | 'import' | null>(null);
   dataMessage = signal('');
@@ -64,6 +67,17 @@ export class SettingsPage {
     const select = event.target as HTMLSelectElement;
     await this.userSettingsService.updateSettings({ audioInstrument: select.value });
     await this.audioService.reloadInstrument();
+  }
+
+  async onDrumGenreChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    await this.userSettingsService.updateSettings({ audioDrumGenre: select.value as DrumGenre });
+  }
+
+  async onDrumKitChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    await this.userSettingsService.updateSettings({ audioDrumKit: select.value });
+    await this.audioService.loadDrumMachine(select.value);
   }
 
   async exportUserData() {

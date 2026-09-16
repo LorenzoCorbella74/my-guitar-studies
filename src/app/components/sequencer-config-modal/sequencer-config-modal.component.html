@@ -1,0 +1,212 @@
+<div class="cdk-dialog-content max-w-lg w-full max-h-[90vh] overflow-y-auto p-1">
+  <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+    <span>Configura Sequencer e Riproduzione</span>
+  </h3>
+
+  <form (submit)="onSubmit($event)" class="space-y-4">
+    @if (showFretboardSettings()) {
+      <!-- Color Mode -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Modalità colori tastiera</span>
+        </label>
+        <select 
+          class="select select-bordered w-full select-sm"
+          [value]="colorMode()"
+          (change)="colorMode.set($any($event.target).value)"
+        >
+          <option value="monocolor">Monocromatico</option>
+          <option value="triads">Triadi (Tonica, 3°, 5°)</option>
+          <option value="all">Tutti i gradi</option>
+          <option value="octaves">Per ottave</option>
+        </select>
+      </div>
+
+      <!-- Fretboard Color -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Colore tastiera</span>
+        </label>
+        <div class="flex gap-2 flex-wrap">
+          @for (style of fretboardStyles; track style.fretboard) {
+            <button
+              type="button"
+              class="btn btn-xs"
+              [class.btn-primary]="fretboardColor() === style.fretboard"
+              [class.btn-ghost]="fretboardColor() !== style.fretboard"
+              (click)="fretboardColor.set(style.fretboard)"
+            >
+              <div
+                class="w-3.5 h-3.5 rounded border border-base-content/20 mr-1"
+                [style.background-color]="style.fretboard"
+              ></div>
+              {{ style.label }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Drum Base & Rhythms -->
+    <div class="divider font-semibold text-sm">Base di Batteria & Ritmo</div>
+
+    <div class="form-control">
+      <label class="label" for="seq-modal-drum-genre">
+        <span class="label-text font-semibold">Genere / Drum Pattern</span>
+      </label>
+      <select 
+        id="seq-modal-drum-genre"
+        class="select select-bordered w-full select-sm"
+        [ngModel]="drumGenre()"
+        (ngModelChange)="drumGenre.set($event)"
+        [ngModelOptions]="{standalone: true}"
+      >
+        @for (genre of drumGenres; track genre.value) {
+          <option [value]="genre.value">{{ genre.label }}</option>
+        }
+      </select>
+      @if (selectedGenreDescription()) {
+        <span class="text-xs text-base-content/70 mt-1 italic px-1">
+          {{ selectedGenreDescription() }}
+        </span>
+      }
+    </div>
+
+    @if (drumGenre() !== 'metronome') {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Drum Kit -->
+        <div class="form-control">
+          <label class="label" for="seq-modal-drum-kit">
+            <span class="label-text font-semibold">Drum Kit</span>
+          </label>
+          <select 
+            id="seq-modal-drum-kit"
+            class="select select-bordered w-full select-sm"
+            [ngModel]="drumKit()"
+            (ngModelChange)="onDrumKitChange($event)"
+            [ngModelOptions]="{standalone: true}"
+          >
+            @for (kit of drumKits; track kit.value) {
+              <option [value]="kit.value">{{ kit.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Drum Volume -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Volume Batteria</span>
+            <span class="label-text-alt">{{ (drumVolume() * 100).toFixed(0) }}%</span>
+          </label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01"
+            class="range range-xs range-primary"
+            [value]="drumVolume()"
+            (input)="drumVolume.set(+$any($event.target).value)"
+          />
+        </div>
+      </div>
+    }
+
+    <!-- Harmonic Instrument Settings -->
+    <div class="divider font-semibold text-sm">Strumento Armonico (Accordi)</div>
+    
+    <div class="form-control">
+      <label class="label" for="seq-modal-instrument">
+        <span class="label-text font-semibold">Strumento</span>
+      </label>
+      <select 
+        id="seq-modal-instrument"
+        class="select select-bordered w-full select-sm"
+        [ngModel]="instrument()"
+        (ngModelChange)="instrument.set($event)"
+        [ngModelOptions]="{standalone: true}"
+      >
+        @for (inst of instruments; track inst.value) {
+          <option [value]="inst.value">{{ inst.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Instrument Volume -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Volume Armonia</span>
+          <span class="label-text-alt">{{ (instrumentVolume() * 100).toFixed(0) }}%</span>
+        </label>
+        <input 
+          type="range" 
+          min="0" 
+          max="1" 
+          step="0.01"
+          class="range range-xs range-primary"
+          [value]="instrumentVolume()"
+          (input)="instrumentVolume.set(+$any($event.target).value)"
+        />
+      </div>
+
+      <!-- Reverb -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Reverb</span>
+          <span class="label-text-alt">{{ (reverb() * 100).toFixed(0) }}%</span>
+        </label>
+        <input 
+          type="range" 
+          min="0" 
+          max="1" 
+          step="0.01"
+          class="range range-xs range-primary"
+          [value]="reverb()"
+          (input)="reverb.set(+$any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    <!-- Metronome Click & Options -->
+    <div class="divider font-semibold text-sm">Opzioni Generali</div>
+
+    <div class="flex flex-wrap items-center gap-6">
+      <label class="label cursor-pointer justify-start gap-2">
+        <input 
+          type="checkbox" 
+          class="checkbox checkbox-sm checkbox-primary"
+          [checked]="playMetronome()"
+          (change)="playMetronome.set($any($event.target).checked)"
+        />
+        <span class="label-text text-sm">Click Metronomo (con accento)</span>
+      </label>
+
+      <label class="label cursor-pointer justify-start gap-2">
+        <input 
+          type="checkbox" 
+          class="checkbox checkbox-sm checkbox-primary"
+          [checked]="sustain()"
+          (change)="sustain.set($any($event.target).checked)"
+        />
+        <span class="label-text text-sm">Sustain</span>
+      </label>
+    </div>
+
+    <div class="pt-2">
+      <label class="label cursor-pointer justify-start gap-2 border border-base-300 rounded-lg p-2.5 bg-base-200/50">
+        <input 
+          type="checkbox" 
+          class="checkbox checkbox-sm checkbox-secondary"
+          [checked]="saveAsDefault()"
+          (change)="saveAsDefault.set($any($event.target).checked)"
+        />
+        <span class="label-text text-xs">Imposta questi parametri come predefiniti per tutti i nuovi elementi</span>
+      </label>
+    </div>
+
+    <div class="modal-action pt-2">
+      <button type="button" class="btn btn-sm" (click)="dialogRef.close()">Annulla</button>
+      <button type="submit" class="btn btn-sm btn-primary">Salva impostazioni</button>
+    </div>
+  </form>
+</div>

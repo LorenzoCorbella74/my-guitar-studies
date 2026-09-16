@@ -54,6 +54,9 @@ export class UserSettingsService {
           audioDetune: data['audioDetune'],
           audioSustain: data['audioSustain'],
           playMetronome: data['playMetronome'],
+          audioDrumGenre: data['audioDrumGenre'] || 'pop',
+          audioDrumKit: data['audioDrumKit'] || 'TR-808',
+          audioDrumVolume: data['audioDrumVolume'] ?? 0.7,
           createdAt: this.toDate(data['createdAt']),
           updatedAt: this.toDate(data['updatedAt'])
         };
@@ -104,6 +107,9 @@ export class UserSettingsService {
       audioDetune: 0,
       audioSustain: true,
       playMetronome: true,
+      audioDrumGenre: 'pop',
+      audioDrumKit: 'TR-808',
+      audioDrumVolume: 0.7,
       createdAt: now,
       updatedAt: now
     };
@@ -120,6 +126,9 @@ export class UserSettingsService {
       audioDetune: 0,
       audioSustain: true,
       playMetronome: true,
+      audioDrumGenre: 'pop',
+      audioDrumKit: 'TR-808',
+      audioDrumVolume: 0.7,
       createdAt: now,
       updatedAt: now
     };
@@ -166,6 +175,9 @@ export class UserSettingsService {
       if (updatedSettings.audioDetune !== undefined) settingsData['audioDetune'] = updatedSettings.audioDetune;
       if (updatedSettings.audioSustain !== undefined) settingsData['audioSustain'] = updatedSettings.audioSustain;
       if (updatedSettings.playMetronome !== undefined) settingsData['playMetronome'] = updatedSettings.playMetronome;
+      if (updatedSettings.audioDrumGenre !== undefined) settingsData['audioDrumGenre'] = updatedSettings.audioDrumGenre;
+      if (updatedSettings.audioDrumKit !== undefined) settingsData['audioDrumKit'] = updatedSettings.audioDrumKit;
+      if (updatedSettings.audioDrumVolume !== undefined) settingsData['audioDrumVolume'] = updatedSettings.audioDrumVolume;
 
       await setDoc(docRef, settingsData, { merge: true });
       this._settings.set(updatedSettings);

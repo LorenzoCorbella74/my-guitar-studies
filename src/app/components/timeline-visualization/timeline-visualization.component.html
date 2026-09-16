@@ -21,7 +21,7 @@
           type="button"
           class="btn btn-sm btn-square"
           (click)="prevLayer()"
-          [disabled]="currentLayerIndex() === 0 || isPlaying()"
+          [disabled]="currentLayerIndex() === 0 || isPlaybackActive()"
           aria-label="Layer precedente"
         >
           <svg lucideChevronLeft class="w-4 h-4"></svg>
@@ -35,7 +35,7 @@
           type="button"
           class="btn btn-sm btn-square"
           (click)="nextLayer()"
-          [disabled]="currentLayerIndex() === layers().length - 1 || isPlaying()"
+          [disabled]="currentLayerIndex() === layers().length - 1 || isPlaybackActive()"
           aria-label="Layer successivo"
         >
           <svg lucideChevronRight class="w-4 h-4"></svg>
@@ -46,7 +46,7 @@
           type="button"
           class="btn btn-sm btn-square"
           (click)="addLayer()"
-          [disabled]="isPlaying()"
+          [disabled]="isPlaybackActive()"
           aria-label="Aggiungi layer"
         >
           <svg lucidePlus class="w-4 h-4"></svg>
@@ -56,7 +56,7 @@
           type="button"
           class="btn btn-sm btn-square"
           (click)="cloneLayer()"
-          [disabled]="isPlaying()"
+          [disabled]="isPlaybackActive()"
           aria-label="Clona layer"
           title="Clona layer corrente"
         >
@@ -67,7 +67,7 @@
           type="button"
           class="btn btn-sm btn-square"
           (click)="deleteLayer()"
-          [disabled]="layers().length <= 1 || isPlaying()"
+          [disabled]="layers().length <= 1 || isPlaybackActive()"
           aria-label="Elimina layer"
         >
           <svg lucideTrash2 class="w-4 h-4"></svg>
@@ -99,7 +99,7 @@
             class="select select-bordered select-sm"
             [value]="layerRoot()"
             (change)="updateChordRoot($any($event.target).value)"
-            [disabled]="isPlaying()"
+            [disabled]="isPlaybackActive()"
           >
             @for (note of noteOptions; track note) {
               <option [value]="note">{{ note }}</option>
@@ -118,7 +118,7 @@
             class="input input-bordered input-sm"
             [value]="layerChordType()"
             (input)="updateChordType($any($event.target).value)"
-            [disabled]="isPlaying()"
+            [disabled]="isPlaybackActive()"
             placeholder="major, minor, 7, m7..."
           />
           <datalist id="chord-types">
@@ -137,7 +137,7 @@
             class="select select-bordered select-sm"
             [value]="layerOctave()"
             (change)="updateOctave(+$any($event.target).value)"
-            [disabled]="isPlaying()"
+            [disabled]="isPlaybackActive()"
           >
             @for (octave of octaves; track octave) {
               <option [value]="octave">{{ octave }}</option>
@@ -154,7 +154,7 @@
             class="select select-bordered select-sm"
             [value]="layerInversion()"
             (change)="updateInversion($any($event.target).value)"
-            [disabled]="isPlaying()"
+            [disabled]="isPlaybackActive()"
           >
             @for (inv of inversions; track inv.value) {
               <option 
@@ -194,7 +194,7 @@
                   class="radio radio-sm"
                   [checked]="layerDuration() === duration"
                   (change)="updateDuration(duration)"
-                  [disabled]="isPlaying()"
+                  [disabled]="isPlaybackActive()"
                 />
                 <span class="label-text">{{ durationLabels[duration] }}</span>
               </label>
@@ -212,7 +212,7 @@
             class="input input-bordered input-sm w-24"
             [value]="bpm()"
             (input)="updateBpm(+$any($event.target).value)"
-            [disabled]="isPlaying()"
+            [disabled]="isPlaybackActive()"
             min="40"
             max="240"
           />
@@ -221,17 +221,14 @@
 
       <!-- Playback controls -->
       <div class="form-control ml-auto">
-        <!-- <label class="label">
-          <span class="label-text font-semibold">Playback</span>
-        </label -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
           <!-- Beat Indicator -->
-          @if (isPlaying()) {
+          @if (isPlaybackActive()) {
             <app-beat-indicator [currentBeat]="currentBeat()" />
           }
           
-          <!-- Play/Stop buttons -->
-          @if (!isPlaying()) {
+          <!-- Play / Pause / Stop buttons -->
+          @if (playbackState() === 'stopped') {
             <button
               type="button"
               class="btn btn-sm btn-success"
@@ -241,7 +238,35 @@
               <svg lucidePlay class="w-4 h-4"></svg>
               Play
             </button>
-          } @else {
+          } @else if (playbackState() === 'playing') {
+            <button
+              type="button"
+              class="btn btn-sm btn-warning"
+              (click)="pause()"
+              aria-label="Pausa playback"
+            >
+              <svg lucidePause class="w-4 h-4"></svg>
+              Pausa
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-error"
+              (click)="stop()"
+              aria-label="Ferma playback"
+            >
+              <svg lucideSquare class="w-4 h-4"></svg>
+              Stop
+            </button>
+          } @else if (playbackState() === 'paused') {
+            <button
+              type="button"
+              class="btn btn-sm btn-success"
+              (click)="play()"
+              aria-label="Riprendi playback"
+            >
+              <svg lucidePlay class="w-4 h-4"></svg>
+              Riprendi
+            </button>
             <button
               type="button"
               class="btn btn-sm btn-error"
@@ -326,7 +351,7 @@
           <!-- Notes (clickable) -->
           @for (fretNote of fretNotes(); track fretNote.string + '-' + fretNote.fret) {
             <g
-              [class.cursor-pointer]="!isPlaying()"
+              [class.cursor-pointer]="!isPlaybackActive()"
               (click)="handleNoteClick(fretNote, $event)"
             >
               @if (isOverlayNote(fretNote)) {
@@ -394,7 +419,7 @@
                     {{ fretNote.degree }}
                   </text>
                 }
-              } @else if (!isPlaying()) {
+              } @else if (!isPlaybackActive()) {
                 <!-- Inactive note (all notes clickable) -->
                 <circle
                   [attr.cx]="getNoteX(fretNote.fret)"
