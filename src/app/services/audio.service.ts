@@ -352,7 +352,8 @@ export class AudioService {
   }
 
   /**
-   * Esegue la riproduzione polifonica di un accordo armonico con rivolti e scheduling preciso.
+   * Esegue la riproduzione polifonica di un accordo armonico con rivolti e scheduling preciso
+   * sfruttando Tonal.Chord.degrees per la corretta determinazione di ottave e inversioni.
    *
    * @param root Tonica dell'accordo (es. 'C', 'G#', 'Eb')
    * @param chordType Tipo accordo (es. 'major', 'm7', 'maj7')
@@ -390,25 +391,13 @@ export class AudioService {
     const effectiveVolume = customVolume ?? (settings?.audioVolume ?? 0.7);
     this.updateVolume(effectiveVolume);
     
-    let chord = Chord.get(`${root}${chordType}`);
-    let notes = chord.notes;
-
-    if (!notes || notes.length === 0) {
-      chord = Chord.get(`${root} ${chordType}`);
-      notes = chord.notes;
-    }
+    // Calcola le note dell'accordo con ottava e rivolto tramite Tonal.Chord.degrees
+    const notesWithOctave = this.applyInversion(root, chordType, octave, inversion);
     
-    if (!notes || notes.length === 0) {
+    if (notesWithOctave.length === 0) {
       console.warn(`Nessuna nota trovata per l'accordo: ${root}${chordType}`);
       return;
     }
-    
-    notes = this.applyInversion(notes, inversion);
-    
-    const notesWithOctave = notes.map((note, index) => {
-      const noteOctave = octave + Math.floor(index / notes.length);
-      return `${note}${noteOctave}`;
-    });
     
     const detune = settings?.audioDetune ?? 0;
     const now = this.audioContext.currentTime;
@@ -436,34 +425,76 @@ export class AudioService {
   }
 
   /**
-   * Applica l'inversione delle note di un accordo.
+   * Calcola le note con ottave dell'accordo e applica il rivolto specificato
+   * utilizzando Tonal.Chord.degrees (https://tonaljs.github.io/tonal/docs/groups/chords#chorddegrees).
+   *
+   * @param root Tonica dell'accordo (es. 'C')
+   * @param chordType Tipo accordo (es. 'major', 'm7', 'maj7')
+   * @param octave Ottava di partenza (es. 3)
+   * @param inversion Rivolto ('root', '1st', '2nd', '3rd')
+   * @returns Array di note con ottava (es. ['E3', 'G3', 'B3', 'C4'] per 1° rivolto di C3maj7)
    */
-  private applyInversion(notes: string[], inversion: ChordInversion): string[] {
-    if (notes.length === 0) return notes;
-    
-    const result = [...notes];
-    
+  applyInversion(
+    root: string,
+    chordType: string,
+    octave: number,
+    inversion: ChordInversion
+  ): string[] {
+    let chord = Chord.get(`${root}${chordType}`);
+    if (!chord.notes || chord.notes.length === 0) {
+      chord = Chord.get(`${root} ${chordType}`);
+    }
+
+    const numNotes = chord.notes?.length || 0;
+    if (numNotes === 0) {
+      return [];
+    }
+
+    const tonicWithOctave = `${root}${octave}`;
+    const resolvedType = chord.type || chord.aliases[0] || chordType || 'major';
+
+    // Ottiene la funzione Chord.degrees di Tonal (1-indexed)
+    let degreeFn = Chord.degrees(resolvedType, tonicWithOctave);
+    if (!degreeFn(1)) {
+      degreeFn = Chord.degrees(chordType, tonicWithOctave);
+    }
+
+    // Determina il grado di partenza in base al rivolto
+    let startDegree = 1;
     switch (inversion) {
       case '1st':
-        result.push(result.shift()!);
+        startDegree = numNotes >= 2 ? 2 : 1;
         break;
       case '2nd':
-        result.push(result.shift()!);
-        result.push(result.shift()!);
+        startDegree = numNotes >= 3 ? 3 : 1;
         break;
       case '3rd':
-        if (notes.length >= 4) {
-          result.push(result.shift()!);
-          result.push(result.shift()!);
-          result.push(result.shift()!);
-        }
+        startDegree = numNotes >= 4 ? 4 : 1;
         break;
       case 'root':
       default:
+        startDegree = 1;
         break;
     }
-    
-    return result;
+
+    // Genera l'array di gradi (es. per 1st inv a 4 voci: [2, 3, 4, 5])
+    const degreeIndices = Array.from({ length: numNotes }, (_, i) => startDegree + i);
+    const notesWithOctave = degreeIndices.map(d => degreeFn(d)).filter(n => Boolean(n));
+
+    if (notesWithOctave.length === numNotes) {
+      return notesWithOctave;
+    }
+
+    // Fallback nel caso la definizione dell'accordo non sia registrata nel dizionario di Chord.degrees
+    const notes = [...chord.notes];
+    const offset = startDegree - 1;
+    for (let i = 0; i < offset; i++) {
+      notes.push(notes.shift()!);
+    }
+    return notes.map((note, index) => {
+      const noteOctave = octave + Math.floor(index / numNotes);
+      return `${note}${noteOctave}`;
+    });
   }
 
   /**
