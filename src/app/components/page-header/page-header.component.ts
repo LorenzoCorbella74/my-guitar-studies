@@ -10,7 +10,7 @@ import { ThemeService } from '../../services/theme.service';
   imports: [RouterLink, LucideCircleUser, LucideMoon, LucideMusic2, LucideSun],
   template: `
     <header class="sticky top-0 z-50 border-b border-base-300 bg-base-100/95 shadow-sm backdrop-blur-sm">
-      <div class="mx-auto flex max-w-5xl min-w-0 items-center gap-2 px-4 py-3">
+      <div class="mx-auto flex max-w-6xl min-w-0 items-center gap-2 px-4 py-3">
         <div class="flex min-w-0 items-center gap-3">
           <a routerLink="/sessions" class="flex shrink-0 items-center gap-2 font-bold leading-tight" aria-label="My Guitar Studies">
             <svg lucideMusic2 class="h-5 w-5 text-primary"></svg>

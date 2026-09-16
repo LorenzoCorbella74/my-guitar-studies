@@ -26,11 +26,12 @@ import { TabEditorComponent } from '../../components/tab-editor/tab-editor.compo
 import { CircleOfFifthsComponent } from '../../components/circle-of-fifths/circle-of-fifths.component';
 import { SessionItemClipboardService } from '../../services/session-item-clipboard.service';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { IndexLinksComponent } from '../../components/index-links/index-links.component';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, IndexLinksComponent, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -39,6 +40,7 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
       display: flex;
       align-items: flex-start;
       gap: 0.5rem;
+      scroll-margin-top: 6rem;
     }
 
     .drag-handle {
@@ -685,13 +687,16 @@ export class SessionEditorPage implements OnInit {
   }
 
   onItemDrop(event: CdkDragDrop<SessionItem[]>) {
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
     const itemsArray = [...this.items()];
     moveItemInArray(itemsArray, event.previousIndex, event.currentIndex);
 
-    // Recalculate order field for all items
     const reorderedItems = itemsArray.map((item, index) => ({
       ...item,
-      order: index * 10
+      order: index
     }));
 
     this.items.set(reorderedItems);
