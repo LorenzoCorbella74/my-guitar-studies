@@ -238,11 +238,27 @@ export class HarmonicGridComponent implements OnDestroy {
       && item.barIndex === current.barIndex
       && item.beatIndex === current.beatIndex
     );
+
+    if (currentIndex < 0) {
+      return 60 / this.bpm;
+    }
+
+    const currentBeat = positions[currentIndex]?.beat;
+    if (!currentBeat?.chord) {
+      return 60 / this.bpm;
+    }
+
     let beats = 1;
     for (let index = currentIndex + 1; index < positions.length; index++) {
-      if (positions[index].beat.chord) break;
+      const nextBeat = positions[index].beat;
+
+      // In the harmonic-grid UI, any empty beat after an explicit chord is an implicit hold,
+      // even when the beat has no `holdPrevious` flag. The chord should continue until a new
+      // explicit chord appears or the sequence ends.
+      if (nextBeat.chord) break;
       beats++;
     }
+
     return (60 / this.bpm) * beats;
   }
 
