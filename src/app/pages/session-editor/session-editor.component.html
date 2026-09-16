@@ -1,245 +1,176 @@
-    <div class="min-h-screen">
-      <app-page-header>
-          <button (click)="goBack()" class="btn btn-ghost btn-sm whitespace-nowrap">
-              <svg lucideArrowLeft class="w-4 h-4"></svg> Torna alle sessioni
-            </button>
-            @if (!notFound()) {
-              <div class="flex flex-wrap items-center gap-2">
-                @if (clipboard.hasItems()) {
-                  <button
-                    type="button"
-                    class="btn btn-outline btn-primary btn-sm whitespace-nowrap"
-                    (click)="pasteItems()"
-                    [attr.aria-label]="'Incolla ' + clipboard.count() + ' elementi'
-                    "
-                    [title]="'Incolla ' + clipboard.count() + ' elementi'"
-                  >
-                    Incolla {{ clipboard.count() }} elementi
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-sm btn-square"
-                    (click)="clipboard.reset()"
-                    aria-label="Svuota elementi copiati"
-                    title="Svuota elementi copiati"
-                  >
-                    <svg lucideX class="w-4 h-4"></svg>
-                  </button>
-                }
-                <app-item-selector (itemSelected)="addItem($event)" />
-                <button class="btn btn-dash btn-primary btn-sm" (click)="save()" [disabled]="saving()">
-                  <svg lucideSave class="w-4 h-4"></svg> Salva
+<div class="min-h-screen">
+  <app-page-header>
+    <button (click)="goBack()" class="btn btn-ghost btn-sm whitespace-nowrap">
+      <svg lucideArrowLeft class="w-4 h-4"></svg> Torna alle sessioni
+    </button>
+    @if (!notFound()) {
+    <div class="flex flex-wrap items-center gap-2">
+      @if (clipboard.hasItems()) {
+      <button type="button" class="btn btn-outline btn-primary btn-sm whitespace-nowrap" (click)="pasteItems()"
+        [attr.aria-label]="'Incolla ' + clipboard.count() + ' elementi'
+                    " [title]="'Incolla ' + clipboard.count() + ' elementi'">
+        Incolla {{ clipboard.count() }} elementi
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="clipboard.reset()"
+        aria-label="Svuota elementi copiati" title="Svuota elementi copiati">
+        <svg lucideX class="w-4 h-4"></svg>
+      </button>
+      }
+      <app-item-selector (itemSelected)="addItem($event)" />
+      <button class="btn btn-dash btn-primary btn-sm" (click)="save()" [disabled]="saving()">
+        <svg lucideSave class="w-4 h-4"></svg> Salva
+      </button>
+    </div>
+    }
+  </app-page-header>
+  <div class="mx-auto max-w-6xl px-4 pt-4 pb-8">
+    @if (notFound()) {
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title text-error">Sessione non trovata</h2>
+        <div class="card-actions">
+          <button (click)="goBack()" class="btn btn-dash btn-primary">Torna alla lista</button>
+        </div>
+      </div>
+    </div>
+    } @else {
+    <div class="fixed right-6 top-24 z-40 flex flex-col items-end gap-2">
+      <app-index-links [items]="items()" />
+      @if (sessionId()) {
+      <app-session-group-links [groupId]="groupId()" [groupName]="groupName()" [currentSessionId]="sessionId()"
+        [allGroups]="allGroups()" [allSessions]="allSessions()" />
+      }
+    </div>
+
+    <div class="mx-auto w-full min-w-0 max-w-6xl">
+      <!-- Title and Tags Row -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="flex items-center gap-4">
+          <h3 class="shrink-0"><strong>Titolo</strong></h3>
+          <input type="text" class="input input-bordered flex-1" [(ngModel)]="title"
+            placeholder="Titolo della sessione" />
+        </div>
+
+        <div class="flex items-center gap-4">
+          <h3 class="shrink-0"><strong>Tag</strong></h3>
+          <div class="dropdown flex-1">
+            <div
+              class="input input-bordered flex flex-wrap items-center gap-1 min-h-[2.5rem] h-auto py-1 cursor-text w-full"
+              (click)="tagInput.focus()">
+              @for (tag of sessionTags(); track tag) {
+              <span class="badge badge-primary gap-1">
+                {{ tag }}
+                <button type="button" (click)="removeTag(tag, $event)" [attr.aria-label]="'Rimuovi tag ' + tag">
+                  <svg lucideX class="w-3 h-3"></svg>
                 </button>
-              </div>
-            }
-      </app-page-header>
-      <div class="mx-auto max-w-6xl px-4 pt-4 pb-8">
-        @if (notFound()) {
-          <div class="card bg-base-100 shadow-md">
-            <div class="card-body">
-              <h2 class="card-title text-error">Sessione non trovata</h2>
-              <div class="card-actions">
-                <button (click)="goBack()" class="btn btn-dash btn-primary">Torna alla lista</button>
-              </div>
+              </span>
+              }
+              <input #tagInput type="text" class="outline-none bg-transparent flex-1 min-w-[80px] text-sm"
+                [placeholder]="sessionTags().length === 0 ? 'Aggiungi tag...' : ''" [value]="tagQuery()"
+                (input)="tagQuery.set($any($event.target).value)" (focus)="tagDropdownOpen.set(true)"
+                (blur)="onTagBlur()" (keydown.enter)="addTagFromInput($event)"
+                (keydown.escape)="tagDropdownOpen.set(false)" aria-label="Aggiungi tag" autocomplete="off" />
             </div>
-          </div>
-        } @else {
-          <div class="fixed right-6 top-24 z-40 flex flex-col items-end gap-2">
-            <app-index-links [items]="items()" />
-            @if (sessionId()) {
-              <app-session-group-links
-                [groupId]="groupId()"
-                [groupName]="groupName()"
-                [currentSessionId]="sessionId()"
-                [allGroups]="allGroups()"
-                [allSessions]="allSessions()"
-              />
+            @if (tagDropdownOpen() && tagSuggestions().length > 0) {
+            <ul
+              class="dropdown-content menu bg-base-100 rounded-box z-10 w-full shadow mt-1 max-h-48 overflow-y-auto flex-nowrap">
+              @for (tag of tagSuggestions(); track tag.id) {
+              <li>
+                <button type="button" (mousedown)="selectTag(tag.name)">{{ tag.name }}</button>
+              </li>
+              }
+            </ul>
             }
           </div>
+        </div>
+      </div>
 
-          <div class="mx-auto w-full min-w-0 max-w-6xl">
-            <!-- Title and Tags Row -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div class="flex items-center gap-4">
-                <h3 class="shrink-0"><strong>Titolo</strong></h3>
-                <input
-                  type="text"
-                  class="input input-bordered flex-1"
-                  [(ngModel)]="title"
-                  placeholder="Titolo della sessione"
-                />
-              </div>
-
-              <div class="flex items-center gap-4">
-                <h3 class="shrink-0"><strong>Tag</strong></h3>
-                <div class="dropdown flex-1">
-                  <div class="input input-bordered flex flex-wrap items-center gap-1 min-h-[2.5rem] h-auto py-1 cursor-text w-full"
-                       (click)="tagInput.focus()">
-                    @for (tag of sessionTags(); track tag) {
-                      <span class="badge badge-primary gap-1">
-                        {{ tag }}
-                        <button type="button" (click)="removeTag(tag, $event)" [attr.aria-label]="'Rimuovi tag ' + tag">
-                          <svg lucideX class="w-3 h-3"></svg>
-                        </button>
-                      </span>
-                    }
-                    <input
-                      #tagInput
-                      type="text"
-                      class="outline-none bg-transparent flex-1 min-w-[80px] text-sm"
-                      [placeholder]="sessionTags().length === 0 ? 'Aggiungi tag...' : ''"
-                      [value]="tagQuery()"
-                      (input)="tagQuery.set($any($event.target).value)"
-                      (focus)="tagDropdownOpen.set(true)"
-                      (blur)="onTagBlur()"
-                      (keydown.enter)="addTagFromInput($event)"
-                      (keydown.escape)="tagDropdownOpen.set(false)"
-                      aria-label="Aggiungi tag"
-                      autocomplete="off"
-                    />
-                  </div>
-                  @if (tagDropdownOpen() && tagSuggestions().length > 0) {
-                    <ul class="dropdown-content menu bg-base-100 rounded-box z-10 w-full shadow mt-1 max-h-48 overflow-y-auto flex-nowrap">
-                      @for (tag of tagSuggestions(); track tag.id) {
-                        <li>
-                          <button type="button" (mousedown)="selectTag(tag.name)">{{ tag.name }}</button>
-                        </li>
-                      }
-                    </ul>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-4 mb-4" #itemsContainer cdkDropList (cdkDropListDropped)="onItemDrop($event)">
-              @if (items().length === 0) {
-                <div class="card bg-base-100 shadow-md">
-                  <div class="card-body">
-                    <p class="text-base-content/60 text-center">
-                      Nessun elemento aggiunto. Usa il pulsante qui sotto per iniziare.
-                    </p>
-                  </div>
-                </div>
-              }
-
-              @for (item of items(); track item.id) {
-                <div [id]="item.id" cdkDrag class="drag-item-wrapper" @fadeSlideUp>
-                  <div class="flex shrink-0 flex-col items-center gap-1">
-                    <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
-                      <svg lucideGripVertical class="w-5 h-5"></svg>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-square btn-xs"
-                      (click)="copyItem(item)"
-                      [attr.aria-label]="'Copia elemento ' + (item.order + 1)"
-                      title="Copia elemento"
-                    >
-                      <svg lucideCopy class="h-3.5 w-3.5"></svg>
-                    </button>
-                  </div>
-
-                  <div class="item-content">
-                    @if (item.type === 'section') {
-                      <app-section-editor
-                        [section]="$any(item)"
-                        (save)="updateSection(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'scale' || item.type === 'arpeggio' || item.type === 'chord') {
-                      <app-scale-visualization
-                        [scaleItem]="$any(item)"
-                        (update)="updateScale(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                        (clone)="cloneScale($event)"
-                        (cancelFirstConfig)="removeItemSilently(item.id)"
-                      />
-                    }
-                    @if (item.type === 'comparison') {
-                      <app-comparison-table
-                        [comparison]="$any(item)"
-                        (update)="updateComparison(item.id, $event)"
-                        (deleted)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'chordprogression') {
-                      <app-chord-progression
-                        [progression]="$any(item)"
-                        (update)="updateChordProgression(item.id, $event)"
-                        (deleteProgression)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'harmonicgrid') {
-                      <app-harmonic-grid
-                        [grid]="$any(item)"
-                        (update)="updateHarmonicGrid(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'timeline') {
-                      <app-timeline-visualization
-                        [timelineItem]="$any(item)"
-                        (update)="updateTimelineItem(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'modalinterchange') {
-                      <app-modal-interchange
-                        [item]="$any(item)"
-                        (update)="updateModalInterchange(item.id, $event)"
-                        (deleted)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'fretboard') {
-                      <app-fretboard-editor
-                        [fretboardItem]="$any(item)"
-                        (update)="updateFretboardItem(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                        (clone)="cloneFretboard($event)"
-                      />
-                    }
-                    @if (item.type === 'keyprogression') {
-                      <app-key-progression
-                        [keyProgressionItem]="$any(item)"
-                        (update)="updateKeyProgression(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'tab') {
-                      <app-tab-editor
-                        [tabItem]="$any(item)"
-                        (update)="updateTab(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                    @if (item.type === 'circleoffifths') {
-                      <app-circle-of-fifths
-                        [item]="$any(item)"
-                        (update)="updateCircleOfFifths(item.id, $event)"
-                        (delete)="deleteItem(item.id)"
-                      />
-                    }
-                  </div>
-                </div>
-              }
-            </div>
+      <div class="space-y-4 mb-4" #itemsContainer cdkDropList (cdkDropListDropped)="onItemDrop($event)">
+        @if (items().length === 0) {
+        <div class="card bg-base-100 shadow-md">
+          <div class="card-body">
+            <p class="text-base-content/60 text-center">
+              Nessun elemento aggiunto. Usa il pulsante qui sotto per iniziare.
+            </p>
           </div>
+        </div>
+        }
+
+        @for (item of items(); track item.id) {
+        <div [id]="item.id" cdkDrag class="drag-item-wrapper" @fadeSlideUp>
+          <div class="flex shrink-0 flex-col items-center gap-1">
+            <div cdkDragHandle class="drag-handle" [attr.aria-label]="'Trascina per riordinare'">
+              <svg lucideGripVertical class="w-5 h-5"></svg>
+            </div>
+            <button type="button" class="btn btn-ghost btn-square btn-xs" (click)="copyItem(item)"
+              [attr.aria-label]="'Copia elemento ' + (item.order + 1)" title="Copia elemento">
+              <svg lucideCopy class="h-3.5 w-3.5"></svg>
+            </button>
+          </div>
+
+          <div class="item-content">
+            @if (item.type === 'section') {
+            <app-section-editor [section]="$any(item)" (save)="updateSection(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'scale' || item.type === 'arpeggio' || item.type === 'chord') {
+            <app-scale-visualization [scaleItem]="$any(item)" (update)="updateScale(item.id, $event)"
+              (delete)="deleteItem(item.id)" (clone)="cloneScale($event)"
+              (cancelFirstConfig)="removeItemSilently(item.id)" />
+            }
+            @if (item.type === 'comparison') {
+            <app-comparison-table [comparison]="$any(item)" (update)="updateComparison(item.id, $event)"
+              (deleted)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'chordprogression') {
+            <app-chord-progression [progression]="$any(item)" (update)="updateChordProgression(item.id, $event)"
+              (deleteProgression)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'harmonicgrid') {
+            <app-harmonic-grid [grid]="$any(item)" (update)="updateHarmonicGrid(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'timeline') {
+            <app-timeline-visualization [timelineItem]="$any(item)" (update)="updateTimelineItem(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'modalinterchange') {
+            <app-modal-interchange [item]="$any(item)" (update)="updateModalInterchange(item.id, $event)"
+              (deleted)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'fretboard') {
+            <app-fretboard-editor [fretboardItem]="$any(item)" (update)="updateFretboardItem(item.id, $event)"
+              (delete)="deleteItem(item.id)" (clone)="cloneFretboard($event)" />
+            }
+            @if (item.type === 'keyprogression') {
+            <app-key-progression [keyProgressionItem]="$any(item)" (update)="updateKeyProgression(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'tab') {
+            <app-tab-editor [tabItem]="$any(item)" (update)="updateTab(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'circleoffifths') {
+            <app-circle-of-fifths [item]="$any(item)" (update)="updateCircleOfFifths(item.id, $event)"
+              (delete)="deleteItem(item.id)" />
+            }
+            @if (item.type === 'links') {
+            <app-session-links-item [item]="$any(item)" [currentSessionId]="sessionId()" [allSessions]="allSessions()"
+              (update)="updateLinksItem(item.id, $event)" (delete)="deleteItem(item.id)" />
+            }
+          </div>
+        </div>
         }
       </div>
-      
-      <!-- Chord Progression Name Dialog -->
-      <app-chord-progression-name-dialog
-        [isOpen]="chordProgressionDialogOpen()"
-        (confirm)="handleChordProgressionNameConfirm($event)"
-        (close)="chordProgressionDialogOpen.set(false)"
-      />
-
-      <app-fretboard-editor-name-dialog
-        [isOpen]="fretboardNameDialogOpen()"
-        [initialTitle]="fretboardNameDialogTitle()"
-        (confirm)="handleFretboardNameConfirm($event)"
-        (close)="fretboardNameDialogOpen.set(false)"
-      />
-
     </div>
+    }
+  </div>
+
+  <!-- Chord Progression Name Dialog -->
+  <app-chord-progression-name-dialog [isOpen]="chordProgressionDialogOpen()"
+    (confirm)="handleChordProgressionNameConfirm($event)" (close)="chordProgressionDialogOpen.set(false)" />
+
+  <app-fretboard-editor-name-dialog [isOpen]="fretboardNameDialogOpen()" [initialTitle]="fretboardNameDialogTitle()"
+    (confirm)="handleFretboardNameConfirm($event)" (close)="fretboardNameDialogOpen.set(false)" />
+
+</div>

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, OnInit, AfterViewInit, ElementRef, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SectionItem } from '../../models/session.model';
 import { LucideTrash2 } from '@lucide/angular';
@@ -14,6 +14,7 @@ import type Quill from 'quill';
       <div class="card-body">
         <div class="flex justify-between items-start gap-4">
           <h4
+            #titleEl
             class="card-title flex-1 font-bold"
             contenteditable="true"
             role="textbox"
@@ -21,13 +22,14 @@ import type Quill from 'quill';
             [attr.data-placeholder]="localTitle ? null : 'Titolo sezione'"
             (input)="onTitleInput($event)"
             (keydown.enter)="$event.preventDefault()"
-          >{{ localTitle }}</h4>
+          ></h4>
 
             <button
               class="btn btn-sm btn-ghost"
               (click)="deleteSection()"
               aria-label="Elimina sezione"
             >
+
               <svg lucideTrash2 class="w-4 h-4"></svg>
             </button>
           
@@ -78,12 +80,14 @@ import type Quill from 'quill';
     }
   `
 })
-export class SectionEditorComponent implements OnInit {
+export class SectionEditorComponent implements OnInit, AfterViewInit {
   section = input.required<SectionItem>();
 
   save = output<{ title: string; content: string }>();
   delete = output<void>();
   edit = output<void>();
+
+  titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
 
   localTitle = '';
   content = '';
@@ -109,6 +113,15 @@ export class SectionEditorComponent implements OnInit {
   ngOnInit() {
     this.localTitle = this.section().title;
     this.content = this.section().content || '';
+  }
+
+  ngAfterViewInit() {
+    // Il testo iniziale va scritto una sola volta: il binding con interpolazione
+    // duplicherebbe il contenuto ad ogni digitazione perché contenteditable modifica il DOM da solo
+    const el = this.titleEl()?.nativeElement;
+    if (el) {
+      el.textContent = this.localTitle;
+    }
   }
 
   onContentChanged(event: { html: string | null }) {

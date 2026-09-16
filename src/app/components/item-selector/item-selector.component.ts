@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
-import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid } from '@lucide/angular';
+import { LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid, LucideLink } from '@lucide/angular';
 
-export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths';
+export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison' | 'chordprogression' | 'harmonicgrid' | 'keyprogression' | 'timeline' | 'modalinterchange' | 'fretboard' | 'tab' | 'circleoffifths' | 'links';
 
 @Component({
   selector: 'app-item-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid],
+  imports: [LucidePlus, LucideFileText, LucideMusic, LucideGitBranch, LucideGrid3x3, LucideGuitar, LucideClock, LucideTable2, LucideListMusic, LucideAudioLines, LucideMusic3, LucideLayoutGrid, LucideLink],
   template: `
     <div class="relative">
       <button
@@ -98,6 +98,12 @@ export type ItemType = 'section' | 'scale' | 'arpeggio' | 'chord' | 'comparison'
             <button type="button" (mousedown)="selectItem('modalinterchange')">
               <svg lucideTable2 class="w-4 h-4"></svg>
               Modal interchange
+            </button>
+          </li>
+          <li>
+            <button type="button" (mousedown)="selectItem('links')">
+              <svg lucideLink class="w-4 h-4"></svg>
+              Link a sessioni
             </button>
           </li>
          

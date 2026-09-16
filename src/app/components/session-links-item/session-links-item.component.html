@@ -1,0 +1,105 @@
+<div class="card bg-base-100 shadow-md">
+  <div class="card-body">
+    <!-- Header (accordion toggle) -->
+    <button
+      type="button"
+      class="flex justify-between items-center w-full text-left"
+      (click)="toggleExpanded()"
+      [attr.aria-expanded]="isExpanded()"
+    >
+      <span class="flex items-center gap-2 card-title text-lg">
+        @if (isExpanded()) {
+          <svg lucideChevronDown class="w-4 h-4"></svg>
+        } @else {
+          <svg lucideChevronRight class="w-4 h-4"></svg>
+        }
+        <svg lucideLink class="w-4 h-4"></svg>
+        Link a sessioni
+        @if (linkedSessions().length > 0) {
+          <span class="badge badge-sm badge-outline">{{ linkedSessions().length }}</span>
+        }
+      </span>
+
+      <span class="flex gap-2">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="toggleEditing($event)"
+          [attr.aria-label]="isEditing() ? 'Chiudi modifica' : 'Modifica link'"
+          [attr.aria-pressed]="isEditing()"
+          title="Modifica link"
+        >
+          <svg lucidePencil class="w-4 h-4"></svg>
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm btn-square"
+          (click)="confirmDelete($event)"
+          aria-label="Elimina sezione link"
+          title="Elimina sezione link"
+        >
+          <svg lucideTrash2 class="w-4 h-4"></svg>
+        </button>
+      </span>
+    </button>
+
+    @if (isExpanded()) {
+      <div class="mt-4">
+        @if (linkedSessions().length === 0 && !isEditing()) {
+          <p class="text-base-content/60 text-sm">
+            Nessuna sessione collegata.
+          </p>
+        }
+
+        @if (linkedSessions().length > 0) {
+          <ul class="flex flex-wrap gap-2">
+            @for (session of linkedSessions(); track session.id) {
+              <li class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-base-200 hover:bg-base-300 transition-colors max-w-full">
+                @if (isEditing()) {
+                  <svg lucideBook class="w-3.5 h-3.5 opacity-70 shrink-0"></svg>
+                  <span class="truncate text-sm">{{ session.title || 'Senza titolo' }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs btn-square shrink-0"
+                    (click)="removeLink(session.id)"
+                    [attr.aria-label]="'Rimuovi collegamento a ' + (session.title || 'Senza titolo')"
+                  >
+                    <svg lucideX class="w-3.5 h-3.5"></svg>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 truncate text-sm link link-hover"
+                    (click)="navigateToSession(session.id)"
+                  >
+                    <svg lucideBook class="w-3.5 h-3.5 opacity-70 shrink-0"></svg>
+                    <span class="truncate">{{ session.title || 'Senza titolo' }}</span>
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        }
+
+        @if (isEditing()) {
+          <button
+            type="button"
+            class="btn btn-dash btn-primary btn-block btn-sm mt-3"
+            (click)="openSelector()"
+          >
+            <svg lucidePlus class="w-4 h-4"></svg>
+            Aggiungi collegamento
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<app-session-link-selector-modal
+  [isOpen]="selectorOpen()"
+  [allSessions]="allSessions()"
+  [excludeSessionIds]="excludeSessionIds()"
+  (close)="onSelectorClose()"
+  (confirm)="onSelectorConfirm($event)"
+/>

@@ -6,7 +6,7 @@ import { TagService } from '../../services/tag.service';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy } from '@lucide/angular';
-import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, HarmonicGridItem, HarmonicSection, HarmonicBar, HarmonicBeat, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem, CircleOfFifthsItem } from '../../models/session.model';
+import { SessionItem, SectionItem, ComparisonItem, ScaleItem, ArpeggioItem, ChordItem, ChordProgressionItem, HarmonicGridItem, HarmonicSection, HarmonicBar, HarmonicBeat, TimelineItem, TimelineLayer, ModalInterchangeItem, FretboardItem, KeyProgressionItem, TabItem, CircleOfFifthsItem, LinksItem } from '../../models/session.model';
 import { SectionEditorComponent } from '../../components/section-editor/section-editor.component';
 import { ItemSelectorComponent, ItemType } from '../../components/item-selector/item-selector.component';
 import { ComparisonTableComponent } from '../../components/comparison-table/comparison-table.component';
@@ -27,11 +27,12 @@ import { CircleOfFifthsComponent } from '../../components/circle-of-fifths/circl
 import { SessionItemClipboardService } from '../../services/session-item-clipboard.service';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { IndexLinksComponent } from '../../components/index-links/index-links.component';
+import { SessionLinksItemComponent } from '../../components/session-links-item/session-links-item.component';
 
 @Component({
   selector: 'session-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, IndexLinksComponent, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent],
+  imports: [FormsModule, CdkDrag, CdkDropList, CdkDragHandle, PageHeaderComponent, LucideX, LucideSave, LucideGripVertical, LucideArrowLeft, LucideCopy, SectionEditorComponent, ItemSelectorComponent, ComparisonTableComponent, ScaleVisualizationComponent, ChordProgressionComponent, HarmonicGridComponent, TimelineVisualizationComponent, ModalInterchangeComponent, FretboardEditorComponent, ChordProgressionNameDialogComponent, SessionGroupLinksComponent, KeyProgressionComponent, FretboardEditorNameDialogComponent, TabEditorComponent, CircleOfFifthsComponent, SessionLinksItemComponent, IndexLinksComponent],
   templateUrl: './session-editor.component.html',
   animations: [fadeSlideUp],
   styles: [`
@@ -415,6 +416,14 @@ export class SessionEditorPage implements OnInit {
         selectedMode2: null
       };
       this.items.update(items => [...items, newModalInterchange]);
+    } else if (type === 'links') {
+      const newLinks: LinksItem = {
+        id: newId,
+        type: 'links',
+        order: newOrder,
+        linkedSessionIds: []
+      };
+      this.items.update(items => [...items, newLinks]);
     } else if (type === 'fretboard') {
       // this.fretboardNameDialogTitle.set('Nuova tastiera');
       this.fretboardNameDialogOpen.set(true);
@@ -638,6 +647,17 @@ export class SessionEditorPage implements OnInit {
     this.items.update(items =>
       items.map(item => {
         if (item.id === itemId && item.type === 'circleoffifths') {
+          return { ...item, ...updatedItem, id: itemId };
+        }
+        return item;
+      })
+    );
+  }
+
+  updateLinksItem(itemId: string, updatedItem: LinksItem) {
+    this.items.update(items =>
+      items.map(item => {
+        if (item.id === itemId && item.type === 'links') {
           return { ...item, ...updatedItem, id: itemId };
         }
         return item;
