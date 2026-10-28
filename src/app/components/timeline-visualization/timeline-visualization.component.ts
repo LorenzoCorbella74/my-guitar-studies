@@ -1,8 +1,8 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideTrash2, LucidePlay, LucidePause, LucideSquare, LucideSettings, LucideCopy } from '@lucide/angular';
-import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem, ChordInversion } from '../../models/session.model';
-import { Chord, ChordType, Interval, Note } from 'tonal';
+import { TimelineItem, TimelineLayer, NoteDuration, OverlayItem, ChordInversion, TimelineViewMode, ReferenceKeyType } from '../../models/session.model';
+import { Chord, ChordType, Interval, Note, Scale } from 'tonal';
 import { DEGREE_COLOURS, NUM_FRETS, NOTES_WITH_FLATS, FRETBOARD_STYLES, OCTAVE_COLOURS } from '../scale-visualization/constants';
 import { MetronomeService } from '../../services/metronome.service';
 import { AudioService } from '../../services/audio.service';
@@ -24,6 +24,21 @@ interface FretNote {
   isOverlay?: boolean;
   opacity?: number; // For transition animations
   isFromNextLayer?: boolean; // To distinguish during transitions
+}
+
+interface MatrixRow {
+  semitone: number; // 0-11 offset from reference tonic
+  intervalName: string; // e.g. '1P','3m' — key for DEGREE_COLOURS
+  degreeLabel: string; // e.g. '1','b3','#4'
+  note: string; // spelled note name relative to tonic
+  isDiatonic: boolean;
+}
+
+interface MatrixColumn {
+  index: number;
+  name: string; // chord display symbol
+  semitones: Set<number>; // chord note offsets from tonic
+  degreeBySemitone: Map<number, string>; // chord-relative degree label per semitone
 }
 
 @Component({
@@ -155,6 +170,133 @@ export class TimelineVisualizationComponent implements OnInit, OnDestroy {
 
   chordTypeOptions = ChordType.all().map(ct => ct.aliases[0] || ct.name);
   noteOptions = NOTES_WITH_FLATS;
+
+  // --- Matrix view ---
+  viewMode = computed<TimelineViewMode>(() => this.timelineItem().viewMode || 'fretboard');
+  isMatrixView = computed(() => this.viewMode() === 'matrix');
+  referenceKeyRoot = computed(() => this.timelineItem().referenceKeyRoot || 'C');
+  referenceKeyType = computed<ReferenceKeyType>(() => this.timelineItem().referenceKeyType || 'major');
+
+  referenceKeyTypeOptions: { value: ReferenceKeyType; label: string }[] = [
+    { value: 'major', label: 'Maggiore' },
+    { value: 'minor-natural', label: 'Minore naturale' },
+    { value: 'minor-harmonic', label: 'Minore armonica' }
+  ];
+
+  private readonly SEMITONE_TO_INTERVAL: Record<number, string> = {
+    0: '1P', 1: '2m', 2: '2M', 3: '3m', 4: '3M', 5: '4P',
+    6: '4A', 7: '5P', 8: '6m', 9: '6M', 10: '7m', 11: '7M'
+  };
+  private readonly INTERVAL_TO_DEGREE_LABEL: Record<string, string> = {
+    '1P': '1', '2m': 'b2', '2M': '2', '2A': '#2', '3m': 'b3', '3M': '3',
+    '4P': '4', '4A': '#4', '5d': 'b5', '5P': '5', '5A': '#5',
+    '6m': 'b6', '6M': '6', '7d': 'bb7', '7m': 'b7', '7M': '7'
+  };
+
+  private scaleNameFor(type: ReferenceKeyType): string {
+    switch (type) {
+      case 'minor-natural': return 'aeolian';
+      case 'minor-harmonic': return 'harmonic minor';
+      default: return 'major';
+    }
+  }
+
+  // 7 diatonic degrees of the reference key
+  private diatonicRows = computed<MatrixRow[]>(() => {
+    const tonic = this.referenceKeyRoot();
+    const scale = Scale.get(`${tonic} ${this.scaleNameFor(this.referenceKeyType())}`);
+    return scale.intervals.map((interval, i) => {
+      const note = scale.notes[i] || Note.transpose(tonic, interval);
+      const semitone = (((Interval.semitones(interval) ?? 0) % 12) + 12) % 12;
+      return {
+        semitone,
+        intervalName: interval,
+        degreeLabel: this.INTERVAL_TO_DEGREE_LABEL[interval] ?? String(i + 1),
+        note: note.replace(/\d+/, ''),
+        isDiatonic: true
+      };
+    });
+  });
+
+  // Columns: the timeline layers mapped to chord note offsets from the tonic
+  matrixColumns = computed<MatrixColumn[]>(() => {
+    const tonicChroma = Note.chroma(this.referenceKeyRoot()) ?? 0;
+    return this.layers().map((layer, index) => {
+      const chord = Chord.get(`${layer.root}${layer.chordType}`);
+      const chordRoot = chord.tonic || layer.root;
+      const semitones = new Set<number>();
+      const degreeBySemitone = new Map<number, string>();
+      (chord.notes || []).forEach(n => {
+        const c = Note.chroma(n);
+        if (c !== undefined) {
+          const semitone = (((c - tonicChroma) % 12) + 12) % 12;
+          semitones.add(semitone);
+          const interval = Interval.distance(chordRoot, n);
+          degreeBySemitone.set(semitone, this.INTERVAL_TO_DEGREE_LABEL[interval] ?? interval);
+        }
+      });
+      return { index, name: chord.symbol || `${layer.root}${layer.chordType}`, semitones, degreeBySemitone };
+    });
+  });
+
+  // Rows: diatonic degrees + any altered degree used by a chord, sorted chromatically
+  matrixRows = computed<MatrixRow[]>(() => {
+    const diatonic = this.diatonicRows();
+    const diatonicSemitones = new Set(diatonic.map(r => r.semitone));
+    const tonic = this.referenceKeyRoot();
+
+    const used = new Set<number>();
+    this.matrixColumns().forEach(col => col.semitones.forEach(s => used.add(s)));
+
+    const alteredRows: MatrixRow[] = [];
+    used.forEach(s => {
+      if (!diatonicSemitones.has(s)) {
+        const interval = this.SEMITONE_TO_INTERVAL[s];
+        alteredRows.push({
+          semitone: s,
+          intervalName: interval,
+          degreeLabel: this.INTERVAL_TO_DEGREE_LABEL[interval] ?? '',
+          note: Note.transpose(tonic, interval).replace(/\d+/, ''),
+          isDiatonic: false
+        });
+      }
+    });
+
+    return [...diatonic, ...alteredRows].sort((a, b) => a.semitone - b.semitone);
+  });
+
+  isCellActive(row: MatrixRow, col: MatrixColumn): boolean {
+    return col.semitones.has(row.semitone);
+  }
+
+  getCellDegree(row: MatrixRow, col: MatrixColumn): string {
+    return col.degreeBySemitone.get(row.semitone) ?? '';
+  }
+
+  getDegreeColor(intervalName: string): string {
+    return DEGREE_COLOURS[intervalName as keyof typeof DEGREE_COLOURS] || DEGREE_COLOURS['1P'];
+  }
+
+  setViewMode(mode: TimelineViewMode) {
+    if (this.isPlaybackActive()) return;
+    this.update.emit({ ...this.timelineItem(), viewMode: mode });
+  }
+
+  updateReferenceKeyRoot(root: string) {
+    if (this.isPlaybackActive()) return;
+    this.update.emit({ ...this.timelineItem(), referenceKeyRoot: root });
+  }
+
+  updateReferenceKeyType(type: ReferenceKeyType) {
+    if (this.isPlaybackActive()) return;
+    this.update.emit({ ...this.timelineItem(), referenceKeyType: type });
+  }
+
+  selectColumn(index: number) {
+    if (this.isPlaybackActive()) return;
+    this.currentLayerIndex.set(index);
+    this.syncLayerSignals();
+  }
 
   // Fretboard layout constants (same as scale-visualization)
   leftMargin = 40;

@@ -184,6 +184,9 @@ export interface TimelineLayer {
   overlays?: OverlayItem[];
 }
 
+export type TimelineViewMode = 'fretboard' | 'matrix';
+export type ReferenceKeyType = 'major' | 'minor-natural' | 'minor-harmonic';
+
 export interface TimelineItem extends SessionItem {
   type: 'timeline';
   bpm: number;
@@ -192,6 +195,9 @@ export interface TimelineItem extends SessionItem {
   colorMode?: ColorMode;
   fretboardColor?: string;
   sequencerConfig?: SequencerConfig;
+  viewMode?: TimelineViewMode; // Default: 'fretboard'
+  referenceKeyRoot?: string; // Default: 'C'
+  referenceKeyType?: ReferenceKeyType; // Default: 'major'
 }
 
 export interface ModalInterchangeItem extends SessionItem {
@@ -214,7 +220,7 @@ export interface FretboardOverlay {
 
 export interface FretboardItem extends SessionItem {
   type: 'fretboard';
-  title:string;
+  title: string;
   fretboardConfig: {
     fretShift?: number;
     fretboardColor?: string;
